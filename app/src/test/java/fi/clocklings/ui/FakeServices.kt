@@ -1,0 +1,33 @@
+package fi.clocklings.ui
+
+import fi.clocklings.AppServices
+import fi.clocklings.audio.Sound
+import fi.clocklings.data.InMemoryPreferencesStore
+import fi.clocklings.data.ProgressRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+
+/** Testipalvelut: muistissa oleva tallennus ja äänien kirjaus. */
+class FakeServices : AppServices {
+    override val repository = ProgressRepository(InMemoryPreferencesStore())
+    override val speechAvailable: StateFlow<Boolean> = MutableStateFlow(false)
+    val sounds = mutableListOf<Sound>()
+    val spoken = mutableListOf<String>()
+    var speechStops = 0
+        private set
+
+    override fun play(
+        sound: Sound,
+        force: Boolean,
+    ) {
+        sounds += sound
+    }
+
+    override fun speak(text: String) {
+        spoken += text
+    }
+
+    override fun stopSpeech() {
+        speechStops++
+    }
+}

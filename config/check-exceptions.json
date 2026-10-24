@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "exceptions": [
+    {
+      "id": "clocklings-mobsf-task-hijacking-target-sdk",
+      "tool": "mobsfscan",
+      "rule": "android_task_hijacking2",
+      "scope": "app/src/main/AndroidManifest.xml MainActivity targetSdk fallback",
+      "reason": "MobSF 0.4.5 reads only the source manifest and defaults a missing uses-sdk target to 26. Gradle sets targetSdk = 37 for all app variants, confirmed in the merged debug manifest, so this rule's targetSdk < 29 precondition is false. This does not establish OS patch status or protection on older unpatched Android versions supported by minSdk 26.",
+      "owner": "Clocklings project owner",
+      "added": "2026-10-20",
+      "expires": "2027-01-20",
+      "tracking": "local-review:clocklings-mobsf-task-hijacking-target-sdk",
+      "sourcePath": "app/build.gradle.kts",
+      "selector": "targetSdk = 37",
+      "findingPath": "app/src/main/AndroidManifest.xml",
+      "findingSelectors": [
+        "Activity exported, targetSdk<29 and launchMode != singleInstance or taskAffinity is not empty"
+      ]
+    }
+  ]
+}

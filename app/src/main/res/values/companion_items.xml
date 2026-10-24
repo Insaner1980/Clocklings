@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- English names for the companion wardrobe items. Item ids are <kind>-<slot>-<name> in domain/CompanionItems.kt. -->
+<resources>
+    <!-- Cat -->
+    <string name="item_cat_neck_scarf">Striped scarf</string>
+    <string name="item_cat_head_bow">Bow</string>
+    <string name="item_cat_extra_yarn">Yarn ball</string>
+    <string name="item_cat_neck_bell_collar">Bell collar</string>
+    <string name="item_cat_head_bobble_hat">Bobble hat</string>
+    <string name="item_cat_extra_glasses">Round glasses</string>
+    <string name="item_cat_neck_bow_tie">Bow tie</string>
+    <string name="item_cat_head_sailor_hat">Sailor hat</string>
+    <string name="item_cat_extra_fish_backpack">Fish backpack</string>
+    <string name="item_cat_neck_ruffle">Ruffle collar</string>
+    <string name="item_cat_head_flower_crown">Flower crown</string>
+    <string name="item_cat_neck_pearls">Pearl necklace</string>
+    <string name="item_cat_extra_wand">Magic wand</string>
+    <string name="item_cat_neck_cape">Sparkle cape</string>
+    <string name="item_cat_head_crown">Crown</string>
+    <string name="item_cat_extra_wings">Butterfly wings</string>
+
+    <!-- Dog -->
+    <string name="item_dog_neck_bandana">Bandana</string>
+    <string name="item_dog_head_cap">Cap</string>
+    <string name="item_dog_extra_ball">Tennis ball</string>
+    <string name="item_dog_neck_bone_collar">Bone tag collar</string>
+    <string name="item_dog_head_sun_hat">Sun hat</string>
+    <string name="item_dog_extra_frisbee">Frisbee</string>
+    <string name="item_dog_neck_bow_tie">Bow tie</string>
+    <string name="item_dog_head_party_hat">Party hat</string>
+    <string name="item_dog_extra_boots">Rain boots</string>
+    <string name="item_dog_neck_lei">Flower lei</string>
+    <string name="item_dog_head_aviator">Aviator cap</string>
+    <string name="item_dog_extra_backpack">Backpack</string>
+    <string name="item_dog_neck_medal">Medal</string>
+    <string name="item_dog_head_helmet">Firefighter helmet</string>
+    <string name="item_dog_extra_raincoat">Raincoat</string>
+    <string name="item_dog_neck_cape">Hero cape</string>
+
+    <!-- Robot -->
+    <string name="item_robot_head_antenna">Antenna</string>
+    <string name="item_robot_neck_bow_tie">Bow tie</string>
+    <string name="item_robot_extra_wrench">Wrench</string>
+    <string name="item_robot_head_propeller">Propeller cap</string>
+    <string name="item_robot_neck_tie">Tie</string>
+    <string name="item_robot_extra_heart_eyes">Heart-eyes screen</string>
+    <string name="item_robot_head_headphones">Headphones</string>
+    <string name="item_robot_neck_spring">Spring collar</string>
+    <string name="item_robot_extra_star_eyes">Star-eyes screen</string>
+    <string name="item_robot_head_chef_hat">Chef hat</string>
+    <string name="item_robot_neck_lights">Light-up necklace</string>
+    <string name="item_robot_extra_pet">Robot pet</string>
+    <string name="item_robot_head_star_antennas">Star antennas</string>
+    <string name="item_robot_neck_medal">Gold medal</string>
+    <string name="item_robot_head_astronaut">Astronaut helmet</string>
+    <string name="item_robot_extra_jetpack">Jetpack</string>
+
+    <!-- Dragon -->
+    <string name="item_dragon_neck_pendant">Pendant</string>
+    <string name="item_dragon_head_flower_crown">Flower crown</string>
+    <string name="item_dragon_extra_coins">Gold coin pouch</string>
+    <string name="item_dragon_neck_bow">Bow</string>
+    <string name="item_dragon_head_wizard_hat">Wizard hat</string>
+    <string name="item_dragon_extra_book">Magic book</string>
+    <string name="item_dragon_neck_scarf">Scarf</string>
+    <string name="item_dragon_head_tiara">Tiara</string>
+    <string name="item_dragon_extra_shield">Shield</string>
+    <string name="item_dragon_neck_chain">Gold chain</string>
+    <string name="item_dragon_head_knight_helmet">Knight helmet</string>
+    <string name="item_dragon_extra_star_cloud">Star cloud</string>
+    <string name="item_dragon_neck_sparkles">Sparkle necklace</string>
+    <string name="item_dragon_neck_cape">Royal cape</string>
+    <string name="item_dragon_head_crown">Crown</string>
+    <string name="item_dragon_extra_wings">Sparkle wings</string>
+
+    <!-- Dinosaur -->
+    <string name="item_dinosaur_extra_backpack">Backpack</string>
+    <string name="item_dinosaur_head_flower">Flower behind the ear</string>
+    <string name="item_dinosaur_extra_bucket">Sand bucket</string>
+    <string name="item_dinosaur_neck_scarf">Scarf</string>
+    <string name="item_dinosaur_head_cap">Cap</string>
+    <string name="item_dinosaur_extra_balloon">Balloon</string>
+    <string name="item_dinosaur_neck_bow_tie">Bow tie</string>
+    <string name="item_dinosaur_head_party_hat">Party hat</string>
+    <string name="item_dinosaur_extra_umbrella">Umbrella</string>
+    <string name="item_dinosaur_neck_lei">Flower lei</string>
+    <string name="item_dinosaur_head_hard_hat">Hard hat</string>
+    <string name="item_dinosaur_extra_kite">Kite</string>
+    <string name="item_dinosaur_neck_binoculars">Binoculars</string>
+    <string name="item_dinosaur_neck_medal">Medal</string>
+    <string name="item_dinosaur_head_explorer_hat">Explorer hat</string>
+    <string name="item_dinosaur_extra_skateboard">Skateboard</string>
+</resources>

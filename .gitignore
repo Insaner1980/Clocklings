@@ -1,0 +1,26 @@
+.gradle/
+.kotlin/
+build/
+local.properties
+.idea/
+*.iml
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+reports/
+.superpowers/
+.remember/
+# Allekirjoitusavain ja salasanat pidetään repositorion ulkopuolella
+*.jks
+*.keystore
+keystore.properties
+
+# Local tooling and credentials
+.sonar/
+.env
+.env.*
+*.p12
+*.pfx
+*.pem
+

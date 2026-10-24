@@ -1,0 +1,10 @@
+packages: []
+
+overrides:
+  '@openai/codex': 0.161.0
+  fast-uri: 3.1.8
+  qs: 6.16.0
+  undici@8.5.0: 8.11.2
+
+patchedDependencies:
+  deepsec@2.3.9: patches/deepsec@2.3.9.patch

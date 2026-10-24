@@ -1,0 +1,326 @@
+package fi.clocklings
+
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performCustomAccessibilityActionWithLabel
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
+import org.junit.rules.ExternalResource
+import org.junit.rules.RuleChain
+import org.junit.runner.RunWith
+import java.io.File
+
+/**
+ * Koko sovelluksen polut emulaattorilla. Oikeat vastaukset luetaan kellon saavutettavuustekstistä,
+ * joten testi ei riipu satunnaisuudesta.
+ */
+@OptIn(ExperimentalTestApi::class)
+@RunWith(AndroidJUnit4::class)
+class AppFlowTest {
+    private val freshData =
+        object : ExternalResource() {
+            override fun before() {
+                val context = InstrumentationRegistry.getInstrumentation().targetContext
+                File(context.filesDir, "datastore").deleteRecursively()
+            }
+        }
+    private val compose = createAndroidComposeRule<MainActivity>()
+
+    private companion object {
+        const val LEVEL_CARDS = 6
+    }
+
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(freshData).around(compose)
+
+    private fun waitForText(
+        text: String,
+        substring: Boolean = false,
+        timeout: Long = 10_000,
+    ) {
+        compose.waitUntil(timeout) {
+            compose.onAllNodesWithText(text, substring = substring).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun click(text: String) {
+        waitForText(text)
+        compose.onAllNodes(hasText(text) and hasClickAction())[0].performScrollTo().performClick()
+    }
+
+    private fun clockWords(): String {
+        val node = compose.onNode(hasContentDescription("Clock face:", substring = true)).fetchSemanticsNode()
+        return node.config[SemanticsProperties.ContentDescription].first().removePrefix("Clock face: ")
+    }
+
+    /** Asetus tallentuu DataStoreen taustasäikeessä, joten valintaa odotetaan eikä sitä tarkisteta heti. */
+    private fun waitUntilSelected(text: String) {
+        compose.waitUntil(5_000) {
+            compose
+                .onAllNodes(hasText(text) and hasClickAction())
+                .fetchSemanticsNodes()
+                .any { it.config.getOrElse(SemanticsProperties.Selected) { false } }
+        }
+    }
+
+    private fun isShown(
+        text: String,
+        substring: Boolean = false,
+    ) = compose.onAllNodesWithText(text, substring = substring).fetchSemanticsNodes().isNotEmpty()
+
+    /** Gives the first level [stars] stars straight through the repository. */
+    private fun seedStars(stars: Int) {
+        waitForText("RIGHT NOW")
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val repository = (context.applicationContext as ClocklingsApplication).container.repository
+        runBlocking { repository.updateProgress { it.withLevelResult(0, stars) } }
+    }
+
+    /** The item's tile (merged with its "Wearing" pill) shows that the companion wears it. */
+    private fun wearing(item: String): Boolean =
+        compose
+            .onAllNodes(hasText(item) and hasClickAction() and hasText("Wearing"))
+            .fetchSemanticsNodes()
+            .isNotEmpty()
+
+    private fun assertWearing(item: String) {
+        compose.waitUntil(5_000) { wearing(item) }
+    }
+
+    private fun assertNotWearing(item: String) {
+        compose.waitUntil(5_000) { !wearing(item) }
+        waitForText(item)
+    }
+
+    private fun assertWholeWords(text: String) {
+        val layouts = mutableListOf<TextLayoutResult>()
+        compose
+            .onNodeWithText(text, useUnmergedTree = true)
+            .performScrollTo()
+            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+        assertTrue("Missing text layout: $text", layouts.isNotEmpty())
+        for (layout in layouts) {
+            assertTrue("Text height overflows: $text", !layout.didOverflowHeight)
+            // A paragraph can retain the available width when its Text node wraps content.
+            // Check the rendered lines, allowing one pixel for integer size rounding.
+            for (line in 0 until layout.lineCount) {
+                assertTrue(
+                    "Text width overflows: $text",
+                    layout.getLineLeft(line) >= -1f && layout.getLineRight(line) <= layout.size.width + 1f,
+                )
+            }
+            for (line in 0 until layout.lineCount - 1) {
+                val end = layout.getLineEnd(line)
+                assertTrue(
+                    "Word split in: $text",
+                    end !in 1 until text.length ||
+                        text[end - 1].isWhitespace() ||
+                        text[end - 1] == '-' ||
+                        text[end].isWhitespace(),
+                )
+            }
+        }
+    }
+
+    @Test
+    fun homeAndTogetherKeepWordsReadable() {
+        waitForText("RIGHT NOW")
+        assertWholeWords(clockWords().replaceFirstChar { it.uppercase() })
+        assertWholeWords("MY COMPANION")
+        assertWholeWords("Explore")
+        assertWholeWords("Play Together")
+        assertWholeWords("My Companion")
+        click("Play Together")
+        assertWholeWords("Play Together")
+    }
+
+    @Test
+    fun playWholeHoursThenDressCompanionAndSurviveRecreate() {
+        click("Play")
+        waitForText("Choose a level")
+        click("Play")
+        click("Skip and play")
+        var wrongDone = false
+        repeat(10) { task ->
+            compose.waitUntil(5_000) { isShown("What time is it?") || isShown("Set the clock to") }
+            compose.waitForIdle()
+            if (isShown("What time is it?")) {
+                val answer = clockWords().replaceFirstChar { it.uppercase() }
+                if (!wrongDone) {
+                    val wrong =
+                        compose
+                            .onAllNodes(hasText("o'clock", substring = true) and hasClickAction())
+                            .fetchSemanticsNodes()
+                            .map { it.config[SemanticsProperties.Text].first().text }
+                            .first { it != answer }
+                    click(wrong)
+                    waitForText("Look at the short red hand", substring = true)
+                    wrongDone = true
+                }
+                click(answer)
+            } else {
+                val target =
+                    compose
+                        .onAllNodesWithText("o'clock", substring = true)
+                        .fetchSemanticsNodes()
+                        .map { it.config[SemanticsProperties.Text].first().text }
+                        .first()
+                        .lowercase()
+                var guard = 0
+                while (clockWords() != target && guard++ < 12) {
+                    compose
+                        .onNode(hasContentDescription("Clock face:", substring = true))
+                        .performCustomAccessibilityActionWithLabel("Add 60 minutes")
+                    compose.waitForIdle()
+                }
+                assertTrue("tehtävä $task: kello ${clockWords()} != $target", clockWords() == target)
+                click("Done")
+            }
+            // Onnistumisen jälkeen peli jatkuu 1,5 sekunnin kuluttua.
+            Thread.sleep(1_800)
+        }
+        waitForText("Whole hours complete!", substring = true)
+        assertTrue(isShown("You earned 3 stars", substring = true))
+        assertTrue(isShown("Polka-dot dress"))
+
+        click("Choose an outfit")
+        waitForText("Outfits")
+        click("Polka-dot dress")
+        compose.waitUntil(5_000) { isShown("Wearing") && pilkkumekkoSelected() }
+
+        compose.activityRule.scenario.recreate()
+        waitForText("Outfits")
+        compose.waitUntil(5_000) { pilkkumekkoSelected() }
+        compose.onAllNodes(hasText("Polka-dot dress") and hasClickAction())[0].assertIsSelected()
+    }
+
+    private fun pilkkumekkoSelected(): Boolean =
+        compose
+            .onAllNodes(hasText("Polka-dot dress") and hasClickAction())
+            .fetchSemanticsNodes()
+            .any { it.config.getOrElse(SemanticsProperties.Selected) { false } }
+
+    @Test
+    fun animalWardrobeWearsItemsAndColors() {
+        seedStars(3)
+        click("My Companion")
+        compose.onNodeWithTag("choose_companion_CAT").performScrollTo().performClick()
+        click("Choose an outfit")
+        waitForText("Outfits")
+        click("Striped scarf")
+        assertWearing("Striped scarf")
+        click("Striped scarf")
+        assertNotWearing("Striped scarf")
+        compose.onNodeWithTag("color_BLUE").performScrollTo().performClick()
+        compose.waitUntil(5_000) {
+            compose
+                .onNodeWithTag("color_BLUE")
+                .fetchSemanticsNode()
+                .config
+                .getOrElse(SemanticsProperties.Selected) { false }
+        }
+        compose.onNodeWithTag("color_BLUE").assertIsSelected()
+        // The bobble hat opens at four stars.
+        compose.onNodeWithContentDescription("Locked. Stars needed: 4").assertExists()
+        // No loose free-item chip from the old picker.
+        compose.onAllNodesWithText("Bandana").assertCountEquals(0)
+    }
+
+    @Test
+    fun freeClockAndTogetherPlayKeepSettingsAcrossRecreation() {
+        click("24 h")
+        waitUntilSelected("24 h")
+        click("Sounds on")
+        waitForText("Sounds off")
+        click("Explore")
+        waitForText("THE TIME IS")
+        assertTrue(clockWords().contains("three"))
+        compose
+            .onNode(hasContentDescription("Clock face:", substring = true))
+            .performCustomAccessibilityActionWithLabel("Add 5 minutes")
+        compose.onNodeWithText("15:05").assertExists()
+        click("Random time")
+        click("Help on")
+        waitForText("Help off")
+        compose.activityRule.scenario.recreate()
+        waitForText("Help off")
+        click("← Back")
+        click("Play Together")
+        click("Random time")
+        click("Ask")
+        waitForText("What time is it?")
+        compose.onAllNodes(hasContentDescription("Clock face:", substring = true)).assertCountEquals(0)
+        compose.onNodeWithText("PLAYER 2 ANSWERS").assertExists()
+        compose.activityRule.scenario.recreate()
+        waitForText("What time is it?")
+        compose.onAllNodes(hasContentDescription("Clock face:", substring = true)).assertCountEquals(0)
+        click("Show the answer")
+        compose.onNodeWithText("Swap turns").performScrollTo().assertIsDisplayed()
+        assertTrue(clockWords().isNotBlank())
+        click("Swap turns")
+        waitForText("Choose a time")
+        compose.onNodeWithText("PLAYER 2 SETS THE TIME").assertExists()
+        compose.activityRule.scenario.recreate()
+        waitForText("PLAYER 2 SETS THE TIME")
+        click("Ask")
+        compose.onNodeWithText("PLAYER 1 ANSWERS").assertExists()
+        click("← Back")
+        compose.onNodeWithText("0 / 15").assertExists()
+        click("12 h")
+        waitUntilSelected("12 h")
+        click("Reset progress")
+        click("Reset stars and outfits? Tap again to confirm")
+        waitForText("Reset progress")
+        compose.onNodeWithText("Sounds off").assertExists()
+    }
+
+    @Test
+    fun everyLevelAndTheChallengeArePlayableFromTheStart() {
+        click("Play")
+        waitForText("Choose a level")
+        // Viisi tasoa ja Minuuttihaaste: kaikki Pelaa-napit toimivat ilman tähtiä.
+        val play = compose.onAllNodes(hasText("Play") and hasClickAction())
+        compose.waitUntil(5_000) { play.fetchSemanticsNodes().size == LEVEL_CARDS }
+        repeat(LEVEL_CARDS) { play[it].performScrollTo().assertIsEnabled() }
+        play[LEVEL_CARDS - 1].performScrollTo().performClick()
+        waitForText("Start!")
+    }
+
+    @Test
+    fun passTheFirstLessonQuiz() {
+        click("Learn")
+        waitForText("Two hands")
+        click("Two hands")
+        click("Next")
+        click("Next")
+        click("Try it")
+        waitForText("Which hand shows the hour?")
+        click("The long blue hand")
+        waitForText("The hour hand is the shorter, red hand.")
+        click("The short red hand")
+        waitForText("You completed Two hands.", substring = true)
+        click("Done")
+        waitForText("Completed")
+        compose.onNodeWithText("Completed").assertExists()
+    }
+}
