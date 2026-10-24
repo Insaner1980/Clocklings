@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  actions: read
+  actions: read # CodeQL reads workflow run metadata when uploading SARIF in private repositories.
   contents: read
   security-events: write
 
