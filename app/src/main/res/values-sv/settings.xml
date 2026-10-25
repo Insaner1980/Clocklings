@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Inställningar</string>
+    <string name="language_title">Språk</string>
+    <string name="language_device">Enhetens språk</string>
+    <string name="language_english">English</string>
+    <string name="language_finnish">Suomi</string>
+    <string name="language_swedish">Svenska</string>
+    <string name="settings_language_description">Ändrar språket i appen, lektionerna och klockans ord.</string>
+    <string name="settings_clock_display">Klockvisning</string>
+    <string name="settings_clock_example">Exempel: %1$s / %2$s</string>
+    <string name="settings_guides_title">Hjälp på klockan</string>
+    <string name="settings_guides_description">Visa minuttal och markerade klockhalvor, samt 24-timmarstal i 24-timmarsläge.</string>
+    <string name="settings_sound_title">Ljudeffekter</string>
+    <string name="settings_sound_description">Ljud för tryck, svar och firanden.</string>
+    <string name="settings_speech_title">Uppläsning</string>
+    <string name="settings_speech_available">Tillgänglig för det här språket</string>
+    <string name="settings_speech_unavailable">Inte tillgänglig för det här språket</string>
+    <string name="settings_speech_description">Uppläsning startar bara när du trycker på en Lyssna-knapp.</string>
+    <string name="settings_progress_title">Framsteg i lärandet</string>
+    <string name="settings_reset_title">Nollställ framsteg i lärandet?</string>
+    <string name="settings_reset_body">Detta nollställer stjärnor, bästa resultat, klara lektioner, kompisarnas namn och kläder. Språk, klockvisning, ljudeffekter, hjälp på klockan och val av utseende behålls.</string>
+    <string name="settings_reset_action">Nollställ framsteg</string>
+    <string name="settings_cancel">Avbryt</string>
+    <string name="settings_save_error">Det gick inte att spara ändringen. Försök igen.</string>
+    <string name="language_save_error">Det gick inte att ändra språket. Försök igen.</string>
+    <string name="settings_retry">Försök igen</string>
+</resources>

@@ -1,9 +1,12 @@
 package fi.clocklings
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
@@ -14,6 +17,7 @@ import fi.clocklings.ui.challenge.ChallengeScreen
 import fi.clocklings.ui.challenge.ChallengeUiState
 import fi.clocklings.ui.components.ConfettiState
 import fi.clocklings.ui.components.LocalConfetti
+import fi.clocklings.ui.components.rememberCelebrationAnchors
 import fi.clocklings.ui.theme.ClocklingsTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -25,10 +29,30 @@ class ComposeStabilityRegressionTest {
     @get:Rule val compose = createComposeRule()
 
     @Test
+    fun consumedLessonOrGameCelebrationIsNotRepeatedAfterRecreation() {
+        val restoration = StateRestorationTester(compose)
+        val celebrate = mutableIntStateOf(0)
+        val confetti = ConfettiState(density = 1f, enabled = true)
+        restoration.setContent {
+            CompositionLocalProvider(LocalConfetti provides confetti) {
+                val anchors = rememberCelebrationAnchors(celebrate.intValue, 5) { 1 }
+                anchors[1] = Offset.Zero
+            }
+        }
+        compose.runOnIdle { celebrate.intValue = 1 }
+        compose.runOnIdle { assertEquals(5, confetti.particles.size) }
+        restoration.emulateSavedInstanceStateRestore()
+        compose.runOnIdle { assertEquals(5, confetti.particles.size) }
+        compose.runOnIdle { celebrate.intValue = 2 }
+        compose.runOnIdle { assertEquals(10, confetti.particles.size) }
+    }
+
+    @Test
     fun recordConfettiUsesScoreAnchorAndDoesNotRepeatOnLayout() {
+        val restoration = StateRestorationTester(compose)
         val state = mutableStateOf(ChallengeUiState(phase = ChallengePhase.END, score = 12, best = 10))
         val confetti = ConfettiState(density = 1f, enabled = true)
-        compose.setContent {
+        restoration.setContent {
             ClocklingsTheme {
                 CompositionLocalProvider(LocalConfetti provides confetti) {
                     ChallengeScreen(state.value, h24 = false, help = false, onBack = {}, onStart = {}, onPick = {})
@@ -50,6 +74,8 @@ class ComposeStabilityRegressionTest {
             }
         }
         compose.onNodeWithText("Levels").performScrollTo().assertIsDisplayed()
+        compose.runOnIdle { assertEquals(120, confetti.particles.size) }
+        restoration.emulateSavedInstanceStateRestore()
         compose.runOnIdle { assertEquals(120, confetti.particles.size) }
     }
 }

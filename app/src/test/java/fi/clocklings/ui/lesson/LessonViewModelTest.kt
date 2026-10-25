@@ -1,5 +1,6 @@
 package fi.clocklings.ui.lesson
 
+import fi.clocklings.domain.AppLanguage
 import fi.clocklings.domain.Hand
 import fi.clocklings.domain.Mark
 import fi.clocklings.ui.FakeServices
@@ -155,5 +156,51 @@ class LessonViewModelTest {
             vm.next()
             assertTrue(vm.state.value.isQuiz)
             assertFalse(vm.state.value.finished)
+        }
+
+    @Test
+    fun `language change restarts only the current demo with its new reference hour`() =
+        scope.runTest {
+            val vm = vm(listOf("puoli"))
+            repeat(2) { vm.next() }
+            advanceTimeBy(701)
+            assertTrue(Mark.NumberGlow(3) in vm.state.value.under)
+            vm.setLanguage(AppLanguage.FINNISH)
+            assertEquals(2, vm.state.value.page)
+            assertEquals(210, vm.state.value.clock.time)
+            assertFalse(Mark.NumberGlow(4) in vm.state.value.under)
+            advanceTimeBy(701)
+            assertTrue(Mark.NumberGlow(4) in vm.state.value.under)
+            assertEquals(0, vm.state.value.celebrate)
+        }
+
+    @Test
+    fun `language change retains wrong choices completed quiz and queue position`() =
+        scope.runTest {
+            val vm = vm(listOf("puoli", "vrk"))
+            repeat(4) { vm.next() }
+            val choices = vm.state.value.choices
+            val wrong = choices.indexOfFirst { !it.correct }
+            vm.pick(wrong)
+            val before = vm.state.value
+            vm.setLanguage(AppLanguage.SWEDISH)
+            assertEquals(before.choices, vm.state.value.choices)
+            assertEquals(before.choiceStates, vm.state.value.choiceStates)
+            assertTrue(vm.state.value.showHint)
+            val right = choices.indexOfFirst { it.correct }
+            vm.pick(right)
+            runCurrent()
+            val completed = vm.state.value
+            vm.setLanguage(AppLanguage.FINNISH)
+            vm.pick(right)
+            assertEquals(completed, vm.state.value)
+            assertEquals(1, vm.state.value.celebrate)
+            assertEquals(0, vm.state.value.queueIndex)
+            assertEquals(
+                setOf("puoli"),
+                services.repository.progress
+                    .first()
+                    .lessonsDone,
+            )
         }
 }

@@ -8,6 +8,7 @@ import fi.clocklings.audio.Sfx
 import fi.clocklings.audio.Sound
 import fi.clocklings.audio.Speech
 import fi.clocklings.data.ProgressRepository
+import fi.clocklings.domain.AppLanguage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -36,6 +37,10 @@ interface AppServices {
     fun speak(text: String)
 
     fun stopSpeech()
+
+    fun setSpeechLanguage(language: AppLanguage)
+
+    fun refreshSpeech()
 }
 
 /** Sovelluksen ainoat pitkäikäiset oliot: tallennus, äänet ja puhe. */
@@ -59,6 +64,10 @@ class AppContainer(
     override fun speak(text: String) = speech.speak(text)
 
     override fun stopSpeech() = speech.stop()
+
+    override fun setSpeechLanguage(language: AppLanguage) = speech.setLanguage(language)
+
+    override fun refreshSpeech() = speech.refresh()
 
     /** Äänet ja puhe pysähtyvät, kun sovellus menee taustalle. */
     fun pause() {

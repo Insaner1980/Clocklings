@@ -54,6 +54,7 @@ import fi.clocklings.ui.components.TopBar
 import fi.clocklings.ui.components.cardShadow
 import fi.clocklings.ui.components.confettiAnchor
 import fi.clocklings.ui.components.rememberCelebrationAnchors
+import fi.clocklings.ui.locale.LocalAppLanguage
 import fi.clocklings.ui.praise
 import fi.clocklings.ui.resolve
 import fi.clocklings.ui.resources
@@ -74,7 +75,7 @@ fun LessonListScreen(
     ScreenScaffold(modifier) {
         TopBar(stringResource(R.string.koulu_title), stringResource(R.string.back), onBack)
         Text(stringResource(R.string.koulu_intro), style = SkType.Intro)
-        LessonCatalog.all.filter { !it.h24Only || h24 }.forEachIndexed { i, lesson ->
+        LessonCatalog.all(LocalAppLanguage.current).filter { !it.h24Only || h24 }.forEachIndexed { i, lesson ->
             LessonCard(i, lesson.title.resolve(), lesson.description.resolve(), lesson.id in done) { onOpen(lesson.id) }
         }
     }
@@ -126,6 +127,8 @@ fun LessonRoute(
             factory = viewModelFactory { initializer { LessonViewModel(key.queue, key.thenLevel, app.services) } },
         ),
 ) {
+    val language = LocalAppLanguage.current
+    LaunchedEffect(language) { vm.setLanguage(language) }
     val state by vm.state.collectAsStateWithLifecycle()
     val leave = {
         if (key.thenLevel != null) onStartGame(key.thenLevel) else onLeave()
@@ -182,6 +185,7 @@ fun LessonScreen(
                 command = state.clock,
                 period = state.period,
                 help = state.help,
+                describeTime = !state.isQuiz || state.quizDone,
                 highlight = state.highlight,
                 under = state.under,
                 over = state.over,
@@ -201,7 +205,11 @@ fun LessonScreen(
             if (page != null) {
                 LessonPlayback(speechAvailable, paragraphs, caption, onSpeak, onReplay)
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            FlowRow(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalArrangement = Arrangement.spacedBy(SkDimens.GapM),
+            ) {
                 SkButton(stringResource(R.string.lesson_prev), onPrevious, enabled = state.page > 0)
                 if (!state.isQuiz || state.quizDone) {
                     SkButton(stringResource(nextLabel(state.nextAction)), onNext, kind = ButtonKind.PRIMARY)

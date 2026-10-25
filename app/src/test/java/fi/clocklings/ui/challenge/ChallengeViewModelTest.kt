@@ -95,4 +95,29 @@ class ChallengeViewModelTest {
                     .challengeBest,
             )
         }
+
+    @Test
+    fun `displayed countdown uses the retained deadline and only a new run resets it`() =
+        scope.runTest {
+            val vm = ChallengeViewModel(false, services, Random(3)) { dispatcher.scheduler.currentTime * 1_000_000 }
+            vm.start()
+            runCurrent()
+            val deadline = vm.state.value.deadlineNanos
+            advanceTimeBy(20_000)
+            assertEquals(deadline, vm.state.value.deadlineNanos)
+            assertEquals(
+                2f / 3f,
+                vm.state.value.remainingFraction(dispatcher.scheduler.currentTime * 1_000_000),
+                0.001f,
+            )
+            val recreatedDisplay = vm.state.value
+            assertEquals(2f / 3f, recreatedDisplay.remainingFraction(20_000_000_000), 0.001f)
+            advanceTimeBy(40_001)
+            runCurrent()
+            assertEquals(ChallengePhase.END, vm.state.value.phase)
+            assertEquals(0f, vm.state.value.remainingFraction(60_001_000_000))
+            vm.start()
+            assertEquals(2, vm.state.value.runId)
+            assertEquals(1f, vm.state.value.remainingFraction(dispatcher.scheduler.currentTime * 1_000_000))
+        }
 }

@@ -9,7 +9,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.platform.LocalResources
 import fi.clocklings.R
-import fi.clocklings.domain.EnglishTime
+import fi.clocklings.domain.AppLanguage
+import fi.clocklings.domain.ClockTime
 import fi.clocklings.domain.Greeting
 import fi.clocklings.domain.Hint
 import fi.clocklings.domain.HourPosition
@@ -17,6 +18,8 @@ import fi.clocklings.domain.MinutePosition
 import fi.clocklings.domain.Slot
 import fi.clocklings.domain.Text
 import fi.clocklings.domain.capitalizeFirst
+import fi.clocklings.domain.timeLanguage
+import fi.clocklings.ui.locale.resourceLanguage
 
 /**
  * Resolves domain text references using strings.xml.
@@ -28,7 +31,7 @@ fun Text.resolve(res: Resources): String =
     when (this) {
         is Text.Res -> if (args.isEmpty()) res.getString(id) else res.getString(id, *args.toTypedArray())
         is Text.Plural -> res.getQuantityString(id, count, count)
-        is Text.Time -> EnglishTime.timeWords(minutes).capitalizeFirst()
+        is Text.Time -> timeLanguage(resourceLanguage(res)).timeWords(minutes).capitalizeFirst()
         is Text.Plain -> value
     }
 
@@ -42,28 +45,46 @@ fun Text.resolve(): String = resolve(resources())
 
 /** Capitalized clock phrase, with explicit day context in 24-hour mode. */
 fun timeLabel(
+    language: AppLanguage,
     t: Int,
     h24: Boolean,
-): String = EnglishTime.fullWords(t, h24).capitalizeFirst()
+): String = timeLanguage(language).fullWords(t, h24).capitalizeFirst()
 
 /** Numeric time, such as 3:30 or 15:30. */
 fun digitalLabel(
     res: Resources,
     t: Int,
     h24: Boolean,
-): String = if (h24) res.getString(R.string.digital_24, EnglishTime.digital(t, true)) else EnglishTime.digital(t)
+): String {
+    val wording = timeLanguage(resourceLanguage(res))
+    return if (h24) res.getString(R.string.digital_24, wording.digital(t, true)) else wording.digital(t)
+}
 
 /** On-demand narration uses the same time and context as the visible answer. */
 fun spokenTime(
     res: Resources,
     t: Int,
     h24: Boolean,
-): String =
-    if (h24) {
-        res.getString(R.string.speak_time_24, EnglishTime.fullWords(t, true), EnglishTime.numericWords(t, true))
-    } else {
-        res.getString(R.string.speak_time, EnglishTime.fullWords(t, false))
+): String {
+    val wording = timeLanguage(resourceLanguage(res))
+    return when {
+        h24 && ClockTime.mod(t, ClockTime.DAY) == 0 -> {
+            res.getString(R.string.speak_midnight_24, wording.numericWords(t, true))
+        }
+
+        h24 && ClockTime.mod(t, ClockTime.DAY) == ClockTime.HALF_DAY -> {
+            res.getString(R.string.speak_noon_24, wording.numericWords(t, true))
+        }
+
+        h24 -> {
+            res.getString(R.string.speak_time_24, wording.fullWords(t, true), wording.numericWords(t, true))
+        }
+
+        else -> {
+            res.getString(R.string.speak_time, wording.fullWords(t, false))
+        }
     }
+}
 
 fun praise(
     res: Resources,
@@ -106,7 +127,7 @@ private fun withTip(
 fun Hint.text(res: Resources): String =
     when (this) {
         is Hint.HandsRight -> {
-            val dayPart = EnglishTime.dayPart(time)
+            val dayPart = timeLanguage(resourceLanguage(res)).dayPart(time)
             res.getString(
                 R.string.hint_hands_right,
                 res.getString(if (dayPart.isSun) R.string.hint_sun else R.string.hint_moon),

@@ -14,10 +14,14 @@ import fi.clocklings.domain.Personalization
 import fi.clocklings.domain.Progress
 import fi.clocklings.domain.Settings
 import fi.clocklings.domain.Wardrobe
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.io.IOException
 
 /**
  * Koko sovelluksen tila: edistyminen ja asetukset (DataStoresta), äänet ja puhe.
@@ -37,6 +41,8 @@ class AppViewModel(
     val settings: StateFlow<Settings?> =
         services.repository.settings.stateIn(viewModelScope, SharingStarted.Eagerly, null)
     val speechAvailable: StateFlow<Boolean> = services.speechAvailable
+    private val mutableSettingsAction = MutableStateFlow(SettingsAction())
+    val settingsAction = mutableSettingsAction.asStateFlow()
 
     private val currentSettings get() = settings.value ?: Settings()
     private val currentProgress get() = progress.value ?: Progress()
@@ -49,14 +55,20 @@ class AppViewModel(
 
     /** Web: äänen kytkeminen päälle kuittaa poksahduksella. */
     fun toggleSound() {
-        val on = !currentSettings.sound
-        updateSettings { it.copy(sound = on) }
-        if (on) services.play(Sound.POP, force = true)
+        setSound(!currentSettings.sound)
     }
+
+    fun setSound(enabled: Boolean) =
+        settingsWrite {
+            services.repository.updateSettings { it.copy(sound = enabled) }
+            if (enabled) services.play(Sound.POP, force = true)
+        }
+
+    fun setHelp(enabled: Boolean) = settingsWrite { services.repository.updateSettings { it.copy(help = enabled) } }
 
     fun toggleHelp() = updateSettings { it.copy(help = !it.help) }
 
-    fun setH24(h24: Boolean) = updateSettings { it.copy(h24 = h24) }
+    fun setH24(h24: Boolean) = settingsWrite { services.repository.updateSettings { it.copy(h24 = h24) } }
 
     fun personalize(transform: (Personalization) -> Personalization) =
         updateSettings { it.copy(personalization = transform(it.personalization)) }
@@ -69,8 +81,26 @@ class AppViewModel(
         viewModelScope.launch { services.repository.updateProgress(transform) }
     }
 
-    fun resetProgress() {
-        viewModelScope.launch { services.repository.resetProgress() }
+    fun resetProgress(onSuccess: () -> Unit = {}) {
+        settingsWrite {
+            services.repository.resetProgress()
+            onSuccess()
+        }
+    }
+
+    private fun settingsWrite(action: suspend () -> Unit) {
+        if (mutableSettingsAction.value.pending) return
+        mutableSettingsAction.value = SettingsAction(pending = true)
+        viewModelScope.launch {
+            try {
+                action()
+                mutableSettingsAction.value = SettingsAction()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: IOException) {
+                mutableSettingsAction.value = SettingsAction(failed = true)
+            }
+        }
     }
 
     fun toggleItem(
@@ -95,5 +125,10 @@ class AppViewModel(
         return plan.queue
     }
 }
+
+data class SettingsAction(
+    val pending: Boolean = false,
+    val failed: Boolean = false,
+)
 
 val LocalAppViewModel = staticCompositionLocalOf<AppViewModel> { error("AppViewModel puuttuu") }

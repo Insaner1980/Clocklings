@@ -1,6 +1,6 @@
 # Clocklings implementation
 
-Date: 20 October 2026. This is an internal construction checkpoint, not a release or an agreed final feature inventory.
+Updated: 25 October 2026. Earlier dated checkpoints remain below. This is an internal construction record, not a release or an agreed final feature inventory.
 
 ## Authority and decisions
 
@@ -8,7 +8,7 @@ The owner's current instructions override both copied proposals. In particular, 
 
 | Decision | Current status |
 | --- | --- |
-| Workspace | Confirmed: `C:\Dev\Clocklings`. Independent local repository; current work is on `codex/companions-clock-themes`. |
+| Workspace | Confirmed: `C:\Dev\Clocklings`. Independent local repository; current work is on `codex/localization-settings`. |
 | Identity | Confirmed: app **Clocklings**, Play title **Clocklings: Learn to Tell Time**, application ID and namespace `fi.clocklings`. |
 | Languages | Confirmed: English first, then Finnish and one shared Swedish version. All three completed before the single complete public release. |
 | English expressions | Confirmed: shared past/to style, including “quarter past three”, “half past three”, and “quarter to four”; numeric time alongside. No separate British/American modes. |
@@ -145,3 +145,69 @@ Spec: [companion wardrobes design](../superpowers/specs/2026-10-22-companion-war
 - `app/stability/app-debug.stability` baseline is stale and should be re-dumped (owner decision).
 - Art polish raised as owner decisions: cat fish backpack and sparkle cape drawn behind without straps or clasp, while the dog's backpack and cape are front items with straps and clasp; cat pink inner ears mostly hidden and cream tail tip shading grey-taupe; dog neck-band ends overhang in neck tiles, hero cape and raincoat read weakly, frisbee covers the tongue; robot original teal greyer than the reference, jetpack rockets read as flanking, necklace halos flat, neck tiles keep half shoulder discs; dragon wings sit lower than the reference (for the head crop) and the royal cape tile shows a thin sliver; doll cheeks, eye size, item outlines and head tilt. Item and pigment colors are implementer picks.
 - No TalkBack audit; TalkBack reads the selected state twice (pre-existing).
+
+## Localization and Settings — 25 October 2026
+
+Implemented from the owner's request to execute the [localization/settings plan](../superpowers/plans/2026-10-24-localization-and-settings.md). The recommended Home entry, device-default language option, shared Swedish style and explicit reset dialog are implemented. This section supersedes the older Finnish/Swedish and stale-stability-baseline gaps above.
+
+### Implemented
+
+- Complete English, Finnish and shared Swedish resources: 438 base keys, 437 translatable keys per language after removing five obsolete Home keys, including companions/items and the new Settings copy. The [language review](../localization/language-review.md) records wording choices, independent time/lesson fixtures, sources and linguistic limits.
+- One root locale boundary keeps Compose resources, generated clock wording, Canvas labels and accessibility text aligned. Android 13+ uses `LocaleManager`; API 26–32 stores the choice in the existing DataStore. Device language picks the first supported locale, otherwise English. Regional Swedish uses shared content. Legacy preferences migrate once without overriding an existing system choice.
+- Home opens Settings and Language. Existing 12/24-hour, clock-guide and sound preferences are reused. Reset requires confirmation and preserves settings/language while clearing the existing learning/reward/name/outfit progress. Failed writes retain committed state and expose retry feedback.
+- `TimeLanguage` dispatches English/Finnish/Swedish arithmetic-independent wording. Finnish/Swedish half-hour lessons reference the upcoming hour; all nine lesson IDs, numeric targets and answer identities remain stable. Noon/midnight narration uses complete language-specific sentences.
+- Language changes retain active practice/quiz/Together values, hidden answers and progress. Challenge retains its deadline; saved celebration consumption and Explore values survive recreation. Speech stops/reconfigures without replaying stale requests and only becomes available for an eligible offline voice.
+- Device tests exposed real word splitting in lesson navigation and long answer rows. Their `FlowRow` layouts now wrap complete buttons/numeric badges without shrinking text. Finnish speech guidance and Swedish reset copy use shorter equivalent wording at large font sizes. Visual inspection also found overlapping custom dialog buttons; both actions now share a spaced `FlowRow`, with tests for complete action bounds and scrolling the body to its last line.
+- Language splits are disabled so all three languages ship together. No toolchain/dependency upgrade, AppCompat migration, release signing, commit, push or PR was performed.
+
+### Automated and device evidence
+
+Build logs are under `.superpowers/sdd/2026-10-24-localization-and-settings/`; device/bundle evidence is under `reports/localization/`. These local evidence directories are ignored by Git.
+
+- `final-layout-checks.log`: `testDebugUnitTest`, `assembleDebug`, `assembleDebugAndroidTest`, `ktlintCheck`, `detekt`, `stabilityCheck`, `lintDebug` and `bundleDebug` passed with `--no-daemon`. JVM result: **184 tests in 28 suites, zero failures/errors/skips**. `final-copy-checks.log` verifies the copy adjustment; `dialog-checks.log` verifies the final APK/test APK/bundle, detekt, stability and lint after the dialog fix; `final-ktlint.log` passes the final formatting check. Lint has zero errors and six warnings (one existing version notice and five obsolete Home strings retained for key continuity).
+- Both generated Compose stability baselines were inspected before updating. Existing UI functions did not lose skippability; the locale provider and new Settings UI are skippable. New non-Unit text helpers are non-restartable as expected. No baseline/check was disabled.
+- `resource-completeness.log` passes exact key/type/plural/array/placeholder parity; `resource-selftest.log` exercises the checker's negative fixtures. This proves structural completeness, not native-speaker approval.
+- Dedicated API 37 AVD `ClocklingsFoundation20261020`, serial `emulator-5590`: `modern-final-core.log` passed 26 functional/content/audio/state tests; two screenshot-directory failures in layout tests were corrected in the test helper and rerun in the display matrix. All three `ActiveLocaleStateTest` cases passed, including actual Activity replacement during practice, an unfinished lesson quiz, a result, and a running real-time minute challenge. Initial existing regressions passed 15 cases; their one new layout failure led to the verified layout fixes.
+- Dedicated API 33 AVD `ClocklingsLocaleApi33`, serial `emulator-5594`: `api33-settings.log` passed **6/6** real Activity/Settings tests. These write/read Android's `LocaleManager` and check agreement with the in-app picker; they do not claim manual navigation of Android Settings itself.
+- Dedicated API 26 AVD `ClocklingsLocaleApi26`, serial `emulator-5592`: legacy storage/resources, recreation, reset scope and speech tests passed; the large-font copy failures were reproduced and fixed. `legacy-settings-final.log` passed **6/6 Settings tests at 320 dp / 200%**, including all three languages, full dialog action bounds and body scrolling. `legacy-final-regression.log` passed **6/6 AppFlow tests at 360 dp / 100%**. Earlier `legacy-verified.log` passed the other 22 content/functional/audio cases; its obsolete copy failure is superseded by the final Settings run.
+
+The API 37 display matrix is complete. Every layout test loops English, Finnish and Swedish, covering **12 language/display combinations**. `matrix-*.log` contains the clock/lesson checks; `final-settings-*.log` contains the final dialog/Settings checks. The six-test normal Settings run includes the layout case and five functional cases; the other cells run the one layout case.
+
+| Cell | Width / font | Clock and lesson layout | Final Settings, Language, Home entry and reset |
+| --- | --- | --- | --- |
+| A | 360 dp / 100% | PASS, all 3 languages | PASS, 6/6 tests |
+| B | 320 dp / 100% | PASS, all 3 languages | PASS, 1/1 layout test |
+| C | 360 dp / 200% | PASS, all 3 languages | PASS, 1/1 layout test |
+| D | 320 dp / 200% | PASS, all 3 languages | PASS, 1/1 layout test |
+
+Settings/navigation tests use the real Activity. Clock layout tests render the actual Game/Lesson composables with explicit representative states, including long exact-minute choices, half/five-minute lessons, footer actions and day-period Canvas text; active-state preservation is separately covered by the real Activity tests. Assertions inspect rendered text width, word boundaries, ellipsis, action bounds and scroll limits. Centered paragraph allocation width was not mistaken for visible text overflow. PNG evidence is in `screenshots/localization/` and `legacy-screenshots/localization/`; representative normal/large-font images were visually inspected, including the corrected Finnish answer row and Swedish reset dialog with its body scrolled to the end.
+
+### Offline bundle and cleanup
+
+- Built `app/build/outputs/bundle/debug/app-debug.aab` and generated/installed its device-specific APK set with official bundletool **1.18.3**, using only the ordinary debug key. The final Settings matrix ran on this installation with airplane mode **on** and Wi-Fi **off**. All three languages switched and retained their content without downloading language resources.
+- `bundle-config.json` disables the LANGUAGE split; the APK set contains `base-master.apk`, `base-x86_64.apk` and `base-xxhdpi.apk`. The final master resource table contains Finnish and Swedish plus default English. See `bundle-resource-configurations.txt`, `bundle-apk-entries.txt`, `bundle-installed-paths.txt` and `bundle-install-final.log`.
+- Final SHA-256: debug APK `DF77E0982C992DA1316DBCD378991019D2A1943129A44CDEEAD7DA96DE653E63`; debug AAB `0439244B537994AD526049BDF8CD1E02D859163E7466D23D6F666F681B80934C`. The test APK identity is retained alongside these in `artifact-sha256.json`.
+- Dedicated display/font overrides were restored (API 37: 1080×2400, density 420, font 1.0; API 26/33: default density and previously absent font override). API 37 airplane/Wi-Fi and accessibility settings were restored. Temporary emulators and this task's adb server were stopped; no physical or unrelated emulator was used.
+
+### Evidence limits
+
+- The 8 fake-engine speech tests and 3 offline-voice metadata tests prove reconfiguration, last-request-wins initialization, errors/recovery, language/network filtering and no stale replay. They do not prove engine pronunciation or audible offline playback. API 37 has `com.google.android.tts`, version `googletts.google-speech-apk_20260928.02_p0.989914902`; Settings showed English available and Swedish unavailable in the captured normal-size run. No audio was listened to; the test emulators were launched with `-no-audio`.
+- Real Android accessibility roles, selected state, headings, hidden answers and touch targets are tested. A bounded API 37 TalkBack smoke check bound the installed service and visually observed focus on Home's Settings entry and Back, and opening Settings (`talkback-*.png`, `talkback-service.txt`). Complete focus traversal and spoken output in all three languages were not established; a complete spoken TalkBack review and native-speaker approval remain unverified. The source review's uncommon Swedish exact-minute formulations remain an explicit editorial choice.
+- Owner-run `lc`/`sc`, physical devices, signed release/Play delivery and publication are outside this evidence. Existing art/product decisions remain open. Spanish/French are not exposed.
+
+### Lint followup — 25 October 2026
+
+- Removed unused `mode_label`, `sound_on`, `sound_off`, `reset` and `reset_confirm` resources from English, Finnish and Swedish. Settings already uses its own copy; rendered UI is unchanged.
+- Updated the exact `NewerVersionAvailable` exception from Compose Rules 0.4.23 to the installed 0.4.28. The reviewed 0.6.8 upgrade requires Detekt 2; Detekt remains 1.23.8. [Upstream compatibility](https://mrmans0n.github.io/compose-rules/detekt/). Other update notices remain enabled.
+- `:app:testDebugUnitTest :app:assembleDebug :app:lintDebug --no-daemon` passed: 184 JVM tests in 28 suites, zero failures/errors/skips; Android lint has zero errors and zero warnings. `tools/check-localization.ps1` passed. Evidence: `reports/lint-fix-20261025/` (`gradle-checks.log`, `lint-before.xml`, `lint-after.xml`, `unit-test-summary.json`, `localization-check.log`). This supersedes the six-warning note above.
+- No UI/device matrix rerun was needed for removal of unreferenced resources. Owner-run `lc`/`sc` were not rerun. No new Java process remained after validation; no commit or push was made.
+
+### Sonar command repair — 25 October 2026
+
+- The owner's 15:09 run timed out after 3,600 seconds before upload. Instrumentation started 44 tests and finished 43; `LanguageSettingsTest.externalLocaleChangePreservesExploreAndTogetherHiddenAnswer` remained unfinished. The previous upload receipt was from 24 October. Evidence is preserved under `reports/sonar-repair-20261025/`.
+- `tools/sonar.ps1` now streams both Gradle output pipes to the console and report, emits a running-status message every 30 seconds, prints failures/timeouts and success, and terminates its own process tree on timeout/interruption. It no longer depends on the external Android-check process wrapper. The existing dedicated-emulator selection and cleanup remain in place.
+- The command waits for the server's Quality Gate using `sonar.qualitygate.wait=true` and requires a fresh matching `report-task.txt` before reporting success. `LanguageSettingsTest` has a 120-second outer JUnit timeout covering setup, Compose idle waits, and cleanup; assertions and coverage were not removed.
+- The old wrapper failed the new live-output regression check. All four wrapper scenarios (live success, nonzero exit, timeout with child cleanup, stale/missing receipt) then passed in both PowerShell 7 and Windows PowerShell 5.1 (`tools/test-sonar.ps1`, `script-tests-*.log`). Android test-source ktlint and Detekt passed (`test-source-checks.log`).
+- The original stall did not recur: the isolated test, its six-test class, and the unchanged 72-test suite passed. The final real `sonar` command rebuilt the changed instrumentation tests, passed all 72 tests without skips, uploaded the combined coverage, and exited 0 after a nine-minute Gradle run (`final-sonar.txt`, `sonar-suite.xml`). Debug assembly and JVM test tasks were up-to-date in this run, not freshly executed JVM tests.
+- Server task `AaF0LXE5J8I9a074RZ-H` completed successfully on 25 October at 19:48 Helsinki time; analysis `5eb12e9b-61b2-48dd-8d0a-e89d38c4fe99` has Quality Gate `OK`, confirmed independently through the authenticated API (`server-task.json`, `gate-after.json`). All six gate conditions passed. The wrapper printed completion at 19:49 and stopped its dedicated emulator.
+- No production UI changed, so the 320 dp / 200% layout matrix was not rerun. The original intermittent test stall's internal cause remains unproven; the successful reruns and bounded test wait do not establish a root-cause fix for that stall. Existing uncommitted work was preserved. No commit, push, physical-device testing, owner `lc`/`sc`, or release work was performed.

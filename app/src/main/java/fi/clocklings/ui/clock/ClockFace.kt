@@ -47,16 +47,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Density
 import fi.clocklings.R
+import fi.clocklings.domain.AppLanguage
 import fi.clocklings.domain.ClockAppearance
 import fi.clocklings.domain.ClockTheme
 import fi.clocklings.domain.ClockTime
-import fi.clocklings.domain.EnglishTime
+import fi.clocklings.domain.DayPart
 import fi.clocklings.domain.Hand
 import fi.clocklings.domain.HandStyle
 import fi.clocklings.domain.Mark
 import fi.clocklings.domain.NumeralStyle
+import fi.clocklings.domain.timeLanguage
 import fi.clocklings.ui.appearance.LocalPersonalization
 import fi.clocklings.ui.appearance.clockThemeName
+import fi.clocklings.ui.locale.LocalAppLanguage
 import fi.clocklings.ui.rememberReduceMotion
 import fi.clocklings.ui.theme.Fredoka
 import fi.clocklings.ui.theme.Nunito
@@ -115,9 +118,10 @@ fun ClockFace(
     val pulse = highlightPulse(highlight, reduceMotion)
 
     val time = state.value
+    val dayPart = timeLanguage(LocalAppLanguage.current).dayPart(time)
     val themeLabel = stringResource(clockThemeName(appearance.theme))
     val description = clockDescription(time, period, describeTime)
-    val zoneLabels = stringResource(R.string.clock_zone_yli) to stringResource(R.string.clock_zone_vaille)
+    val zoneLabels = clockZoneLabels()
     val addLabel = pluralStringResource(R.plurals.clock_add, step, step)
     val subtractLabel = pluralStringResource(R.plurals.clock_subtract, step, step)
     val currentInteractive by rememberUpdatedState(interactive)
@@ -147,7 +151,7 @@ fun ClockFace(
             under.forEach { drawMark(it, textMeasurer, styles) }
             drawTicks()
             drawNumbers(textMeasurer, styles)
-            if (is24) drawDayPart(time, textMeasurer, styles)
+            if (is24) drawDayPart(dayPart, textMeasurer, styles)
             drawHands(state.raw, highlight, pulse, interactive && !mini, appearance.hands)
             drawCircle(SkColors.Ink, S.PIN_RADIUS, Offset(S.CENTER, S.CENTER))
             drawCircle(SkColors.Face, S.PIN_DOT, Offset(S.CENTER, S.CENTER))
@@ -156,6 +160,15 @@ fun ClockFace(
     }
 }
 
+/** Finnish and Swedish can refer to the half hour on either side of the face. */
+@Composable
+private fun clockZoneLabels(): Pair<String, String>? =
+    if (LocalAppLanguage.current == AppLanguage.ENGLISH) {
+        stringResource(R.string.clock_zone_yli) to stringResource(R.string.clock_zone_vaille)
+    } else {
+        null
+    }
+
 @Composable
 private fun clockDescription(
     time: Int,
@@ -163,7 +176,14 @@ private fun clockDescription(
     describeTime: Boolean,
 ): String =
     if (describeTime) {
-        stringResource(R.string.clock_description, EnglishTime.fullWords(time, h24 = period == ClockTime.DAY))
+        stringResource(
+            R.string.clock_description,
+            timeLanguage(LocalAppLanguage.current).fullWords(
+                time,
+                h24 =
+                    period == ClockTime.DAY,
+            ),
+        )
     } else {
         stringResource(R.string.clock_question_description)
     }
@@ -243,15 +263,17 @@ private fun DrawScope.drawHelp(
     measurer: TextMeasurer,
     styles: ClockTextStyles,
     is24: Boolean,
-    zoneLabels: Pair<String, String>,
+    zoneLabels: Pair<String, String>?,
 ) {
     val r = S.HALF_RADIUS
     val topLeft = Offset(S.CENTER - r, S.CENTER - r)
     val size = Size(2 * r, 2 * r)
     drawArc(SkColors.Yli, -QUARTER_TURN, ClockTime.HALF_TURN, useCenter = true, topLeft = topLeft, size = size)
     drawArc(SkColors.Vaille, QUARTER_TURN, ClockTime.HALF_TURN, useCenter = true, topLeft = topLeft, size = size)
-    drawOnBaseline(measurer, zoneLabels.first, styles.zone, S.ZONE_YLI_X, S.ZONE_Y)
-    drawOnBaseline(measurer, zoneLabels.second, styles.zone, S.ZONE_VAILLE_X, S.ZONE_Y)
+    zoneLabels?.let {
+        drawOnBaseline(measurer, it.first, styles.zone, S.ZONE_YLI_X, S.ZONE_Y)
+        drawOnBaseline(measurer, it.second, styles.zone, S.ZONE_VAILLE_X, S.ZONE_Y)
+    }
     for (i in 0 until ClockTime.HOURS_PER_HALF_DAY) {
         drawCentered(
             measurer,
@@ -309,11 +331,10 @@ private fun DrawScope.drawNumbers(
 }
 
 private fun DrawScope.drawDayPart(
-    time: Int,
+    part: DayPart,
     measurer: TextMeasurer,
     styles: ClockTextStyles,
 ) {
-    val part = EnglishTime.dayPart(time)
     if (part.isSun) {
         val c = Offset(S.CENTER, S.SUN_CY)
         drawCircle(SkColors.Sun, S.SUN_RADIUS, c)

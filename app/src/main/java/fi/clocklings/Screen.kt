@@ -12,6 +12,10 @@ import kotlinx.serialization.modules.polymorphic
 sealed interface Screen : NavKey {
     @Serializable data object Home : Screen
 
+    @Serializable data object Settings : Screen
+
+    @Serializable data object Language : Screen
+
     @Serializable data object FreeClock : Screen
 
     @Serializable data object LessonList : Screen
@@ -58,6 +62,8 @@ val ScreenSavedState =
             SerializersModule {
                 polymorphic(NavKey::class) {
                     subclass(Screen.Home::class, Screen.Home.serializer())
+                    subclass(Screen.Settings::class, Screen.Settings.serializer())
+                    subclass(Screen.Language::class, Screen.Language.serializer())
                     subclass(Screen.FreeClock::class, Screen.FreeClock.serializer())
                     subclass(Screen.LessonList::class, Screen.LessonList.serializer())
                     subclass(Screen.Lesson::class, Screen.Lesson.serializer())

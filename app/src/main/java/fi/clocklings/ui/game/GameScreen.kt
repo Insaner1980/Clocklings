@@ -22,8 +22,8 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import fi.clocklings.R
 import fi.clocklings.Screen
 import fi.clocklings.domain.ClockTime
-import fi.clocklings.domain.EnglishTime
 import fi.clocklings.domain.TaskType
+import fi.clocklings.domain.timeLanguage
 import fi.clocklings.ui.AppViewModel
 import fi.clocklings.ui.LocalAppViewModel
 import fi.clocklings.ui.clock.ClockFace
@@ -38,6 +38,7 @@ import fi.clocklings.ui.components.OptionButton
 import fi.clocklings.ui.components.OptionState
 import fi.clocklings.ui.components.Panel
 import fi.clocklings.ui.components.ProgressDots
+import fi.clocklings.ui.components.ReadOptions
 import fi.clocklings.ui.components.ScreenScaffold
 import fi.clocklings.ui.components.SkButton
 import fi.clocklings.ui.components.TopBar
@@ -45,6 +46,7 @@ import fi.clocklings.ui.components.confettiAnchor
 import fi.clocklings.ui.components.rememberCelebrationAnchors
 import fi.clocklings.ui.digitalLabel
 import fi.clocklings.ui.levelName
+import fi.clocklings.ui.locale.LocalAppLanguage
 import fi.clocklings.ui.praise
 import fi.clocklings.ui.resources
 import fi.clocklings.ui.text
@@ -119,6 +121,9 @@ fun GameScreen(
                 step = state.step,
                 interactive = state.interactive,
                 help = help,
+                describeTime =
+                    state.task.type != TaskType.READ || state.feedback is GameFeedback.RevealRead ||
+                        state.feedback is GameFeedback.Praise,
                 onChange = onClockChange,
             )
         }
@@ -150,10 +155,11 @@ fun GameScreen(
 }
 
 /** Paljastuksessa aika pienellä alkukirjaimella keskellä lausetta, kuten webissä. */
+@Composable
 private fun timeText(
     t: Int,
     h24: Boolean,
-) = EnglishTime.fullWords(t, h24)
+) = timeLanguage(LocalAppLanguage.current).fullWords(t, h24)
 
 private const val DONE_ANCHOR = -1
 private const val SUCCESS_CONFETTI = 45
@@ -175,7 +181,11 @@ private fun GameFeedbackMessage(
                         ) {
                             p
                         } else {
-                            res.getString(R.string.praise_with_time, p, timeLabel(fb.time, h24))
+                            res.getString(
+                                R.string.praise_with_time,
+                                p,
+                                timeLabel(LocalAppLanguage.current, fb.time, h24),
+                            )
                         }
                     ) to
                         FeedbackKind.OK
@@ -203,12 +213,11 @@ private fun ColumnScope.GameOptions(
     anchors: SnapshotStateMap<Int, Offset>,
     onPick: (Int) -> Unit,
 ) {
-    Text(stringResource(R.string.question_read), style = SkType.Question)
-    Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapOptions)) {
+    ReadOptions {
         for (t in state.options) {
             OptionButton(
-                words = timeLabel(t, state.h24),
-                digital = EnglishTime.digital(t, state.h24),
+                words = timeLabel(LocalAppLanguage.current, t, state.h24),
+                digital = timeLanguage(LocalAppLanguage.current).digital(t, state.h24),
                 state = state.optionStates[t] ?: OptionState.NORMAL,
                 enabled = !state.busy && state.optionStates[t] != OptionState.WRONG,
                 onClick = { onPick(t) },
@@ -227,7 +236,7 @@ private fun SetTarget(
     Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapM)) {
         Text(stringResource(R.string.question_set), style = SkType.Question)
         Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapS)) {
-            Text(timeLabel(time, h24), style = SkType.Words)
+            Text(timeLabel(LocalAppLanguage.current, time, h24), style = SkType.Words)
             DigitalPill(digitalLabel(resources(), time, h24))
         }
     }

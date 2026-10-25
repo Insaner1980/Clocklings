@@ -1,20 +1,10 @@
 package fi.clocklings.domain
 
-/** Aloitusnäkymän tervehdys; tekstit ovat strings.xml:ssä. */
-enum class Greeting { MORNING, DAY, EVENING, NIGHT }
-
-/** Vuorokaudenaika: nimi ("iltapäivä"), adverbi ("iltapäivällä") ja näytetäänkö aurinko. */
-data class DayPart(
-    val name: String,
-    val adverb: String,
-    val isSun: Boolean,
-)
-
 /**
  * Kellonajat suomeksi puhekielen tapaan. Suora käännös web-version funktioista
  * timeWords, digital, dayPart ja spoken24. Aika on minuutteja keskiyöstä tai kello 12:sta.
  */
-object FinnishTime {
+object FinnishTime : TimeLanguage {
     private val NUM =
         listOf(
             "",
@@ -45,7 +35,7 @@ object FinnishTime {
     private fun minutesPhrase(n: Int): String = PART[n] ?: if (n == 1) "yksi minuutti" else "${NUM[n]} minuuttia"
 
     /** Kellonaika sanoina 12 tunnin kellossa, esim. "viittä vaille puoli neljä". */
-    fun timeWords(total: Int): String {
+    override fun timeWords(total: Int): String {
         val t = ClockTime.mod(total, ClockTime.HALF_DAY)
         val h = t / ClockTime.MINUTES_PER_HOUR
         val m = t % ClockTime.MINUTES_PER_HOUR
@@ -70,9 +60,9 @@ object FinnishTime {
     }
 
     /** Numeroaika: "3.30" tai 24 h -tilassa "15.30". */
-    fun digital(
+    override fun digital(
         total: Int,
-        h24: Boolean = false,
+        h24: Boolean,
     ): String {
         val t = ClockTime.mod(total, ClockTime.DAY)
         val m = t % ClockTime.MINUTES_PER_HOUR
@@ -88,7 +78,7 @@ object FinnishTime {
         return "$h.${m.toString().padStart(2, '0')}"
     }
 
-    fun dayPart(total: Int): DayPart {
+    override fun dayPart(total: Int): DayPart {
         val t = ClockTime.mod(total, ClockTime.DAY)
         val h = t / ClockTime.MINUTES_PER_HOUR
         val sun = h in SUNRISE_HOUR..LAST_SUN_HOUR
@@ -111,10 +101,24 @@ object FinnishTime {
         }
 
     /** Numeroaika ääneen, esim. 15.30 = "viisitoista kolmekymmentä". */
-    fun spoken24(total: Int): String {
+    fun spoken24(total: Int): String = numericWords(total, true)
+
+    override fun numericWords(
+        total: Int,
+        h24: Boolean,
+    ): String {
         val t = ClockTime.mod(total, ClockTime.DAY)
-        val h = t / ClockTime.MINUTES_PER_HOUR
+        val hour = t / ClockTime.MINUTES_PER_HOUR
         val m = t % ClockTime.MINUTES_PER_HOUR
+        if (!h24 && m == 0) return timeWords(t)
+        val h =
+            if (h24) {
+                hour
+            } else {
+                (hour % ClockTime.HOURS_PER_HALF_DAY).let {
+                    if (it == 0) ClockTime.HOURS_PER_HALF_DAY else it
+                }
+            }
         val minutes =
             when {
                 m == 0 -> "nolla nolla"
@@ -125,7 +129,7 @@ object FinnishTime {
     }
 
     /** Tervehdys vuorokaudenajan mukaan (samat rajat kuin [dayPart]). */
-    fun greeting(total: Int): Greeting {
+    override fun greeting(total: Int): Greeting {
         val h = ClockTime.mod(total, ClockTime.DAY) / ClockTime.MINUTES_PER_HOUR
         return when {
             h < MORNING_FROM || h >= NIGHT_FROM -> Greeting.NIGHT
@@ -134,12 +138,6 @@ object FinnishTime {
             else -> Greeting.EVENING
         }
     }
-
-    /** Sanat ja 24 h -tilassa vuorokaudenaika, esim. "puoli neljä iltapäivällä". */
-    fun fullWords(
-        total: Int,
-        h24: Boolean,
-    ): String = if (h24) "${timeWords(total)} ${dayPart(total).adverb}" else timeWords(total)
 }
 
 fun String.capitalizeFirst(): String = replaceFirstChar { it.uppercaseChar() }

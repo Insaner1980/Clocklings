@@ -20,9 +20,9 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import fi.clocklings.R
-import fi.clocklings.domain.EnglishTime
 import fi.clocklings.domain.Levels
 import fi.clocklings.domain.Progress
+import fi.clocklings.domain.timeLanguage
 import fi.clocklings.ui.clock.ClockCommand
 import fi.clocklings.ui.clock.ClockFace
 import fi.clocklings.ui.components.ButtonKind
@@ -35,6 +35,7 @@ import fi.clocklings.ui.components.StarRow
 import fi.clocklings.ui.components.TopBar
 import fi.clocklings.ui.components.cardShadow
 import fi.clocklings.ui.levelName
+import fi.clocklings.ui.locale.LocalAppLanguage
 import fi.clocklings.ui.theme.SkColors
 import fi.clocklings.ui.theme.SkDimens
 import fi.clocklings.ui.theme.SkShapes
@@ -79,7 +80,10 @@ fun LevelsScreen(
                     modifier = Modifier.semantics { heading() },
                 )
                 Text(
-                    stringResource(R.string.level_example, EnglishTime.timeWords(level.sample)),
+                    stringResource(
+                        R.string.level_example,
+                        timeLanguage(LocalAppLanguage.current).timeWords(level.sample),
+                    ),
                     style = SkType.Small.copy(color = SkColors.InkSoft),
                 )
                 StarRow(

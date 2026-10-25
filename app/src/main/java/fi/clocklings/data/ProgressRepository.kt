@@ -1,6 +1,7 @@
 package fi.clocklings.data
 
 import android.util.Log
+import androidx.compose.runtime.Stable
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
@@ -26,7 +27,10 @@ import java.io.IOException
 /**
  * Edistyminen ja asetukset Preferences DataStoressa. Viallinen tai tuntematon arvo
  * korvataan oletuksella, jotta sovellus ei koskaan kaadu tallennukseen.
+ *
+ * Public Flow references never change; stored values are observed by collecting them.
  */
+@Stable
 class ProgressRepository(
     private val store: DataStore<Preferences>,
 ) {
@@ -42,6 +46,15 @@ class ProgressRepository(
 
     val progress: Flow<Progress> = data.map { it.toProgress() }.distinctUntilChanged()
     val settings: Flow<Settings> = data.map { it.toSettings() }.distinctUntilChanged()
+
+    // Only API 26–32 persists a language here. Newer Android owns its app locale.
+    val legacyLanguage: Flow<String?> = store.data.map { it[APP_LANGUAGE] }.distinctUntilChanged()
+
+    suspend fun setLegacyLanguage(tag: String?) {
+        store.edit { prefs ->
+            if (tag == null) prefs.remove(APP_LANGUAGE) else prefs[APP_LANGUAGE] = tag
+        }
+    }
 
     suspend fun updateProgress(transform: (Progress) -> Progress) {
         store.edit { prefs -> prefs.write(transform(prefs.toProgress())) }
@@ -79,14 +92,12 @@ class ProgressRepository(
                 introShown = this[INTRO] ?: emptySet(),
             )
         return DRESSABLE.fold(base) { progress, kind ->
+            val outfit = if (kind == CompanionKind.HUMAN) readHumanOutfit() else readAnimalOutfit(kind)
             progress
-                .withOutfit(kind, readOutfit(kind))
+                .withOutfit(kind, outfit)
                 .withName(kind, this[nameKey(kind)].orEmpty())
         }
     }
-
-    private fun Preferences.readOutfit(kind: CompanionKind): Outfit =
-        if (kind == CompanionKind.HUMAN) readHumanOutfit() else readAnimalOutfit(kind)
 
     private fun Preferences.readHumanOutfit(): Outfit {
         var outfit = Outfit.Default
@@ -148,6 +159,7 @@ class ProgressRepository(
         val SOUND = booleanPreferencesKey("sound")
         val HELP = booleanPreferencesKey("help")
         val H24 = booleanPreferencesKey("h24")
+        val APP_LANGUAGE = stringPreferencesKey("app_language")
 
         /** Companions with an outfit and a name: the doll and every animal. */
         val DRESSABLE = CompanionKind.entries.filter { it.slots.isNotEmpty() }

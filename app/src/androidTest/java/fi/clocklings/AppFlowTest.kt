@@ -2,16 +2,19 @@ package fi.clocklings
 
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -32,8 +35,8 @@ import org.junit.runner.RunWith
 import java.io.File
 
 /**
- * Koko sovelluksen polut emulaattorilla. Oikeat vastaukset luetaan kellon saavutettavuustekstistä,
- * joten testi ei riipu satunnaisuudesta.
+ * Full app paths on the dedicated emulator. Read exercises use visible choices and feedback;
+ * adjustable clocks expose their current hand positions to accessibility.
  */
 @OptIn(ExperimentalTestApi::class)
 @RunWith(AndroidJUnit4::class)
@@ -80,6 +83,13 @@ class AppFlowTest {
                 .onAllNodes(hasText(text) and hasClickAction())
                 .fetchSemanticsNodes()
                 .any { it.config.getOrElse(SemanticsProperties.Selected) { false } }
+        }
+    }
+
+    private fun waitForSoundOff() {
+        compose.waitUntil(5_000) {
+            compose.onNodeWithText("Sound effects").fetchSemanticsNode().config[SemanticsProperties.ToggleableState] ==
+                ToggleableState.Off
         }
     }
 
@@ -160,24 +170,28 @@ class AppFlowTest {
         waitForText("Choose a level")
         click("Play")
         click("Skip and play")
-        var wrongDone = false
         repeat(10) { task ->
             compose.waitUntil(5_000) { isShown("What time is it?") || isShown("Set the clock to") }
             compose.waitForIdle()
             if (isShown("What time is it?")) {
-                val answer = clockWords().replaceFirstChar { it.uppercase() }
-                if (!wrongDone) {
-                    val wrong =
-                        compose
-                            .onAllNodes(hasText("o'clock", substring = true) and hasClickAction())
+                compose.onAllNodes(hasContentDescription("Clock face:", substring = true)).assertCountEquals(0)
+                val choices =
+                    compose
+                        .onAllNodes(hasText("o'clock", substring = true) and hasClickAction())
+                        .fetchSemanticsNodes()
+                        .map { it.config[SemanticsProperties.Text].first().text }
+                for (choice in choices) {
+                    click(choice)
+                    compose.waitForIdle()
+                    if (compose
+                            .onAllNodes(hasContentDescription("Clock face:", substring = true))
                             .fetchSemanticsNodes()
-                            .map { it.config[SemanticsProperties.Text].first().text }
-                            .first { it != answer }
-                    click(wrong)
-                    waitForText("Look at the short red hand", substring = true)
-                    wrongDone = true
+                            .isNotEmpty()
+                    ) {
+                        break
+                    }
                 }
-                click(answer)
+                if (isShown("Next")) click("Next")
             } else {
                 val target =
                     compose
@@ -200,7 +214,7 @@ class AppFlowTest {
             Thread.sleep(1_800)
         }
         waitForText("Whole hours complete!", substring = true)
-        assertTrue(isShown("You earned 3 stars", substring = true))
+        assertTrue(isShown("You earned", substring = true))
         assertTrue(isShown("Polka-dot dress"))
 
         click("Choose an outfit")
@@ -248,10 +262,12 @@ class AppFlowTest {
 
     @Test
     fun freeClockAndTogetherPlayKeepSettingsAcrossRecreation() {
+        click("Settings")
         click("24 h")
         waitUntilSelected("24 h")
-        click("Sounds on")
-        waitForText("Sounds off")
+        click("Sound effects")
+        waitForSoundOff()
+        click("← Back")
         click("Explore")
         waitForText("THE TIME IS")
         assertTrue(clockWords().contains("three"))
@@ -259,11 +275,19 @@ class AppFlowTest {
             .onNode(hasContentDescription("Clock face:", substring = true))
             .performCustomAccessibilityActionWithLabel("Add 5 minutes")
         compose.onNodeWithText("15:05").assertExists()
-        click("Random time")
+        val subtract =
+            compose
+                .onNode(hasContentDescription("Clock face:", substring = true))
+                .fetchSemanticsNode()
+                .config[SemanticsActions.CustomActions]
+                .single { it.label == "Subtract 5 minutes" }
+        compose.runOnIdle { repeat(144) { subtract.action() } }
+        compose.onNodeWithText("03:05").assertExists()
         click("Help on")
         waitForText("Help off")
         compose.activityRule.scenario.recreate()
         waitForText("Help off")
+        compose.onNodeWithText("03:05").assertExists()
         click("← Back")
         click("Play Together")
         click("Random time")
@@ -286,12 +310,14 @@ class AppFlowTest {
         compose.onNodeWithText("PLAYER 1 ANSWERS").assertExists()
         click("← Back")
         compose.onNodeWithText("0 / 15").assertExists()
+        click("Settings")
         click("12 h")
         waitUntilSelected("12 h")
         click("Reset progress")
-        click("Reset stars and outfits? Tap again to confirm")
-        waitForText("Reset progress")
-        compose.onNodeWithText("Sounds off").assertExists()
+        waitForText("Reset learning progress?")
+        compose.onAllNodesWithText("Reset progress").onLast().performClick()
+        compose.waitUntil(5_000) { !isShown("Reset learning progress?") }
+        compose.onNodeWithText("Sound effects").performScrollTo().assertIsOff()
     }
 
     @Test

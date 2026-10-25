@@ -4,6 +4,7 @@ import fi.clocklings.AppServices
 import fi.clocklings.audio.Sound
 import fi.clocklings.data.InMemoryPreferencesStore
 import fi.clocklings.data.ProgressRepository
+import fi.clocklings.domain.AppLanguage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -14,6 +15,10 @@ class FakeServices : AppServices {
     val sounds = mutableListOf<Sound>()
     val spoken = mutableListOf<String>()
     var speechStops = 0
+        private set
+    var speechLanguage = AppLanguage.ENGLISH
+        private set
+    var speechRefreshes = 0
         private set
 
     override fun play(
@@ -29,5 +34,13 @@ class FakeServices : AppServices {
 
     override fun stopSpeech() {
         speechStops++
+    }
+
+    override fun setSpeechLanguage(language: AppLanguage) {
+        speechLanguage = language
+    }
+
+    override fun refreshSpeech() {
+        speechRefreshes++
     }
 }

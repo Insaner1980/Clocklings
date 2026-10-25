@@ -7,12 +7,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,6 +30,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import fi.clocklings.ui.locale.LocalAppLanguage
 import fi.clocklings.ui.rememberReduceMotion
 import fi.clocklings.ui.theme.SkColors
 import fi.clocklings.ui.theme.SkDimens
@@ -72,7 +72,11 @@ fun Eyebrow(
     text: String,
     modifier: Modifier = Modifier,
 ) {
-    Text(text.uppercase(Locale.forLanguageTag("fi-FI")), style = SkType.Eyebrow, modifier = modifier)
+    Text(
+        text.uppercase(Locale.forLanguageTag(LocalAppLanguage.current.tag)),
+        style = SkType.Eyebrow,
+        modifier = modifier,
+    )
 }
 
 /** Numeroaika harmaalla taustalla (web: .digital). */
@@ -267,13 +271,14 @@ private fun OptionLabel(
     digital: String?,
     wordsStyle: TextStyle,
 ) {
-    Row(
+    FlowRow(
         Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        itemVerticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(words, style = wordsStyle, modifier = Modifier.weight(1f))
+        Text(words, style = wordsStyle)
         if (digital != null) {
-            Spacer(Modifier.width(14.dp))
             Text(
                 digital,
                 style = SkType.OptDigital,

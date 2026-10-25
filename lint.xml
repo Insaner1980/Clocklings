@@ -8,9 +8,9 @@
         <ignore regexp="^A newer version of Gradle than 9\.7\.0 is available: 9\.8\.1$" />
         <ignore regexp="^A newer version of com\.android\.application than 9\.3\.3 is available: 9\.4\.1$" />
     </issue>
-    <!-- Compose Rules 0.4.23 supports Detekt 1.23.8; newer rules require Detekt 2.
+    <!-- Compose Rules 0.4.28 supports Detekt 1.23.8; rules 0.5.0+ require Detekt 2.
          Revisit when migrating Detekt. https://mrmans0n.github.io/compose-rules/detekt/ -->
     <issue id="NewerVersionAvailable">
-        <ignore regexp="^A newer version of io\.nlopez\.compose\.rules:detekt than 0\.4\.23 is available: 0\.6\.8$" />
+        <ignore regexp="^A newer version of io\.nlopez\.compose\.rules:detekt than 0\.4\.28 is available: 0\.6\.8$" />
     </issue>
 </lint>
