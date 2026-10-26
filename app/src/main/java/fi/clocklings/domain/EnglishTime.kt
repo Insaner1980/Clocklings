@@ -1,7 +1,7 @@
 package fi.clocklings.domain
 
 /** The shared English past/to style selected for Clocklings. */
-object EnglishTime {
+object EnglishTime : TimeLanguage {
     private val small =
         listOf(
             "zero",
@@ -34,34 +34,30 @@ object EnglishTime {
             tens[value / DECIMAL_BASE] + if (value % DECIMAL_BASE == 0) "" else "-${small[value % DECIMAL_BASE]}"
         }
 
-    fun timeWords(total: Int): String {
-        val time = ClockTime.mod(total, ClockTime.HALF_DAY)
-        val hour = time / ClockTime.MINUTES_PER_HOUR
-        val minute = time % ClockTime.MINUTES_PER_HOUR
-        val current = number(if (hour == 0) ClockTime.HOURS_PER_HALF_DAY else hour)
-        val next = number(hour + 1)
-        return when (minute) {
+    override fun timeWords(total: Int): String {
+        val time = ClockTime.reading(total, false)
+        return when (time.minute) {
             0 -> {
-                "$current o'clock"
+                "${number(time.hour)} o'clock"
             }
 
             MINUTES_PER_QUARTER_HOUR -> {
-                "quarter past $current"
+                "quarter past ${number(time.hour)}"
             }
 
             ClockTime.MINUTES_PER_HALF_HOUR -> {
-                "half past $current"
+                "half past ${number(time.hour)}"
             }
 
             ClockTime.MINUTES_PER_HOUR - MINUTES_PER_QUARTER_HOUR -> {
-                "quarter to $next"
+                "quarter to ${number(time.nextHour)}"
             }
 
             else -> {
-                if (minute < ClockTime.MINUTES_PER_HALF_HOUR) {
-                    "${minutePhrase(minute)} past $current"
+                if (time.minute < ClockTime.MINUTES_PER_HALF_HOUR) {
+                    "${minutePhrase(time.minute)} past ${number(time.hour)}"
                 } else {
-                    "${minutePhrase(ClockTime.MINUTES_PER_HOUR - minute)} to $next"
+                    "${minutePhrase(ClockTime.MINUTES_PER_HOUR - time.minute)} to ${number(time.nextHour)}"
                 }
             }
         }
@@ -74,9 +70,9 @@ object EnglishTime {
             else -> "${number(minute)} minutes"
         }
 
-    fun digital(
+    override fun digital(
         total: Int,
-        h24: Boolean = false,
+        h24: Boolean,
     ): String {
         val time = ClockTime.mod(total, ClockTime.DAY)
         val hour = time / ClockTime.MINUTES_PER_HOUR
@@ -93,32 +89,22 @@ object EnglishTime {
         return "$displayHour:$minute"
     }
 
-    fun numericWords(
+    override fun numericWords(
         total: Int,
-        h24: Boolean = false,
+        h24: Boolean,
     ): String {
-        val time = ClockTime.mod(total, ClockTime.DAY)
-        val hour = time / ClockTime.MINUTES_PER_HOUR
-        val minute = time % ClockTime.MINUTES_PER_HOUR
-        if (!h24 && minute == 0) return timeWords(time)
-        val displayHour =
-            if (h24) {
-                hour
-            } else {
-                (hour % ClockTime.HOURS_PER_HALF_DAY).let {
-                    if (it == 0) ClockTime.HOURS_PER_HALF_DAY else it
-                }
-            }
+        val time = ClockTime.reading(total, h24)
+        if (!h24 && time.minute == 0) return timeWords(total)
         val minutes =
             when {
-                minute == 0 -> "zero zero"
-                minute < DECIMAL_BASE -> "oh ${number(minute)}"
-                else -> number(minute)
+                time.minute == 0 -> "zero zero"
+                time.minute < DECIMAL_BASE -> "oh ${number(time.minute)}"
+                else -> number(time.minute)
             }
-        return "${number(displayHour)} $minutes"
+        return "${number(time.hour)} $minutes"
     }
 
-    fun dayPart(total: Int): DayPart {
+    override fun dayPart(total: Int): DayPart {
         val time = ClockTime.mod(total, ClockTime.DAY)
         val hour = time / ClockTime.MINUTES_PER_HOUR
         val sun = hour in SUNRISE_HOUR until EVENING_FROM
@@ -132,17 +118,7 @@ object EnglishTime {
         }
     }
 
-    fun fullWords(
-        total: Int,
-        h24: Boolean,
-    ): String {
-        if (!h24) return timeWords(total)
-        val time = ClockTime.mod(total, ClockTime.DAY)
-        val part = dayPart(time)
-        return if (time == 0 || time == ClockTime.HALF_DAY) part.name else "${timeWords(time)} ${part.adverb}"
-    }
-
-    fun greeting(total: Int): Greeting =
+    override fun greeting(total: Int): Greeting =
         when (ClockTime.mod(total, ClockTime.DAY) / ClockTime.MINUTES_PER_HOUR) {
             in MORNING_FROM until DAY_GREETING_FROM -> Greeting.MORNING
             in DAY_GREETING_FROM until EVENING_FROM -> Greeting.DAY

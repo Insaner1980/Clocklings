@@ -11,6 +11,13 @@ import kotlin.math.pow
 
 enum class Hand { HOUR, MINUTE }
 
+data class ClockReading(
+    val hour: Int,
+    val minute: Int,
+) {
+    val nextHour: Int get() = hour % ClockTime.HOURS_PER_HALF_DAY + 1
+}
+
 /**
  * Kellon ympyrälaskenta (webissä makeClock-funktion sisällä). Aika on minuutteja, ja jakso
  * on 720 (12 h) tai 1440 (24 h). Kulmat ovat asteita ylhäältä myötäpäivään.
@@ -47,6 +54,18 @@ object ClockTime {
     ): Float = ((a % n) + n) % n
 
     fun period(h24: Boolean): Int = if (h24) DAY else HALF_DAY
+
+    fun reading(
+        total: Int,
+        h24: Boolean,
+    ): ClockReading {
+        val time = mod(total, period(h24))
+        val hour = time / MINUTES_PER_HOUR
+        return ClockReading(
+            hour = if (!h24 && hour == 0) HOURS_PER_HALF_DAY else hour,
+            minute = time % MINUTES_PER_HOUR,
+        )
+    }
 
     /** Kellonaika minuutteina keskiyöstä. */
     fun minutesOf(time: LocalTime): Int = time.hour * MINUTES_PER_HOUR + time.minute

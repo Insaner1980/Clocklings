@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import fi.clocklings.AppServices
 import fi.clocklings.audio.Sound
+import fi.clocklings.domain.AppLanguage
 import fi.clocklings.domain.Choice
 import fi.clocklings.domain.ClockTime
 import fi.clocklings.domain.DemoStep
@@ -62,6 +63,7 @@ class LessonViewModel(
     private val thenLevel: Int?,
     private val services: AppServices,
     private val random: Random = Random.Default,
+    private var language: AppLanguage = AppLanguage.ENGLISH,
 ) : ViewModel() {
     private val _state = MutableStateFlow(pageState(0, 0, celebrate = 0))
     val state: StateFlow<LessonUiState> = _state.asStateFlow()
@@ -77,7 +79,7 @@ class LessonViewModel(
         page: Int,
         celebrate: Int,
     ): LessonUiState {
-        val lesson = LessonCatalog.lesson(queue[queueIndex])
+        val lesson = LessonCatalog.lesson(queue[queueIndex], language)
         val base = LessonUiState(lesson = lesson, queueIndex = queueIndex, page = page, celebrate = celebrate)
         return if (page < lesson.pages.size) {
             val p = lesson.pages[page]
@@ -102,6 +104,18 @@ class LessonViewModel(
         demoJob?.cancel()
         _state.value = pageState(queueIndex, page, _state.value.celebrate)
         startDemo()
+    }
+
+    fun setLanguage(value: AppLanguage) {
+        if (language == value) return
+        language = value
+        val current = _state.value
+        if (current.isQuiz) {
+            // Resource references and numeric choices retain their identity and order.
+            _state.value = current.copy(lesson = LessonCatalog.lesson(current.lesson.id, language))
+        } else {
+            show(current.queueIndex, current.page)
+        }
     }
 
     private fun startDemo() {

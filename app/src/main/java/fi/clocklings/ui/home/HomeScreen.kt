@@ -18,7 +18,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -40,13 +39,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import fi.clocklings.R
-import fi.clocklings.audio.Sound
 import fi.clocklings.domain.ClockTime
 import fi.clocklings.domain.CompanionKind
 import fi.clocklings.domain.Progress
 import fi.clocklings.domain.Settings
 import fi.clocklings.domain.Wardrobe
-import fi.clocklings.ui.LocalAppViewModel
 import fi.clocklings.ui.appearance.LocalPersonalization
 import fi.clocklings.ui.clock.ClockCommand
 import fi.clocklings.ui.clock.ClockFace
@@ -56,10 +53,10 @@ import fi.clocklings.ui.components.BigMenuButton
 import fi.clocklings.ui.components.ChipButton
 import fi.clocklings.ui.components.Eyebrow
 import fi.clocklings.ui.components.ScreenScaffold
-import fi.clocklings.ui.components.SegmentedControl
 import fi.clocklings.ui.components.SkCard
 import fi.clocklings.ui.components.SkIcons
 import fi.clocklings.ui.components.StarIcon
+import fi.clocklings.ui.locale.LocalAppLanguage
 import fi.clocklings.ui.theme.SkColors
 import fi.clocklings.ui.theme.SkDimens
 import fi.clocklings.ui.theme.SkType
@@ -73,8 +70,10 @@ fun HomeScreen(
     onOpen: (HomeDestination) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val app = LocalAppViewModel.current
     ScreenScaffold(modifier) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            ChipButton(stringResource(R.string.settings_title), { onOpen(HomeDestination.SETTINGS) })
+        }
         Hero()
         NowCard(settings.h24)
         if (settings.personalization.companion != CompanionKind.NONE) {
@@ -86,21 +85,6 @@ fun HomeScreen(
             horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM, Alignment.CenterHorizontally),
             verticalArrangement = Arrangement.spacedBy(SkDimens.GapM),
         ) {
-            SegmentedControl(
-                label = stringResource(R.string.mode_label),
-                options = listOf(stringResource(R.string.mode_12), stringResource(R.string.mode_24)),
-                selectedIndex = if (settings.h24) 1 else 0,
-                onSelect = {
-                    app.setH24(it == 1)
-                    app.play(Sound.POP)
-                },
-            )
-            ChipButton(
-                stringResource(if (settings.sound) R.string.sound_on else R.string.sound_off),
-                app::toggleSound,
-                selected = settings.sound,
-            )
-            ResetChip(onReset = app::resetProgress)
             ChipButton(stringResource(R.string.clock_styles_title), { onOpen(HomeDestination.CLOCK_STYLES) })
         }
     }
@@ -163,7 +147,7 @@ private fun NowCard(h24: Boolean) {
             ClockFace(command = ClockCommand(t), mini = true, modifier = Modifier.size(SkDimens.MiniClockHome))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Eyebrow(stringResource(R.string.now_eyebrow))
-                Text(timeLabel(t, h24), style = SkType.NowWords)
+                Text(timeLabel(LocalAppLanguage.current, t, h24), style = SkType.NowWords)
             }
         }
     }
@@ -289,30 +273,9 @@ private fun LearnMenuButton(onClick: () -> Unit) {
     )
 }
 
-/** Kaksivaiheinen nollaus: ensimmäinen painallus kysyy varmistusta 5 sekunnin ajan (web: resetBtn). */
-@Composable
-private fun ResetChip(onReset: () -> Unit) {
-    var armed by remember { mutableStateOf(false) }
-    LaunchedEffect(armed) {
-        if (armed) {
-            delay(RESET_TIMEOUT_MS)
-            armed = false
-        }
-    }
-    ChipButton(stringResource(if (armed) R.string.reset_confirm else R.string.reset), {
-        if (armed) {
-            armed = false
-            onReset()
-        } else {
-            armed = true
-        }
-    })
-}
-
 private const val HERO_W = 120f
 private const val HERO_H = 66f
 private const val NOW_TICK_MS = 10_000L
-private const val RESET_TIMEOUT_MS = 5_000L
 
 private const val RAINBOW_RADIUS = 54
 private const val RAINBOW_GAP = 8

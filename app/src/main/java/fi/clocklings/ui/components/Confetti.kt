@@ -8,10 +8,12 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -237,11 +239,13 @@ fun rememberCelebrationAnchors(
 ): SnapshotStateMap<Int, Offset> {
     val confetti = LocalConfetti.current
     val anchors = remember { mutableStateMapOf<Int, Offset>() }
+    var consumed by rememberSaveable { mutableIntStateOf(0) }
     val currentAnchorKey by rememberUpdatedState(anchorKey)
     val currentFlyTo by rememberUpdatedState(flyTo)
     LaunchedEffect(celebrate) {
-        if (celebrate == 0) return@LaunchedEffect
+        if (celebrate == 0 || celebrate == consumed) return@LaunchedEffect
         val from = currentAnchorKey()?.let { anchors[it] } ?: return@LaunchedEffect
+        consumed = celebrate
         confetti?.burst(from, count)
         currentFlyTo()?.let { confetti?.flyStar(from, it) }
     }

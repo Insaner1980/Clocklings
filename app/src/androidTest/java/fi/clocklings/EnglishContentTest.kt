@@ -1,5 +1,7 @@
 package fi.clocklings
 
+import android.content.res.Configuration
+import android.os.LocaleList
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import fi.clocklings.ui.lesson.LessonCatalog
@@ -11,9 +13,16 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class EnglishContentTest {
+    private fun englishResources() =
+        InstrumentationRegistry.getInstrumentation().targetContext.let { context ->
+            val configuration = Configuration(context.resources.configuration)
+            configuration.setLocales(LocaleList.forLanguageTags("en"))
+            context.createConfigurationContext(configuration).resources
+        }
+
     @Test
     fun lessonAnswersMatchTheirClocksInEnglish() {
-        val res = InstrumentationRegistry.getInstrumentation().targetContext.resources
+        val res = englishResources()
         val examples =
             listOf(
                 Triple("tasan", 540, "Nine o'clock"),
@@ -48,7 +57,7 @@ class EnglishContentTest {
 
     @Test
     fun halfHourExplanationNamesTheHourAlreadyPassed() {
-        val res = InstrumentationRegistry.getInstrumentation().targetContext.resources
+        val res = englishResources()
         val half = LessonCatalog.lesson("puoli")
         assertEquals(210, half.pages[2].time)
         assertTrue(res.getString(R.string.l_puoli_p3a).contains("half past three"))

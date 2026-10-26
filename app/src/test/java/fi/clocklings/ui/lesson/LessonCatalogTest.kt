@@ -1,5 +1,6 @@
 package fi.clocklings.ui.lesson
 
+import fi.clocklings.domain.AppLanguage
 import fi.clocklings.domain.ClockTime
 import fi.clocklings.domain.DemoStep
 import fi.clocklings.domain.Lessons
@@ -8,7 +9,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LessonCatalogTest {
-    private val all = LessonCatalog.all
+    private val all = LessonCatalog.all(AppLanguage.ENGLISH)
 
     @Test
     fun `nine lessons in the web order`() {
@@ -62,5 +63,23 @@ class LessonCatalogTest {
         val page = LessonCatalog.lesson("kierros").pages[2]
         val last = page.demo.filterIsInstance<DemoStep.Under>().last()
         assertEquals(60, last.marks.size)
+    }
+
+    @Test
+    fun `half hour reference follows the language while numeric demos stay identical`() {
+        for (language in AppLanguage.entries) {
+            val lesson = LessonCatalog.lesson("puoli", language)
+            val reference =
+                lesson.pages[2]
+                    .demo
+                    .filterIsInstance<DemoStep.Under>()
+                    .single()
+            assertEquals(
+                listOf(if (language == AppLanguage.ENGLISH) 3 else 4),
+                reference.marks.filterIsInstance<fi.clocklings.domain.Mark.NumberGlow>().map { it.n },
+            )
+            assertEquals(listOf(180, 210, 210, 210), lesson.pages.map { it.time })
+            assertEquals(330, lesson.quiz.time)
+        }
     }
 }

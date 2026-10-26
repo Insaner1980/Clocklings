@@ -37,6 +37,7 @@ import fi.clocklings.ui.components.Panel
 import fi.clocklings.ui.components.ScreenScaffold
 import fi.clocklings.ui.components.SkButton
 import fi.clocklings.ui.digitalLabel
+import fi.clocklings.ui.locale.LocalAppLanguage
 import fi.clocklings.ui.resources
 import fi.clocklings.ui.spokenTime
 import fi.clocklings.ui.theme.SkColors
@@ -58,10 +59,13 @@ fun FreeClockScreen(
     val app = LocalAppViewModel.current
     val res = resources()
     val period = ClockTime.period(h24)
-    var time by rememberSaveable { mutableIntStateOf(START_TIME) }
+    var time by rememberSaveable { mutableIntStateOf(if (h24) START_TIME + ClockTime.HALF_DAY else START_TIME) }
+    var previousH24 by rememberSaveable { mutableStateOf(h24) }
     var command by remember { mutableStateOf(ClockCommand(time)) }
     // 24 h -tilassa aloitetaan iltapäivästä (15.00) eikä yöstä (3.00), kuten webissä.
     LaunchedEffect(h24) {
+        if (previousH24 == h24) return@LaunchedEffect
+        previousH24 = h24
         val adjusted = if (h24 && time < ClockTime.HALF_DAY) time + ClockTime.HALF_DAY else ClockTime.mod(time, period)
         if (adjusted != time) {
             time = adjusted
@@ -87,7 +91,7 @@ fun FreeClockScreen(
         }
         Panel {
             Eyebrow(stringResource(R.string.clock_is))
-            Text(timeLabel(time, h24), style = SkType.Words)
+            Text(timeLabel(LocalAppLanguage.current, time, h24), style = SkType.Words)
             DigitalPill(digitalLabel(res, time, h24))
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM),

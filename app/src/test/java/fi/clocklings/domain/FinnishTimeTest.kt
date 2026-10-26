@@ -9,6 +9,14 @@ import org.junit.Test
 /** Portattu web-version testeistä tests/test-aika.js ja tests/test-24.js. */
 class FinnishTimeTest {
     @Test
+    fun contextualNoonAndMidnightDoNotDescribeAnAnalogOnlyClock() {
+        assertEquals("keskiyö", FinnishTime.fullWords(0, true))
+        assertEquals("keskipäivä", FinnishTime.fullWords(720, true))
+        assertEquals("tasan kaksitoista", FinnishTime.fullWords(0, false))
+        assertEquals("tasan kaksitoista", FinnishTime.fullWords(720, false))
+    }
+
+    @Test
     fun `all 720 times give non-empty unique words`() {
         val seen = mutableMapOf<String, Int>()
         for (t in 0 until 720) {

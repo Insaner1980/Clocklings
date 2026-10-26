@@ -32,10 +32,27 @@ data class ChallengeUiState(
     val clock: ClockCommand = ClockCommand(START_TIME),
     /** Kasvaa jokaisella aloituksella: UI käynnistää ajastinpalkin alusta. */
     val runId: Int = 0,
+    val deadlineNanos: Long = 0,
 ) {
+    fun remainingFraction(nowNanos: Long): Float =
+        when (phase) {
+            ChallengePhase.START -> {
+                1f
+            }
+
+            ChallengePhase.END -> {
+                0f
+            }
+
+            ChallengePhase.RUN -> {
+                ((deadlineNanos - nowNanos) / (ChallengeViewModel.DURATION_MS * NANOS_PER_MILLISECOND)).coerceIn(0f, 1f)
+            }
+        }
+
     companion object {
         /** Aloitusnäkymän kello: varttia vaille yksi (web: hClock.set(45)). */
         const val START_TIME = 45
+        private const val NANOS_PER_MILLISECOND = 1_000_000f
     }
 }
 
@@ -50,6 +67,7 @@ class ChallengeViewModel(
     private val h24: Boolean,
     private val services: AppServices,
     private val random: Random = Random.Default,
+    private val nowNanos: () -> Long = System::nanoTime,
 ) : ViewModel() {
     private val _state = MutableStateFlow(ChallengeUiState())
     val state: StateFlow<ChallengeUiState> = _state.asStateFlow()
@@ -71,7 +89,13 @@ class ChallengeViewModel(
         timer?.cancel()
         pending?.cancel()
         _state.update {
-            it.copy(phase = ChallengePhase.RUN, score = 0, newRecord = false, runId = it.runId + 1)
+            it.copy(
+                phase = ChallengePhase.RUN,
+                score = 0,
+                newRecord = false,
+                runId = it.runId + 1,
+                deadlineNanos = nowNanos() + DURATION_MS * 1_000_000L,
+            )
         }
         nextQuestion()
         timer =

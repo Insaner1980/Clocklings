@@ -14,6 +14,68 @@ $ErrorActionPreference = "Continue"
 [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
 $OutputEncoding = [Console]::OutputEncoding
 
+function Write-SonarMessage {
+    param([string[]]$Text)
+
+    Add-Content -LiteralPath $reportPath -Encoding utf8 -Value $Text
+    foreach ($line in $Text) { Write-Host $line }
+}
+
+function Invoke-SonarGradle {
+    # Read both pipes concurrently so Gradle progress is visible without filling either pipe.
+    $startInfo = [Diagnostics.ProcessStartInfo]::new()
+    $startInfo.FileName = $env:ComSpec
+    $startInfo.Arguments = '/d /s /c ".\gradlew.bat sonar --console=plain --no-daemon -Dsonar.qualitygate.wait=true"'
+    $startInfo.WorkingDirectory = $repoRoot
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $true
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+    $process = [Diagnostics.Process]::new()
+    $process.StartInfo = $startInfo
+    $started = $false
+    try {
+        $started = $process.Start()
+        if (-not $started) { throw 'Could not start Gradle.' }
+        $streams = @($process.StandardOutput, $process.StandardError)
+        $pending = @($streams[0].ReadLineAsync(), $streams[1].ReadLineAsync())
+        $watch = [Diagnostics.Stopwatch]::StartNew()
+        $nextProgressSeconds = 30
+        while (-not $process.HasExited -or $null -ne $pending[0] -or $null -ne $pending[1]) {
+            for ($index = 0; $index -lt 2; $index++) {
+                if ($null -ne $pending[$index] -and $pending[$index].IsCompleted) {
+                    $line = $pending[$index].GetAwaiter().GetResult()
+                    if ($null -eq $line) {
+                        $pending[$index] = $null
+                    } else {
+                        Write-SonarMessage $line
+                        $pending[$index] = $streams[$index].ReadLineAsync()
+                    }
+                }
+            }
+            if ($watch.Elapsed.TotalSeconds -ge $GradleTimeoutSeconds) {
+                return [pscustomobject]@{ TimedOut = $true; ExitCode = 2 }
+            }
+            if ($watch.Elapsed.TotalSeconds -ge $nextProgressSeconds) {
+                Write-SonarMessage "Sonar run still active ($([int]$watch.Elapsed.TotalSeconds) s elapsed; limit $GradleTimeoutSeconds s)."
+                $nextProgressSeconds += 30
+            }
+            Start-Sleep -Milliseconds 10
+        }
+        return [pscustomobject]@{ TimedOut = $false; ExitCode = $process.ExitCode }
+    }
+    finally {
+        try {
+            if ($started -and -not $process.HasExited) {
+                # Only stop this invocation and its descendants, including on Ctrl+C.
+                & taskkill.exe /PID $process.Id /T /F | Out-Null
+                [void]$process.WaitForExit(10000)
+            }
+        }
+        finally { $process.Dispose() }
+    }
+}
+
 function Get-SonarProjectProperties {
     param([string]$Path)
 
@@ -115,6 +177,7 @@ if ($PlanOnly) {
         "  - reuses only ClocklingsFoundation20261020; ANDROID_SERIAL must identify that AVD"
         "  - requires SONAR_TOKEN or systemProp.sonar.token"
         "  - actual external upload requires -AllowExternalUpload"
+        "  - streams progress and waits for the server's Quality Gate result"
         "  - project: $projectKey"
         "  - host: $hostUrl"
     )
@@ -123,12 +186,13 @@ if ($PlanOnly) {
 
 $reportsDirectory = Join-Path $repoRoot "reports"
 $reportPath = Join-Path $reportsDirectory "sonar.txt"
+$startedAt = [DateTime]::UtcNow
 New-Item -ItemType Directory -Force -Path $reportsDirectory | Out-Null
 Set-Content -LiteralPath $reportPath -Encoding utf8 -Value @(
     "sonar"
     "Root: $repoRoot"
     "Project: $projectKey"
-    "Command: .\gradlew.bat sonar --console=plain --no-daemon"
+    "Command: .\gradlew.bat sonar --console=plain --no-daemon -Dsonar.qualitygate.wait=true"
     "Started: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
     ""
 )
@@ -150,13 +214,13 @@ if (-not (Test-SonarTokenConfigured -RepoRoot $repoRoot)) {
 }
 
 $previousAndroidSerial = $env:ANDROID_SERIAL
+$previousSonarHost = $env:SONAR_HOST_URL
 $startedEmulator = $false
 Push-Location -LiteralPath $repoRoot
 try {
     $env:SONAR_HOST_URL = if ($env:SONAR_HOST_URL) { $env:SONAR_HOST_URL } else { $hostUrl }
 
     try {
-        Import-Module "C:\Dev\Android-check\tools\CheckRuntime.psm1" -Force -ErrorAction Stop
         $env:ANDROID_SERIAL = Get-ProjectEmulatorSerial -PreferredSerial $previousAndroidSerial
         if (-not $env:ANDROID_SERIAL) {
             Write-Output "Starting Sonar coverage emulator ClocklingsFoundation20261020..."
@@ -174,40 +238,44 @@ try {
         if ($LASTEXITCODE -ne 0 -or $deviceState -ne 'device') {
             throw "Selected emulator $env:ANDROID_SERIAL is not ready."
         }
-        $deviceMessage = "Coverage emulator: $env:ANDROID_SERIAL"
-        Add-Content -LiteralPath $reportPath -Encoding utf8 -Value $deviceMessage
-        Write-Output $deviceMessage
-        $result = Invoke-ManagedProcess `
-            -Executable (Join-Path $repoRoot "gradlew.bat") `
-            -Arguments @("sonar", "--console=plain", "--no-daemon") `
-            -WorkingDirectory $repoRoot `
-            -TimeoutSeconds $GradleTimeoutSeconds
+        Write-SonarMessage @(
+            "Coverage emulator: $env:ANDROID_SERIAL"
+            "Building, running tests, uploading analysis and waiting for Quality Gate (timeout: $GradleTimeoutSeconds s)..."
+            "Live report: $reportPath"
+        )
+        $result = Invoke-SonarGradle
     }
     catch {
         $message = "ERROR: SONAR_ANALYSIS_PROCESS_ERROR: $($_.Exception.Message)"
-        Add-Content -LiteralPath $reportPath -Encoding utf8 -Value $message
-        Write-Output $message
+        Write-SonarMessage $message
         exit 2
-    }
-
-    foreach ($text in @($result.StandardOutput, $result.StandardError)) {
-        if (-not [string]::IsNullOrWhiteSpace($text)) {
-            Add-Content -LiteralPath $reportPath -Encoding utf8 -Value $text
-            Write-Output $text
-        }
     }
 
     if ($result.TimedOut) {
-        Add-Content -LiteralPath $reportPath -Encoding utf8 -Value "ERROR: SONAR_ANALYSIS_TIMEOUT ($GradleTimeoutSeconds s)"
+        Write-SonarMessage "ERROR: SONAR_ANALYSIS_TIMEOUT ($GradleTimeoutSeconds s). Analysis completion was not confirmed. See $reportPath"
         exit 2
     }
     if ($result.ExitCode -ne 0) {
-        Add-Content -LiteralPath $reportPath -Encoding utf8 -Value "ERROR: SONAR_ANALYSIS_FAILED (exit $($result.ExitCode))"
+        Write-SonarMessage "ERROR: SONAR_ANALYSIS_FAILED (exit $($result.ExitCode)). See $reportPath"
         exit 2
     }
 
-    Add-Content -LiteralPath $reportPath -Encoding utf8 -Value @(
+    $receiptPath = Join-Path $repoRoot 'build\sonar\report-task.txt'
+    $receipt = Get-Item -LiteralPath $receiptPath -ErrorAction SilentlyContinue
+    if ($null -eq $receipt -or $receipt.LastWriteTimeUtc -lt $startedAt) {
+        Write-SonarMessage 'ERROR: SONAR_UPLOAD_RECEIPT_MISSING. No fresh upload receipt; completion was not confirmed.'
+        exit 2
+    }
+    $task = Get-SonarProjectProperties -Path $receiptPath
+    if ($task['projectKey'] -ne $projectKey -or [string]::IsNullOrWhiteSpace($task['ceTaskId'])) {
+        Write-SonarMessage 'ERROR: SONAR_UPLOAD_RECEIPT_INVALID. No matching project/task in the upload receipt.'
+        exit 2
+    }
+    Write-SonarMessage @(
         "SONAR_ANALYSIS_UPLOAD_COMPLETED"
+        "Quality Gate passed. Task: $($task['ceTaskId'])"
+        "Dashboard: $($task['dashboardUrl'])"
+        "Completed: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
         "The JaCoCo import combines JVM unit-test and emulator instrumentation coverage."
     )
     exit 0
@@ -223,6 +291,7 @@ finally {
     }
     finally {
         $env:ANDROID_SERIAL = $previousAndroidSerial
+        $env:SONAR_HOST_URL = $previousSonarHost
         Pop-Location
     }
 }

@@ -33,8 +33,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.min
 import fi.clocklings.R
 import fi.clocklings.domain.ClockTime
-import fi.clocklings.domain.EnglishTime
 import fi.clocklings.domain.Outfit
+import fi.clocklings.domain.timeLanguage
 import fi.clocklings.ui.appearance.LocalPersonalization
 import fi.clocklings.ui.clock.ClockCommand
 import fi.clocklings.ui.clock.ClockFace
@@ -44,6 +44,7 @@ import fi.clocklings.ui.companion.companionAspectRatio
 import fi.clocklings.ui.components.LocalConfetti
 import fi.clocklings.ui.components.confettiAnchor
 import fi.clocklings.ui.greetingText
+import fi.clocklings.ui.locale.LocalAppLanguage
 import fi.clocklings.ui.rememberReduceMotion
 import fi.clocklings.ui.theme.SkColors
 import fi.clocklings.ui.theme.SkDimens
@@ -82,7 +83,7 @@ fun IntroOverlay(
 
     val time = { elapsed.longValue }
     val title = stringResource(R.string.app_name)
-    val greeting = stringResource(greetingText(EnglishTime.greeting(target)))
+    val greeting = stringResource(greetingText(timeLanguage(LocalAppLanguage.current).greeting(target)))
     BoxWithConstraints(
         modifier.introSurface(
             alpha = { T.overlayAlpha(time()) },

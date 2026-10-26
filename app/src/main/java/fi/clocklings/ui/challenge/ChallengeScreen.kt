@@ -3,7 +3,6 @@ package fi.clocklings.ui.challenge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -14,8 +13,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
@@ -31,7 +33,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import fi.clocklings.R
 import fi.clocklings.audio.Sound
 import fi.clocklings.domain.ClockTime
-import fi.clocklings.domain.EnglishTime
+import fi.clocklings.domain.timeLanguage
 import fi.clocklings.ui.AppViewModel
 import fi.clocklings.ui.LocalAppViewModel
 import fi.clocklings.ui.clock.ClockFace
@@ -43,10 +45,12 @@ import fi.clocklings.ui.components.OptionButton
 import fi.clocklings.ui.components.OptionState
 import fi.clocklings.ui.components.Panel
 import fi.clocklings.ui.components.Pill
+import fi.clocklings.ui.components.ReadOptions
 import fi.clocklings.ui.components.ScreenScaffold
 import fi.clocklings.ui.components.SkButton
 import fi.clocklings.ui.components.TopBar
 import fi.clocklings.ui.components.confettiAnchor
+import fi.clocklings.ui.locale.LocalAppLanguage
 import fi.clocklings.ui.theme.SkColors
 import fi.clocklings.ui.theme.SkDimens
 import fi.clocklings.ui.theme.SkShapes
@@ -86,13 +90,8 @@ fun ChallengeScreen(
     onPick: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val confetti = LocalConfetti.current
     val finalAnchor = remember { mutableStateOf(Offset.Zero) }
-    LaunchedEffect(state.phase, state.newRecord) {
-        if (state.phase == ChallengePhase.END && state.newRecord) {
-            confetti?.burst(finalAnchor.value, RECORD_CONFETTI)
-        }
-    }
+    RecordCelebrationEffect(state) { finalAnchor.value }
     ScreenScaffold(modifier) { clockSize ->
         TopBar(
             title = stringResource(R.string.challenge_title),
@@ -100,9 +99,14 @@ fun ChallengeScreen(
             onBack = onBack,
             trailing = { Pill(stringResource(R.string.challenge_score, state.score)) },
         )
-        TimerBar(state.runId, running = state.phase == ChallengePhase.RUN)
+        TimerBar(state)
         ClockBox(clockSize) {
-            ClockFace(command = state.clock, period = ClockTime.period(h24), help = help)
+            ClockFace(
+                command = state.clock,
+                period = ClockTime.period(h24),
+                help = help,
+                describeTime = state.phase != ChallengePhase.RUN || state.busy,
+            )
         }
         Panel {
             when (state.phase) {
@@ -122,12 +126,11 @@ fun ChallengeScreen(
                 }
 
                 ChallengePhase.RUN -> {
-                    Text(stringResource(R.string.question_read), style = SkType.Question)
-                    Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapOptions)) {
+                    ReadOptions {
                         for (t in state.options) {
                             OptionButton(
-                                words = timeLabel(t, h24),
-                                digital = EnglishTime.digital(t, h24),
+                                words = timeLabel(LocalAppLanguage.current, t, h24),
+                                digital = timeLanguage(LocalAppLanguage.current).digital(t, h24),
                                 state = state.optionStates[t] ?: OptionState.NORMAL,
                                 enabled = !state.busy,
                                 onClick = { onPick(t) },
@@ -144,20 +147,34 @@ fun ChallengeScreen(
     }
 }
 
+@Composable
+private fun RecordCelebrationEffect(
+    state: ChallengeUiState,
+    anchor: () -> Offset,
+) {
+    val confetti = LocalConfetti.current
+    val currentAnchor by rememberUpdatedState(anchor)
+    var celebratedRun by rememberSaveable { mutableIntStateOf(-1) }
+    LaunchedEffect(state.phase, state.newRecord, state.runId) {
+        if (state.phase == ChallengePhase.END && state.newRecord && celebratedRun != state.runId) {
+            celebratedRun = state.runId
+            confetti?.burst(currentAnchor(), RECORD_CONFETTI)
+        }
+    }
+}
+
 /** Sateenkaaren väreillä täyttyvä ajastinpalkki, joka tyhjenee minuutissa (web: .timer). */
 @Composable
-private fun TimerBar(
-    runId: Int,
-    running: Boolean,
-) {
+private fun TimerBar(state: ChallengeUiState) {
     // Ajastin on tietoa eikä koristetta, joten se lasketaan ruutujen ajasta (ei animaatioasetuksen mukaan).
-    var fraction by remember { mutableFloatStateOf(1f) }
-    LaunchedEffect(runId, running) {
-        if (!running) return@LaunchedEffect
-        fraction = 1f
-        val start = withFrameNanos { it }
+    var fraction by remember(
+        state.runId,
+        state.phase,
+    ) { mutableFloatStateOf(state.remainingFraction(System.nanoTime())) }
+    LaunchedEffect(state.runId, state.phase) {
+        if (state.phase != ChallengePhase.RUN) return@LaunchedEffect
         while (fraction > 0f) {
-            withFrameNanos { now -> fraction = (1f - (now - start) / DURATION_NANOS).coerceAtLeast(0f) }
+            withFrameNanos { fraction = state.remainingFraction(System.nanoTime()) }
         }
     }
     Box(
@@ -178,7 +195,6 @@ private fun TimerBar(
 }
 
 private const val RECORD_CONFETTI = 120
-private const val DURATION_NANOS = ChallengeViewModel.DURATION_MS * 1_000_000f
 
 @Composable
 private fun ColumnScope.ChallengeResult(

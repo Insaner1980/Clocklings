@@ -12,6 +12,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
@@ -41,6 +43,10 @@ import fi.clocklings.ui.intro.coveredByIntro
 import fi.clocklings.ui.lesson.LessonListScreen
 import fi.clocklings.ui.lesson.LessonRoute
 import fi.clocklings.ui.levels.LevelsScreen
+import fi.clocklings.ui.locale.AppLocaleProvider
+import fi.clocklings.ui.locale.LocalAppLanguage
+import fi.clocklings.ui.settings.LanguageScreen
+import fi.clocklings.ui.settings.SettingsScreen
 import fi.clocklings.ui.theme.ClocklingsTheme
 import fi.clocklings.ui.theme.dotBackground
 
@@ -52,127 +58,147 @@ fun ClocklingsApp(
     container: AppServices = (LocalContext.current.applicationContext as ClocklingsApplication).container,
     app: AppViewModel = viewModel(factory = viewModelFactory { initializer { AppViewModel(container) } }),
 ) {
-    ClocklingsTheme {
-        Box(modifier.fillMaxSize().dotBackground()) {
-            val progress by app.progress.collectAsStateWithLifecycle()
-            val settings by app.settings.collectAsStateWithLifecycle()
-            // Tallennus luetaan muutamassa millisekunnissa; siihen asti näytetään pelkkä tausta.
-            val p = progress ?: return@Box
-            val s = settings ?: return@Box
-            val speech by app.speechAvailable.collectAsStateWithLifecycle()
-            CompositionLocalProvider(LocalAppViewModel provides app, LocalPersonalization provides s.personalization) {
-                ConfettiHost {
-                    // Aloitusnäkymä jokaisella käynnistyksellä; ei palaa näkyviin, kun näkymä luodaan uudelleen.
-                    var introDone by rememberSaveable { mutableStateOf(false) }
-                    val backStack = rememberNavBackStack(ScreenSavedState, Screen.Home)
-                    DisposableEffect(backStack.last()) {
-                        onDispose { app.stopSpeech() }
-                    }
-                    val nav = remember(backStack) { Navigator(backStack) }
-                    val go = { screen: Screen ->
-                        app.play(Sound.POP)
-                        nav.push(screen)
-                    }
-                    val back = {
-                        app.play(Sound.POP)
-                        nav.pop()
-                    }
-                    val playLevel = { level: Int, replaceTop: Boolean ->
-                        app.play(Sound.POP)
-                        nav.startLevel(level, app.startLevel(level), replaceTop)
-                    }
-                    NavDisplay(
-                        backStack = backStack,
-                        modifier = Modifier.coveredByIntro(!introDone),
-                        onBack = { nav.pop() },
-                        entryDecorators =
-                            listOf(
-                                rememberSaveableStateHolderNavEntryDecorator(),
-                                rememberViewModelStoreNavEntryDecorator(),
-                            ),
-                        entryProvider =
-                            entryProvider {
-                                entry<Screen.Home> {
-                                    HomeScreen(p, s, onOpen = { destination ->
-                                        go(
-                                            when (destination) {
-                                                HomeDestination.KOULU -> Screen.LessonList
-                                                HomeDestination.VAPAA -> Screen.FreeClock
-                                                HomeDestination.PELAA -> Screen.Levels
-                                                HomeDestination.KYSY -> Screen.Ask
-                                                HomeDestination.NUKKE -> Screen.Personalize()
-                                                HomeDestination.CLOCK_STYLES -> Screen.Personalize(clocks = true)
+    AppLocaleProvider(container.repository) {
+        val language = LocalAppLanguage.current
+        DisposableEffect(language) {
+            app.services.setSpeechLanguage(language)
+            onDispose { app.stopSpeech() }
+        }
+        LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { app.services.refreshSpeech() }
+        ClocklingsTheme {
+            Box(modifier.fillMaxSize().dotBackground()) {
+                val progress by app.progress.collectAsStateWithLifecycle()
+                val settings by app.settings.collectAsStateWithLifecycle()
+                // Tallennus luetaan muutamassa millisekunnissa; siihen asti näytetään pelkkä tausta.
+                val p = progress ?: return@Box
+                val s = settings ?: return@Box
+                val speech by app.speechAvailable.collectAsStateWithLifecycle()
+                CompositionLocalProvider(
+                    LocalAppViewModel provides app,
+                    LocalPersonalization provides s.personalization,
+                ) {
+                    ConfettiHost {
+                        // Aloitusnäkymä jokaisella käynnistyksellä; ei palaa näkyviin, kun näkymä luodaan uudelleen.
+                        var introDone by rememberSaveable { mutableStateOf(false) }
+                        val backStack = rememberNavBackStack(ScreenSavedState, Screen.Home)
+                        DisposableEffect(backStack.last()) {
+                            onDispose { app.stopSpeech() }
+                        }
+                        val nav = remember(backStack) { Navigator(backStack) }
+                        val go = { screen: Screen ->
+                            app.play(Sound.POP)
+                            nav.push(screen)
+                        }
+                        val back = {
+                            app.play(Sound.POP)
+                            nav.pop()
+                        }
+                        val playLevel = { level: Int, replaceTop: Boolean ->
+                            app.play(Sound.POP)
+                            nav.startLevel(level, app.startLevel(level), replaceTop)
+                        }
+                        NavDisplay(
+                            backStack = backStack,
+                            modifier = Modifier.coveredByIntro(!introDone),
+                            onBack = { nav.pop() },
+                            entryDecorators =
+                                listOf(
+                                    rememberSaveableStateHolderNavEntryDecorator(),
+                                    rememberViewModelStoreNavEntryDecorator(),
+                                ),
+                            entryProvider =
+                                entryProvider {
+                                    entry<Screen.Home> {
+                                        HomeScreen(p, s, onOpen = { destination ->
+                                            go(
+                                                when (destination) {
+                                                    HomeDestination.KOULU -> Screen.LessonList
+                                                    HomeDestination.VAPAA -> Screen.FreeClock
+                                                    HomeDestination.PELAA -> Screen.Levels
+                                                    HomeDestination.KYSY -> Screen.Ask
+                                                    HomeDestination.NUKKE -> Screen.Personalize()
+                                                    HomeDestination.CLOCK_STYLES -> Screen.Personalize(clocks = true)
+                                                    HomeDestination.SETTINGS -> Screen.Settings
+                                                },
+                                            )
+                                        })
+                                    }
+                                    entry<Screen.Settings> { SettingsScreen(s, speech, { go(Screen.Language) }, back) }
+                                    entry<Screen.Language> { LanguageScreen(back) }
+                                    entry<Screen.FreeClock> { FreeClockScreen(s.h24, s.help, speech, back) }
+                                    entry<Screen.Ask> { AskScreen(s.h24, s.help, speech, back) }
+                                    entry<Screen.Wardrobe> {
+                                        val kind = s.personalization.companion
+                                        WardrobeScreen(kind, p, s.personalization.styleFor(kind).color, back)
+                                    }
+                                    entry<Screen.Personalize> { key ->
+                                        AppearanceScreen(
+                                            s.personalization,
+                                            p,
+                                            key.clocks,
+                                            { go(Screen.Wardrobe) },
+                                            back,
+                                        )
+                                    }
+                                    entry<Screen.LessonList> {
+                                        LessonListScreen(
+                                            s.h24,
+                                            p.lessonsDone,
+                                            onOpen = { go(Screen.Lesson(listOf(it))) },
+                                            onBack = back,
+                                        )
+                                    }
+                                    entry<Screen.Lesson> { key ->
+                                        LessonRoute(
+                                            key = key,
+                                            speechAvailable = speech,
+                                            onLeave = { nav.pop() },
+                                            onStartGame = { level ->
+                                                nav.replace(Screen.Game(level, round = System.nanoTime()))
                                             },
                                         )
-                                    })
-                                }
-                                entry<Screen.FreeClock> { FreeClockScreen(s.h24, s.help, speech, back) }
-                                entry<Screen.Ask> { AskScreen(s.h24, s.help, speech, back) }
-                                entry<Screen.Wardrobe> {
-                                    val kind = s.personalization.companion
-                                    WardrobeScreen(kind, p, s.personalization.styleFor(kind).color, back)
-                                }
-                                entry<Screen.Personalize> { key ->
-                                    AppearanceScreen(s.personalization, p, key.clocks, { go(Screen.Wardrobe) }, back)
-                                }
-                                entry<Screen.LessonList> {
-                                    LessonListScreen(
-                                        s.h24,
-                                        p.lessonsDone,
-                                        onOpen = { go(Screen.Lesson(listOf(it))) },
-                                        onBack = back,
-                                    )
-                                }
-                                entry<Screen.Lesson> { key ->
-                                    LessonRoute(
-                                        key = key,
-                                        speechAvailable = speech,
-                                        onLeave = { nav.pop() },
-                                        onStartGame = { level ->
-                                            nav.replace(Screen.Game(level, round = System.nanoTime()))
-                                        },
-                                    )
-                                }
-                                entry<Screen.Levels> {
-                                    LevelsScreen(
-                                        progress = p,
-                                        onPlay = { playLevel(it, false) },
-                                        onLesson = { go(Screen.Lesson(Lessons.levelLessons[it])) },
-                                        onChallenge = { go(Screen.Challenge) },
-                                        onBack = back,
-                                    )
-                                }
-                                entry<Screen.Game> { key ->
-                                    GameRoute(key, s.h24, s.help, onBack = back, onFinish = { nav.replace(it) })
-                                }
-                                entry<Screen.Result> { key ->
-                                    ResultScreen(
-                                        result = key,
-                                        outfit = p.outfitFor(s.personalization.companion),
-                                        onPlayAgain = {
-                                            app.play(Sound.POP)
-                                            nav.replace(Screen.Game(key.level, round = System.nanoTime()))
-                                        },
-                                        onNextLevel = { playLevel(key.level + 1, true) },
-                                        onDress = {
-                                            app.play(Sound.POP)
-                                            nav.replace(Screen.Wardrobe)
-                                        },
-                                        onLevels = {
-                                            app.play(Sound.POP)
-                                            nav.popTo(Screen.Levels)
-                                        },
-                                    )
-                                }
-                                entry<Screen.Challenge> { ChallengeRoute(s.h24, s.help, back) }
-                            },
-                    )
-                    if (!introDone) {
-                        IntroOverlay(
-                            p.outfitFor(s.personalization.companion),
-                            onTick = { app.play(Sound.TICK) },
-                            onDone = { introDone = true },
+                                    }
+                                    entry<Screen.Levels> {
+                                        LevelsScreen(
+                                            progress = p,
+                                            onPlay = { playLevel(it, false) },
+                                            onLesson = { go(Screen.Lesson(Lessons.levelLessons[it])) },
+                                            onChallenge = { go(Screen.Challenge) },
+                                            onBack = back,
+                                        )
+                                    }
+                                    entry<Screen.Game> { key ->
+                                        GameRoute(key, s.h24, s.help, onBack = back, onFinish = { nav.replace(it) })
+                                    }
+                                    entry<Screen.Result> { key ->
+                                        ResultScreen(
+                                            result = key,
+                                            outfit = p.outfitFor(s.personalization.companion),
+                                            onPlayAgain = {
+                                                app.play(Sound.POP)
+                                                nav.replace(Screen.Game(key.level, round = System.nanoTime()))
+                                            },
+                                            onNextLevel = { playLevel(key.level + 1, true) },
+                                            onDress = {
+                                                app.play(Sound.POP)
+                                                nav.replace(Screen.Wardrobe)
+                                            },
+                                            onLevels = {
+                                                app.play(Sound.POP)
+                                                nav.popTo(Screen.Levels)
+                                            },
+                                        )
+                                    }
+                                    entry<Screen.Challenge> { ChallengeRoute(s.h24, s.help, back) }
+                                },
                         )
+                        if (!introDone) {
+                            IntroOverlay(
+                                p.outfitFor(s.personalization.companion),
+                                onTick = { app.play(Sound.TICK) },
+                                onDone = { introDone = true },
+                            )
+                        }
                     }
                 }
             }

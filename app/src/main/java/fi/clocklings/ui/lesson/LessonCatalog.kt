@@ -1,8 +1,10 @@
 package fi.clocklings.ui.lesson
 
 import fi.clocklings.R
+import fi.clocklings.domain.AppLanguage
 import fi.clocklings.domain.Choice
 import fi.clocklings.domain.ClockTime
+import fi.clocklings.domain.DemoStep
 import fi.clocklings.domain.Hand
 import fi.clocklings.domain.Lesson
 import fi.clocklings.domain.LessonPage
@@ -34,6 +36,8 @@ private fun choices(vararg ids: Int) = ids.mapIndexed { i, id -> Choice(r(id), c
 
 private val Half = sector(0, 30, MarkColor.HALF)
 private const val DAY = ClockTime.DAY
+private const val HALF_REFERENCE_PAGE = 2
+private const val NEXT_HALF_HOUR = 4
 
 /**
  * Kellokoulun 9 oppituntia web-version LESSONS-listasta. Tekstit ovat strings.xml:ssä;
@@ -41,7 +45,7 @@ private const val DAY = ClockTime.DAY
  * (näytettäessä järjestys sekoitetaan).
  */
 object LessonCatalog {
-    val all: List<Lesson> =
+    private val authored: List<Lesson> =
         listOf(
             Lesson(
                 id = "viisarit",
@@ -224,7 +228,7 @@ object LessonCatalog {
                             listOf(r(R.string.l_puoli_p3a), r(R.string.l_puoli_p3b)),
                             demo {
                                 pause(600)
-                                under(Half, num(4))
+                                under(Half, num(3))
                                 say(r(R.string.l_puoli_say_digits))
                             },
                             under = listOf(Half),
@@ -533,7 +537,28 @@ object LessonCatalog {
             ),
         )
 
-    private val byId = all.associateBy { it.id }
+    private val nextHourReferences =
+        authored.map { lesson ->
+            if (lesson.id == "puoli") {
+                val pages = lesson.pages.toMutableList()
+                val reference = pages[HALF_REFERENCE_PAGE]
+                pages[HALF_REFERENCE_PAGE] =
+                    reference.copy(
+                        demo =
+                            reference.demo.map { step ->
+                                if (step is DemoStep.Under) DemoStep.Under(listOf(Half, num(NEXT_HALF_HOUR))) else step
+                            },
+                    )
+                lesson.copy(pages = pages)
+            } else {
+                lesson
+            }
+        }
 
-    fun lesson(id: String): Lesson = byId.getValue(id)
+    fun all(language: AppLanguage): List<Lesson> = if (language == AppLanguage.ENGLISH) authored else nextHourReferences
+
+    fun lesson(
+        id: String,
+        language: AppLanguage = AppLanguage.ENGLISH,
+    ): Lesson = all(language).first { it.id == id }
 }

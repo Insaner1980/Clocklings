@@ -32,6 +32,7 @@ import fi.clocklings.ui.components.ScreenScaffold
 import fi.clocklings.ui.components.SkButton
 import fi.clocklings.ui.components.confettiAnchor
 import fi.clocklings.ui.digitalLabel
+import fi.clocklings.ui.locale.LocalAppLanguage
 import fi.clocklings.ui.resources
 import fi.clocklings.ui.spokenTime
 import fi.clocklings.ui.theme.SkDimens
@@ -140,7 +141,7 @@ private fun AskAnswer(
 ) {
     val app = LocalAppViewModel.current
     val res = resources()
-    Text(timeLabel(time, h24), style = SkType.Words)
+    Text(timeLabel(LocalAppLanguage.current, time, h24), style = SkType.Words)
     DigitalPill(digitalLabel(res, time, h24))
     if (speechAvailable) {
         SkButton(
