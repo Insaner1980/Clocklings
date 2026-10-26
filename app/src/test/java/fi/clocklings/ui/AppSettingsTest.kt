@@ -50,6 +50,29 @@ class AppSettingsTest {
         }
 
     @Test
+    fun dismissingErrorPreservesPendingWriteAndItsLaterFailure() =
+        runTest(main.dispatcher) {
+            val store = SettingsTestStore()
+            val repository = ProgressRepository(store)
+            val app = AppViewModel(services(repository))
+            advanceUntilIdle()
+            store.fail = true
+            app.setHelp(false)
+            app.clearSettingsError()
+            assertTrue(app.settingsAction.value.pending)
+            advanceUntilIdle()
+            assertTrue(app.settingsAction.value.failed)
+            app.clearSettingsError()
+            assertEquals(SettingsAction(), app.settingsAction.value)
+            assertEquals(Settings(), repository.settings.first())
+            store.fail = false
+            app.setHelp(false)
+            advanceUntilIdle()
+            assertFalse(repository.settings.first().help)
+            assertEquals(SettingsAction(), app.settingsAction.value)
+        }
+
+    @Test
     fun resetFailureAndRepeatedSubmissionDoNotLoseOtherData() =
         runTest(main.dispatcher) {
             val store = SettingsTestStore()

@@ -88,6 +88,10 @@ class AppViewModel(
         }
     }
 
+    fun clearSettingsError() {
+        if (!mutableSettingsAction.value.pending) mutableSettingsAction.value = SettingsAction()
+    }
+
     private fun settingsWrite(action: suspend () -> Unit) {
         if (mutableSettingsAction.value.pending) return
         mutableSettingsAction.value = SettingsAction(pending = true)

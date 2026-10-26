@@ -17,6 +17,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,6 +59,7 @@ fun SettingsScreen(
     val language = LocalAppLanguage.current
     // A language change or activity recreation dismisses a destructive confirmation safely.
     var confirmReset by remember(language) { mutableStateOf(false) }
+    LaunchedEffect(app) { app.clearSettingsError() }
     val words = timeLanguage(language)
     ScreenScaffold(modifier) {
         TopBar(stringResource(R.string.settings_title), stringResource(R.string.back), onBack)
@@ -92,9 +94,9 @@ fun SettingsScreen(
             Text(stringResource(R.string.settings_sound_description), style = SkType.Body)
         }
         SpeechAvailability(speechAvailable)
-        Panel {
-            SettingsHeading(stringResource(R.string.settings_progress_title))
-            SkButton(stringResource(R.string.settings_reset_action), { confirmReset = true }, enabled = !action.pending)
+        ResetProgressPanel(!action.pending) {
+            app.clearSettingsError()
+            confirmReset = true
         }
         if (action.failed) Text(stringResource(R.string.settings_save_error), style = SkType.Body)
     }
@@ -105,6 +107,17 @@ fun SettingsScreen(
             onDismiss = { confirmReset = false },
             onReset = { app.resetProgress { confirmReset = false } },
         )
+    }
+}
+
+@Composable
+private fun ResetProgressPanel(
+    enabled: Boolean,
+    onReset: () -> Unit,
+) {
+    Panel {
+        SettingsHeading(stringResource(R.string.settings_progress_title))
+        SkButton(stringResource(R.string.settings_reset_action), onReset, enabled = enabled)
     }
 }
 

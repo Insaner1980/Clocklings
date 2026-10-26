@@ -950,6 +950,14 @@ private fun fi.clocklings.ui.settings.ResetProgressDialog(pending: kotlin.Boolea
     - onReset: STABLE (function type)
 
 @Composable
+private fun fi.clocklings.ui.settings.ResetProgressPanel(enabled: kotlin.Boolean, onReset: kotlin.Function0<kotlin.Unit>): kotlin.Unit
+  skippable: true
+  restartable: true
+  params:
+    - enabled: STABLE (primitive type)
+    - onReset: STABLE (function type)
+
+@Composable
 private fun fi.clocklings.ui.settings.SettingsHeading(text: kotlin.String): kotlin.Unit
   skippable: true
   restartable: true

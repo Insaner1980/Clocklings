@@ -98,7 +98,7 @@
     <string name="hint_read_minute_also_hour">Tarkista sitten lyhyt punainen viisari.</string>
     <string name="hint_set_minute">Pitkän sinisen viisarin pitää osoittaa %1$s.</string>
     <string name="hint_set_hour">Pitkä viisari on oikein! Liikuta lyhyttä punaista viisaria niin, että se %1$s.</string>
-    <string name="hint_set_hour_turn">Siirrä lyhyttä viisaria tunti eteenpäin liikuttamalla pitkä viisari koko kierroksen ympäri.</string>
+    <string name="hint_set_hour_turn">Siirrä lyhyttä viisaria tunti eteenpäin liikuttamalla pitkää viisaria koko kierroksen ympäri.</string>
     <string name="hour_pos_exact">osoittaa suoraan numeroon %1$d</string>
     <string name="hour_pos_passed">on juuri ohittanut numeron %1$d</string>
     <string name="hour_pos_between" tools:ignore="PluralsCandidate">on numeroiden %1$d ja %2$d välissä</string>

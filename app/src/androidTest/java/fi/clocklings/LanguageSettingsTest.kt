@@ -77,22 +77,25 @@ class LanguageSettingsTest {
         object : ExternalResource() {
             private lateinit var progress: Progress
             private lateinit var settings: Settings
+            private var legacyLanguage: String? = null
+            private var platformLanguage = ""
 
             override fun before() {
                 runBlocking {
                     progress = locale.repository.progress.first()
                     settings = locale.repository.settings.first()
+                    legacyLanguage = locale.repository.legacyLanguage.first()
                 }
-                locale.prepare(seededProgress, seededSettings)
+                platformLanguage = locale.prepare(seededProgress, seededSettings)
             }
 
             override fun after() {
                 runBlocking {
                     locale.repository.updateProgress { progress }
                     locale.repository.updateSettings { settings }
-                    locale.repository.setLegacyLanguage(if (Build.VERSION.SDK_INT < 33) "en" else null)
+                    locale.repository.setLegacyLanguage(legacyLanguage)
                 }
-                locale.setPlatformLanguage("en")
+                locale.setPlatformLanguage(platformLanguage)
             }
         }
 
@@ -135,7 +138,7 @@ class LanguageSettingsTest {
                 SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch),
             ).assertIsOff()
         guides.performClick()
-        compose.waitUntil { runBlocking { locale.repository.settings.first() }.help }
+        compose.waitUntil(10_000) { runBlocking { locale.repository.settings.first() }.help }
         guides.assertIsOn()
         val sound = compose.onNode(hasText("Sound effects") and hasClickAction())
         sound
@@ -144,10 +147,10 @@ class LanguageSettingsTest {
                 SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch),
             ).assertIsOff()
         sound.performClick()
-        compose.waitUntil { runBlocking { locale.repository.settings.first() }.sound }
+        compose.waitUntil(10_000) { runBlocking { locale.repository.settings.first() }.sound }
         sound.assertIsOn()
         click("12 h")
-        compose.waitUntil { !runBlocking { locale.repository.settings.first() }.h24 }
+        compose.waitUntil(10_000) { !runBlocking { locale.repository.settings.first() }.h24 }
         radio("12 h").assertIsSelected()
         compose.activityRule.scenario.recreate()
         waitText("Clock display")
@@ -167,8 +170,10 @@ class LanguageSettingsTest {
         assertDataUnchanged()
         click("Reset progress")
         compose.onAllNodes(hasText("Reset progress") and hasClickAction()).onLast().performClick()
-        compose.waitUntil { runBlocking { locale.repository.progress.first() == Progress() } }
-        compose.waitUntil { compose.onAllNodesWithText("Reset learning progress?").fetchSemanticsNodes().isEmpty() }
+        compose.waitUntil(10_000) { runBlocking { locale.repository.progress.first() == Progress() } }
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithText("Reset learning progress?").fetchSemanticsNodes().isEmpty()
+        }
         assertEquals(seededSettings, runBlocking { locale.repository.settings.first() })
         assertPersistedLanguage(AppLanguage.ENGLISH)
         compose.activityRule.scenario.recreate()

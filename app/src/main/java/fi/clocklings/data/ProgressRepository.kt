@@ -48,7 +48,7 @@ class ProgressRepository(
     val settings: Flow<Settings> = data.map { it.toSettings() }.distinctUntilChanged()
 
     // Only API 26–32 persists a language here. Newer Android owns its app locale.
-    val legacyLanguage: Flow<String?> = store.data.map { it[APP_LANGUAGE] }.distinctUntilChanged()
+    val legacyLanguage: Flow<String?> = data.map { it[APP_LANGUAGE] }.distinctUntilChanged()
 
     suspend fun setLegacyLanguage(tag: String?) {
         store.edit { prefs ->
