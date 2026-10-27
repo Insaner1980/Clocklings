@@ -1,5 +1,7 @@
 package fi.clocklings.ui.components
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -11,6 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
@@ -26,13 +29,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import fi.clocklings.ui.SkMotion
+import fi.clocklings.ui.rememberReduceMotion
 import fi.clocklings.ui.theme.SkColors
 import fi.clocklings.ui.theme.SkDimens
 import fi.clocklings.ui.theme.SkShapes
@@ -40,7 +47,7 @@ import fi.clocklings.ui.theme.SkType
 
 /**
  * "3D-nappi": täytetty pinta, jonka alla on tummempi kiinteä varjo. Painettaessa pinta
- * painuu alas varjon päälle (web: box-shadow 0 5px 0 ja :active translateY).
+ * painuu alas varjon päälle.
  */
 @Composable
 fun DepthSurface(
@@ -59,10 +66,19 @@ fun DepthSurface(
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
+    val reduced = rememberReduceMotion()
+    val scale by animateFloatAsState(
+        if (pressed && enabled && !reduced) SkMotion.PRESS_SCALE else 1f,
+        animationSpec = if (reduced) snap() else SkMotion.PressSpring,
+        label = "press",
+    )
     val shift = if (pressed && enabled) depth - pressedDepth else 0.dp
     Box(
         modifier
-            .alpha(if (enabled || !dimWhenDisabled) 1f else DISABLED_ALPHA)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }.alpha(if (enabled || !dimWhenDisabled) 1f else DISABLED_ALPHA)
             .offset { IntOffset(0, shift.roundToPx()) }
             .drawBehind {
                 val outline = shape.createOutline(size, layoutDirection, this)
@@ -78,7 +94,7 @@ private const val DISABLED_ALPHA = 0.5f
 
 enum class ButtonKind { NORMAL, PRIMARY, GREEN }
 
-/** Tavallinen nappi (web: .btn, .btn.primary, .btn.green, .btn.small). */
+/** Tavallinen nappi. */
 @Composable
 fun SkButton(
     text: String,
@@ -87,6 +103,7 @@ fun SkButton(
     kind: ButtonKind = ButtonKind.NORMAL,
     small: Boolean = false,
     enabled: Boolean = true,
+    icon: SvgIcon? = null,
 ) {
     val (fill, shadow) =
         when (kind) {
@@ -95,39 +112,20 @@ fun SkButton(
             ButtonKind.GREEN -> SkColors.BtnGreenFill to SkColors.BtnGreenShadow
         }
     DepthSurface(onClick, fill, shadow, SkShapes.Button, modifier, enabled = enabled) {
-        Box(
-            Modifier.padding(if (small) PaddingValues(20.dp, 13.dp) else PaddingValues(22.dp, 15.dp)),
-            contentAlignment = Alignment.Center,
+        Row(
+            Modifier
+                .heightIn(min = SkDimens.ChildTarget)
+                .padding(if (small) PaddingValues(16.dp, 13.dp) else PaddingValues(16.dp, 15.dp)),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(SkDimens.GapS, Alignment.CenterHorizontally),
         ) {
-            Text(text, style = if (small) SkType.ButtonSmall else SkType.Button, textAlign = TextAlign.Center)
+            icon?.let { SkIcon(it, SkDimens.ActionIcon) }
+            WordSafeText(text, if (small) SkType.ButtonSmall else SkType.Button, Modifier.weight(1f, fill = false))
         }
     }
 }
 
-/** Pieni pyöreä sirunappi. [selected] != null tekee siitä päälle/pois-valinnan (web: aria-pressed). */
-@Composable
-fun ChipButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    selected: Boolean? = null,
-) {
-    val on = selected == true
-    Box(
-        modifier
-            .minimumInteractiveComponentSize()
-            .semantics { if (selected != null) this.selected = on }
-            .background(if (on) SkColors.Pressed else SkColors.Surface, SkShapes.Pill)
-            .border(SkDimens.BorderThin, if (on) SkColors.Gold else SkColors.Line, SkShapes.Pill)
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(text, style = SkType.Chip, textAlign = TextAlign.Center)
-    }
-}
-
-/** Kaksiosainen valinta, esim. "Kello 12 h / 24 h" (web: .seg). */
+/** Segmented choice: a soft track with the chosen segment as a raised white thumb. */
 @Composable
 fun SegmentedControl(
     label: String,
@@ -138,42 +136,42 @@ fun SegmentedControl(
 ) {
     Row(
         modifier
-            .background(SkColors.Surface, SkShapes.Pill)
-            .border(SkDimens.BorderThin, SkColors.Line, SkShapes.Pill)
-            .padding(3.dp),
+            .background(SkColors.SegmentTrack, SkShapes.Pill)
+            .padding(SkDimens.SegmentInset),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        horizontalArrangement = Arrangement.spacedBy(SkDimens.SegmentInset),
     ) {
-        Text(
-            label,
-            style = SkType.Chip.copy(color = SkColors.InkSoft),
-            modifier = Modifier.padding(start = 10.dp, end = 4.dp),
-        )
+        if (label.isNotEmpty()) {
+            Text(
+                label,
+                style = SkType.Chip.copy(color = SkColors.InkSoft),
+                modifier = Modifier.padding(start = 10.dp, end = 4.dp),
+            )
+        }
         options.forEachIndexed { i, option ->
             val on = i == selectedIndex
             Box(
                 Modifier
+                    .then(if (label.isEmpty()) Modifier.weight(1f) else Modifier)
                     .minimumInteractiveComponentSize()
                     .semantics { selected = on }
-                    .then(
-                        if (on) {
-                            Modifier
-                                .background(
-                                    SkColors.Pressed,
-                                    SkShapes.Pill,
-                                ).border(2.dp, SkColors.Gold, SkShapes.Pill)
-                        } else {
-                            Modifier
-                        },
-                    ).clickable(role = Role.RadioButton) { onSelect(i) }
-                    .padding(horizontal = 14.dp, vertical = 6.dp),
+                    .then(if (on) Modifier.cardLift().background(SkColors.Surface, SkShapes.Pill) else Modifier)
+                    .clickable(role = Role.RadioButton) { onSelect(i) }
+                    .padding(horizontal = SkDimens.GapS, vertical = 6.dp),
                 contentAlignment = Alignment.Center,
-            ) { Text(option, style = SkType.Segment) }
+            ) { WordSafeText(option, SkType.Segment.copy(color = if (on) SkColors.Ink else SkColors.InkSoft)) }
         }
     }
 }
 
-/** Etusivun iso valikkonappi: kuvake, otsikko ja selite (web: .big-btn). */
+/** A thin soft shadow under the selected segment thumb. */
+private fun Modifier.cardLift(): Modifier =
+    drawBehind {
+        val outline = SkShapes.Pill.createOutline(size, layoutDirection, this)
+        translate(0f, SkDimens.SegmentLift.toPx()) { drawOutline(outline, SkColors.SegmentShadow) }
+    }
+
+/** A child-sized activity tile; supporting copy remains available to screen readers. */
 @Composable
 fun BigMenuButton(
     title: String,
@@ -189,46 +187,17 @@ fun BigMenuButton(
         fill,
         shadow,
         SkShapes.Card,
-        modifier,
+        modifier.semantics { contentDescription = "$title. $subtitle" },
         depth = SkDimens.BigButtonDepth,
         pressedDepth = 2.dp,
     ) {
         Column(
-            Modifier.padding(start = 16.dp, end = 16.dp, top = 18.dp, bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            Modifier.heightIn(min = SkDimens.MenuTileHeight).padding(SkDimens.GapM),
+            verticalArrangement = Arrangement.spacedBy(SkDimens.GapS, Alignment.CenterVertically),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             SkIcon(icon, SkDimens.MenuIcon, Modifier.padding(bottom = 4.dp))
-            Text(title, style = SkType.BigButton)
-            Text(subtitle, style = SkType.BigButtonSmall)
+            WordSafeText(title, SkType.BigButton)
         }
     }
-}
-
-/** Haamuvarjo kortille: ohut kiinteä varjo alareunassa (web: 0 4px 0 rgba(58,36,83,.06)). */
-fun Modifier.cardShadow(
-    shape: Shape = SkShapes.Card,
-    depth: Dp = 4.dp,
-    color: Color = SkColors.Shadow.copy(alpha = 0.06f),
-    soft: Boolean = true,
-): Modifier =
-    drawBehind {
-        val outline = shape.createOutline(size, layoutDirection, this)
-        translate(0f, depth.toPx()) { drawOutline(outline, color) }
-        if (soft) translate(0f, depth.toPx() * 2) { drawOutline(outline, color.copy(alpha = color.alpha / 2)) }
-    }
-
-/** Valkoinen kortti (web: .card). */
-@Composable
-fun SkCard(
-    modifier: Modifier = Modifier,
-    padding: Dp = SkDimens.CardPadding,
-    color: Color = SkColors.Surface,
-    content: @Composable () -> Unit,
-) {
-    Box(
-        modifier
-            .cardShadow()
-            .background(color, SkShapes.Card)
-            .padding(padding),
-    ) { content() }
 }

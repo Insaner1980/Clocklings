@@ -28,27 +28,39 @@ internal object ClockSpec {
     const val FACE_RADIUS = 170f
     const val HALF_RADIUS = 168f
     const val MINUTE_LABEL_RADIUS = 207f
-    const val INNER_24_RADIUS = 84f
+    const val INNER_24_RADIUS = 82f
     const val TICK_OUTER = 162f
     const val TICK_BIG_INNER = 145f
     const val TICK_SMALL_INNER = 153f
     const val TICK_BIG_WIDTH = 4f
     const val TICK_SMALL_WIDTH = 2f
-    const val NUMBER_RADIUS = 121f
+    const val NUMBER_RADIUS = 110f
 
     const val HOUR_TAIL = 16f
-    const val HOUR_LENGTH = 92f
+    const val HOUR_LENGTH = 86f
     const val HOUR_WIDTH = 16f
     const val HOUR_WIDTH_PULSE = 25f
     const val HOUR_KNOB = 12f
     const val MINUTE_TAIL = 22f
-    const val MINUTE_LENGTH = 144f
+
+    /** Both the round tip and pointed arrowhead reach the minute ticks beyond the numeral ring. */
+    const val MINUTE_LENGTH = 150f
     const val MINUTE_WIDTH = 10f
     const val MINUTE_WIDTH_PULSE = 17f
-    const val MINUTE_KNOB = 11f
+    const val MINUTE_KNOB = 10f
     const val KNOB_STROKE = 4f
-    const val SHADOW_DY = 3f
-    const val SHADOW_ALPHA = 0.22f
+    const val HAND_HALO = 3f
+
+    /** Arrowhead of a pointed hand, as multiples of the hand width. */
+    const val POINTER_HEAD_LENGTH = 1.7f
+    const val POINTER_HEAD_WIDTH = 2.4f
+
+    /**
+     * How far the shaft reaches into the arrowhead: far enough to close the seam, short enough that
+     * its round cap stays inside.
+     */
+    const val POINTER_SHAFT_OVERLAP = 0.7f
+    const val POINTER_CORNER = 3f
     const val DIMMED_ALPHA = 0.22f
     const val PULSE_HALF_MS = 550
 
@@ -62,9 +74,13 @@ internal object ClockSpec {
     const val SUN_RAY_WIDTH = 3f
     const val DAY_TEXT_Y = 266f
 
-    const val ZONE_YLI_X = 244f
-    const val ZONE_VAILLE_X = 157f
-    const val ZONE_Y = 207f
+    /** "past" sits at 5 o'clock and "to" at 7 o'clock, below the pin, where hands cover them less often. */
+    const val ZONE_LABEL_ANGLE = 148f
+    const val ZONE_RADIUS = 70f
+
+    /** A label is hidden when a hand is within [ZONE_HIDE_ANGLE] and fully shown beyond [ZONE_FADE_ANGLE]. */
+    const val ZONE_HIDE_ANGLE = 10f
+    const val ZONE_FADE_ANGLE = 24f
 
     // Opetuksen merkinnät
     const val GLOW_NUMBER_RADIUS = 27f
@@ -74,10 +90,10 @@ internal object ClockSpec {
     const val BUBBLE_STROKE = 3f
 
     // Fonttikoot
-    const val NUMBER_FONT = 42f
+    const val NUMBER_FONT = 39f
     const val MINUTE_FONT = 17f
     const val ZONE_FONT = 19f
-    const val INNER_24_FONT = 16f
+    const val INNER_24_FONT = 12f
     const val DAY_FONT = 17f
     const val BUBBLE_FONT = 16f
 

@@ -3,8 +3,6 @@
     <string name="appearance_title">Gör den till din</string>
     <string name="companions_title">Kompisar</string>
     <string name="clock_styles_title">Klockstilar</string>
-    <string name="appearance_selected">Vald</string>
-    <string name="companion_choice_hint">Välj en kompis eller bara klockan. Alla kompisar är redo att följa med.</string>
     <string name="companion_human">Människa</string>
     <string name="companion_cat">Katt</string>
     <string name="companion_dog">Hund</string>
@@ -19,7 +17,6 @@
     <string name="color_green">Grön</string>
     <string name="color_purple">Lila</string>
     <string name="color_coral">Korall</string>
-    <string name="clock_choice_hint">Välj en klocka för lektioner, spel och utforskande. Alla stilar går att använda direkt.</string>
     <string name="theme_classic">Klassisk</string>
     <string name="theme_rainbow">Regnbåge</string>
     <string name="theme_space">Rymden</string>
@@ -28,7 +25,7 @@
     <string name="theme_garden">Trädgården</string>
     <string name="theme_workshop">Verkstaden</string>
     <string name="theme_custom">Min egen klocka</string>
-    <string name="custom_clock_hint">Blanda dina favoritfärger och former. Den korta röda visaren visar timmar och den långa blå visar minuter.</string>
+    <string name="custom_clock_hint">Blanda dina favoritfärger och former. Den korta rosa visaren visar timmar och den långa blå visar minuter.</string>
     <string name="clock_color">Ramens färg</string>
     <string name="clock_frame">Ramens mönster</string>
     <string name="frame_round">Slät</string>

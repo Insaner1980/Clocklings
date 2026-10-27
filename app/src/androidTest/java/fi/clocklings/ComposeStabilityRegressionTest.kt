@@ -9,7 +9,6 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import fi.clocklings.ui.challenge.ChallengePhase
@@ -59,7 +58,7 @@ class ComposeStabilityRegressionTest {
                 }
             }
         }
-        val score = compose.onNodeWithText("12").performScrollTo().assertIsDisplayed()
+        val score = compose.onNodeWithText("12").scrollToIfScrollable().assertIsDisplayed()
         val bounds = score.getUnclippedBoundsInRoot()
         val density =
             InstrumentationRegistry
@@ -73,7 +72,7 @@ class ComposeStabilityRegressionTest {
                 assertEquals((bounds.top.value + bounds.bottom.value) / 2f * density, particle.y, 1f)
             }
         }
-        compose.onNodeWithText("Levels").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Levels").scrollToIfScrollable().assertIsDisplayed()
         compose.runOnIdle { assertEquals(120, confetti.particles.size) }
         restoration.emulateSavedInstanceStateRestore()
         compose.runOnIdle { assertEquals(120, confetti.particles.size) }

@@ -55,6 +55,7 @@ class ClockState internal constructor(
     var step = 5
     var reduceMotion = false
     var onChange: ((Int) -> Unit)? = null
+    internal var onDragStep: ((DragTick) -> Unit)? = null
 
     /** Kutsutaan, kun animoitu siirto on kulkenut loppuun (ei, jos uusi käsky keskeyttää sen). */
     var onSettle: (() -> Unit)? = null
@@ -118,6 +119,7 @@ class ClockState internal constructor(
             }
         val v = ClockTime.snap(raw, step, period)
         if (v != value) {
+            dragTick(value, v)?.let { onDragStep?.invoke(it) }
             value = v
             onChange?.invoke(v)
         }

@@ -4,12 +4,50 @@ import fi.clocklings.domain.AppLanguage
 import fi.clocklings.domain.ClockTime
 import fi.clocklings.domain.DemoStep
 import fi.clocklings.domain.Lessons
+import fi.clocklings.domain.Text
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LessonCatalogTest {
     private val all = LessonCatalog.all(AppLanguage.ENGLISH)
+
+    @Test
+    fun `five minute explanation reaches each number before naming it`() {
+        for (language in AppLanguage.entries) assertFiveMinuteExplanation(language)
+    }
+
+    private fun assertFiveMinuteExplanation(language: AppLanguage) {
+        val page = LessonCatalog.lesson("viisi", language).pages.first()
+        var reachedTime = page.time
+        var movingTo = page.time
+        var remaining = 0L
+        val explained = mutableListOf<Int>()
+        for (step in page.demo) {
+            when (step) {
+                is DemoStep.Move -> {
+                    movingTo = step.to
+                    remaining = step.ms.toLong()
+                }
+
+                is DemoStep.Wait -> {
+                    remaining -= step.ms
+                    if (remaining <= 0) reachedTime = movingTo
+                }
+
+                is DemoStep.Say -> {
+                    if (step.text is Text.Res) {
+                        val number = step.text.args.first() as Int
+                        assertEquals("$language number $number", 180 + number * 5, reachedTime)
+                        explained += number
+                    }
+                }
+
+                else -> {}
+            }
+        }
+        assertEquals((1..12).toList(), explained)
+    }
 
     @Test
     fun `nine lessons in the web order`() {

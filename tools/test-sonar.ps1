@@ -10,13 +10,13 @@ Set-Content (Join-Path $testRoot 'sonar-project.properties') @(
     'sonar.projectKey=wrapper-test'
     'sonar.host.url=https://example.invalid'
 )
-Set-Content (Join-Path $fakeBin.FullName 'adb.cmd') @'
+foreach ($command in @('adb', 'android')) {
+    Set-Content (Join-Path $fakeBin.FullName "$command.cmd") @'
 @echo off
-if "%1"=="devices" echo emulator-5998 device
-if "%4"=="avd" echo ClocklingsFoundation20261020
-if "%3"=="get-state" echo device
-exit /b 0
+echo Unexpected device command >> "%~dp0device-command-called.txt"
+exit /b 99
 '@
+}
 Set-Content (Join-Path $testRoot 'gradlew.bat') @'
 @echo off
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0fake-gradle.ps1"
@@ -46,7 +46,7 @@ $previousMode = $env:SONAR_TEST_MODE
 try {
     $env:PATH = $fakeBin.FullName + ';' + $env:PATH
     $env:SONAR_TOKEN = 'local-test-placeholder'
-    $env:ANDROID_SERIAL = 'emulator-5998'
+    $env:ANDROID_SERIAL = 'unrelated-device'
     foreach ($mode in @('success', 'failure', 'timeout', 'missing-receipt')) {
         $env:SONAR_TEST_MODE = $mode
         $completedPath = Join-Path $testRoot 'child-completed.txt'
@@ -79,6 +79,9 @@ try {
             if (-not $process.HasExited) { throw "$mode did not finish within 40 seconds" }
             $process.WaitForExit()
             $console = Get-Content -Raw $stdout
+            if (Test-Path (Join-Path $fakeBin.FullName 'device-command-called.txt')) {
+                throw 'Sonar must not invoke adb or android'
+            }
             if (-not $liveOutput) { throw "$mode did not stream stdout/stderr before completion" }
             if ($mode -eq 'success') {
                 if ($process.ExitCode -ne 0 -or $console -notmatch 'SONAR_ANALYSIS_UPLOAD_COMPLETED') {

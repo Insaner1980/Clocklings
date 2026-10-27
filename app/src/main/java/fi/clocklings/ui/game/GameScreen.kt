@@ -14,7 +14,10 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
@@ -29,14 +32,14 @@ import fi.clocklings.ui.LocalAppViewModel
 import fi.clocklings.ui.clock.ClockFace
 import fi.clocklings.ui.components.ButtonKind
 import fi.clocklings.ui.components.ClockBox
+import fi.clocklings.ui.components.CompanionTip
 import fi.clocklings.ui.components.ConfettiState
 import fi.clocklings.ui.components.DigitalPill
-import fi.clocklings.ui.components.FeedbackBox
 import fi.clocklings.ui.components.FeedbackKind
-import fi.clocklings.ui.components.HelpChip
+import fi.clocklings.ui.components.FlatPanel
+import fi.clocklings.ui.components.HelpToggle
 import fi.clocklings.ui.components.OptionButton
 import fi.clocklings.ui.components.OptionState
-import fi.clocklings.ui.components.Panel
 import fi.clocklings.ui.components.ProgressDots
 import fi.clocklings.ui.components.ReadOptions
 import fi.clocklings.ui.components.ScreenScaffold
@@ -49,7 +52,9 @@ import fi.clocklings.ui.levelName
 import fi.clocklings.ui.locale.LocalAppLanguage
 import fi.clocklings.ui.praise
 import fi.clocklings.ui.resources
+import fi.clocklings.ui.sharedClocklingsElement
 import fi.clocklings.ui.text
+import fi.clocklings.ui.theme.Section
 import fi.clocklings.ui.theme.SkDimens
 import fi.clocklings.ui.theme.SkType
 import fi.clocklings.ui.timeLabel
@@ -68,6 +73,7 @@ fun GameRoute(
         ),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
+    val haptic = LocalHapticFeedback.current
     val currentOnFinish by rememberUpdatedState(onFinish)
     LaunchedEffect(state.finished) { state.finished?.let(currentOnFinish) }
     GameScreen(
@@ -75,9 +81,35 @@ fun GameRoute(
         help = help,
         onToggleHelp = app::toggleHelp,
         onBack = onBack,
-        onPick = vm::pick,
+        onPick = { value ->
+            val before = vm.state.value
+            vm.pick(value)
+            val after = vm.state.value
+            if (after !==
+                before
+            ) {
+                haptic.performHapticFeedback(
+                    if (after.celebrate >
+                        before.celebrate
+                    ) {
+                        HapticFeedbackType.Confirm
+                    } else {
+                        HapticFeedbackType.Reject
+                    },
+                )
+            }
+        },
         onClockChange = vm::onClockChange,
-        onDone = vm::done,
+        onDone = {
+            val before = vm.state.value
+            vm.done()
+            val after = vm.state.value
+            if (after !== before) {
+                haptic.performHapticFeedback(
+                    if (after.celebrate > before.celebrate) HapticFeedbackType.Confirm else HapticFeedbackType.Reject,
+                )
+            }
+        },
         onNext = vm::next,
     )
 }
@@ -100,13 +132,19 @@ fun GameScreen(
         rememberCelebrationAnchors(state.celebrate, SUCCESS_CONFETTI, flyTo = { dots[state.taskIndex] }) {
             if (state.task.type == TaskType.READ) state.task.time else DONE_ANCHOR
         }
-    ScreenScaffold(modifier) { clockSize ->
-        TopBar(
-            title = stringResource(levelName(state.level)),
-            backLabel = stringResource(R.string.back_levels),
-            onBack = onBack,
-            trailing = { HelpChip(help, onToggleHelp) },
-        )
+    ScreenScaffold(
+        modifier,
+        clockHeightShare = SkDimens.PLAY_CLOCK_HEIGHT_SHARE,
+        section = Section.PLAY,
+        topBar = {
+            TopBar(
+                title = stringResource(levelName(state.level)),
+                backLabel = stringResource(R.string.back_levels),
+                onBack = onBack,
+                trailing = { HelpToggle(help, onToggleHelp) },
+            )
+        },
+    ) { clockSize ->
         ProgressDots(
             state.taskCount,
             state.taskIndex,
@@ -114,20 +152,8 @@ fun GameScreen(
             fillDelayMs = ConfettiState.FLIGHT_MS,
             onDotCenter = { i, c -> dots[i] = c },
         )
-        ClockBox(clockSize) {
-            ClockFace(
-                command = state.clock,
-                period = ClockTime.period(state.h24),
-                step = state.step,
-                interactive = state.interactive,
-                help = help,
-                describeTime =
-                    state.task.type != TaskType.READ || state.feedback is GameFeedback.RevealRead ||
-                        state.feedback is GameFeedback.Praise,
-                onChange = onClockChange,
-            )
-        }
-        Panel {
+        GameClock(state, help, onClockChange, clockSize)
+        FlatPanel {
             if (state.task.type == TaskType.READ) {
                 GameOptions(state, anchors, onPick)
             } else {
@@ -203,7 +229,7 @@ private fun GameFeedbackMessage(
                     res.getString(R.string.reveal_set, timeText(fb.time, h24)) to FeedbackKind.HINT
                 }
             }
-        FeedbackBox(text, kind)
+        CompanionTip(text, kind = kind, celebrate = feedback is GameFeedback.Praise)
     }
 }
 
@@ -239,5 +265,28 @@ private fun SetTarget(
             Text(timeLabel(LocalAppLanguage.current, time, h24), style = SkType.Words)
             DigitalPill(digitalLabel(resources(), time, h24))
         }
+    }
+}
+
+@Composable
+private fun GameClock(
+    state: GameUiState,
+    help: Boolean,
+    onClockChange: (Int) -> Unit,
+    clockSize: Dp,
+) {
+    ClockBox(clockSize) {
+        ClockFace(
+            command = state.clock,
+            modifier = Modifier.sharedClocklingsElement("level-clock-${state.level}"),
+            period = ClockTime.period(state.h24),
+            step = state.step,
+            interactive = state.interactive,
+            help = help,
+            describeTime =
+                state.task.type != TaskType.READ || state.feedback is GameFeedback.RevealRead ||
+                    state.feedback is GameFeedback.Praise,
+            onChange = onClockChange,
+        )
     }
 }

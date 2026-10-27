@@ -117,42 +117,6 @@ function Test-SonarTokenConfigured {
     return $false
 }
 
-function Get-ProjectEmulatorSerial {
-    param([string]$PreferredSerial)
-
-    if ($PreferredSerial -and $PreferredSerial -notmatch '^emulator-\d+$') {
-        throw "ANDROID_SERIAL must identify the ClocklingsFoundation20261020 emulator."
-    }
-    $devices = & adb devices
-    if ($LASTEXITCODE -ne 0) {
-        throw "Could not list Android devices."
-    }
-    foreach ($device in $devices) {
-        if ($device -match '^(emulator-\d+)\s+(\S+)') {
-            $serial = $Matches[1]
-            if ($PreferredSerial -and $serial -ne $PreferredSerial) {
-                continue
-            }
-            if ($Matches[2] -ne 'device') {
-                throw "Emulator $serial is not ready; cannot safely identify its AVD."
-            }
-            $avdName = & adb -s $serial emu avd name
-            if ($LASTEXITCODE -ne 0) {
-                throw "Could not identify the AVD for $serial."
-            }
-            if ($avdName -contains 'ClocklingsFoundation20261020') {
-                return $serial
-            }
-            if ($PreferredSerial) {
-                throw "Selected emulator $serial is not ClocklingsFoundation20261020."
-            }
-        }
-    }
-    if ($PreferredSerial) {
-        throw "Selected emulator $PreferredSerial is not available."
-    }
-}
-
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..")).Path
 $propertiesPath = Join-Path $repoRoot "sonar-project.properties"
 if (-not (Test-Path -LiteralPath $propertiesPath -PathType Leaf)) {
@@ -172,9 +136,8 @@ if ([string]::IsNullOrWhiteSpace($hostUrl)) {
 if ($PlanOnly) {
     Write-Output @(
         "sonar"
-        "  - Gradle debug build, JVM and instrumented test coverage, and SonarCloud upload: reports/sonar.txt"
-        "  - automatically starts ClocklingsFoundation20261020 when needed and stops it after analysis"
-        "  - reuses only ClocklingsFoundation20261020; ANDROID_SERIAL must identify that AVD"
+        "  - Gradle debug build, JVM unit-test coverage, and SonarCloud upload: reports/sonar.txt"
+        "  - no emulator or connected device required; instrumentation tests run separately"
         "  - requires SONAR_TOKEN or systemProp.sonar.token"
         "  - actual external upload requires -AllowExternalUpload"
         "  - streams progress and waits for the server's Quality Gate result"
@@ -213,34 +176,14 @@ if (-not (Test-SonarTokenConfigured -RepoRoot $repoRoot)) {
     exit 2
 }
 
-$previousAndroidSerial = $env:ANDROID_SERIAL
 $previousSonarHost = $env:SONAR_HOST_URL
-$startedEmulator = $false
 Push-Location -LiteralPath $repoRoot
 try {
     $env:SONAR_HOST_URL = if ($env:SONAR_HOST_URL) { $env:SONAR_HOST_URL } else { $hostUrl }
 
     try {
-        $env:ANDROID_SERIAL = Get-ProjectEmulatorSerial -PreferredSerial $previousAndroidSerial
-        if (-not $env:ANDROID_SERIAL) {
-            Write-Output "Starting Sonar coverage emulator ClocklingsFoundation20261020..."
-            $startedEmulator = $true
-            & android emulator start ClocklingsFoundation20261020 --headless
-            if ($LASTEXITCODE -ne 0) {
-                throw "Could not start ClocklingsFoundation20261020."
-            }
-            $env:ANDROID_SERIAL = Get-ProjectEmulatorSerial
-        }
-        if ($env:ANDROID_SERIAL -notmatch '^emulator-\d+$') {
-            throw "ClocklingsFoundation20261020 did not become available."
-        }
-        $deviceState = & adb -s $env:ANDROID_SERIAL get-state
-        if ($LASTEXITCODE -ne 0 -or $deviceState -ne 'device') {
-            throw "Selected emulator $env:ANDROID_SERIAL is not ready."
-        }
         Write-SonarMessage @(
-            "Coverage emulator: $env:ANDROID_SERIAL"
-            "Building, running tests, uploading analysis and waiting for Quality Gate (timeout: $GradleTimeoutSeconds s)..."
+            "Building, running JVM unit tests, uploading analysis and waiting for Quality Gate (timeout: $GradleTimeoutSeconds s)..."
             "Live report: $reportPath"
         )
         $result = Invoke-SonarGradle
@@ -276,22 +219,11 @@ try {
         "Quality Gate passed. Task: $($task['ceTaskId'])"
         "Dashboard: $($task['dashboardUrl'])"
         "Completed: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
-        "The JaCoCo import combines JVM unit-test and emulator instrumentation coverage."
+        "The JaCoCo import contains JVM unit-test coverage."
     )
     exit 0
 }
 finally {
-    try {
-        if ($startedEmulator) {
-            & android emulator stop ClocklingsFoundation20261020
-            if ($LASTEXITCODE -ne 0) {
-                Write-Warning "Could not stop the ClocklingsFoundation20261020 emulator started for Sonar."
-            }
-        }
-    }
-    finally {
-        $env:ANDROID_SERIAL = $previousAndroidSerial
-        $env:SONAR_HOST_URL = $previousSonarHost
-        Pop-Location
-    }
+    $env:SONAR_HOST_URL = $previousSonarHost
+    Pop-Location
 }

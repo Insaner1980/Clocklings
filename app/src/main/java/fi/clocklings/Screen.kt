@@ -50,9 +50,7 @@ sealed interface Screen : NavKey {
     /** The selected companion's wardrobe. */
     @Serializable data object Wardrobe : Screen
 
-    @Serializable data class Personalize(
-        val clocks: Boolean = false,
-    ) : Screen
+    @Serializable data object Personalize : Screen
 }
 
 /** Paluupinon sarjallistus ilman reflektiota (toimii myös R8:n kanssa). */

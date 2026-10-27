@@ -20,7 +20,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -82,30 +81,30 @@ class LintRegressionTest {
                 )
             }
         }
-        compose.onNodeWithContentDescription("1 star out of three").assertExists()
-        compose.onNodeWithText("You earned 1 star.", substring = true).assertExists()
+        compose.onNodeWithContentDescription("1\u00A0star out of three").assertExists()
+        compose.onNodeWithText("You earned 1\u00A0star.", substring = true).assertExists()
         compose.mainClock.advanceTimeBy(1_000)
         saveResult()
-        compose.onNodeWithText("Next level").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Levels").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Next level").scrollToIfScrollable().assertIsDisplayed()
+        compose.onNodeWithText("Levels").scrollToIfScrollable().assertIsDisplayed()
         compose
             .onNodeWithText("Play again")
-            .performScrollTo()
+            .scrollToIfScrollable()
             .assertIsDisplayed()
             .performClick()
         compose.runOnIdle {
             assertTrue(replayed)
             stars.intValue = 2
         }
-        compose.onNodeWithContentDescription("2 stars out of three").assertExists()
-        compose.onNodeWithText("You earned 2 stars.", substring = true).assertExists()
+        compose.onNodeWithContentDescription("2\u00A0stars out of three").assertExists()
+        compose.onNodeWithText("You earned 2\u00A0stars.", substring = true).assertExists()
         val res = InstrumentationRegistry.getInstrumentation().targetContext.resources
         assertEquals(
-            "Your best for this level is 1 star.",
+            "Your best for this level is 1\u00A0star.",
             res.getQuantityString(R.plurals.result_previous_best, 1, 1),
         )
         assertEquals(
-            "Your best for this level is 2 stars.",
+            "Your best for this level is 2\u00A0stars.",
             res.getQuantityString(R.plurals.result_previous_best, 2, 2),
         )
     }

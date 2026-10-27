@@ -14,7 +14,6 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import fi.clocklings.domain.AppLanguage
 import fi.clocklings.domain.Progress
@@ -69,8 +68,8 @@ class ActiveLocaleStateTest {
     fun activePracticeKeepsAnswerIdentitiesAndResultKeepsEarnedProgress() {
         home()
         click("Play")
-        waitText("Choose a level")
-        click("Play")
+        waitText("Whole hours")
+        click("Whole hours")
         waitText("What time is it?")
         val choices = optionTimes()
         assertEquals(3, choices.size)
@@ -119,21 +118,21 @@ class ActiveLocaleStateTest {
         waitText("Which hand shows the hour?")
         val order = lessonChoiceOrder(AppLanguage.ENGLISH)
         click("The long blue hand")
-        waitText("The hour hand is the shorter, red hand.")
+        waitText("The hour hand is the shorter, pink hand.")
         changeLanguage(AppLanguage.FINNISH)
         waitText("Kumpi viisari näyttää tunnit?")
         assertEquals(order, lessonChoiceOrder(AppLanguage.FINNISH))
         compose.onNode(hasText("Pitkä sininen viisari") and hasClickAction()).assertIsNotEnabled()
-        waitText("Tuntiviisari on lyhyempi, punainen viisari.")
+        waitText("Tuntiviisari on lyhyempi, pinkki viisari.")
         assertHiddenClock(AppLanguage.FINNISH)
         assertEquals(seed, runBlocking { locale.repository.progress.first() })
-        click("Lyhyt punainen viisari")
+        click("Lyhyt pinkki viisari")
         compose.waitUntil(10_000) { "viisarit" in runBlocking { locale.repository.progress.first() }.lessonsDone }
         waitText("Valmis")
         val completed = runBlocking { locale.repository.progress.first() }
         changeLanguage(AppLanguage.SWEDISH)
         waitText("Klar")
-        compose.onNode(hasText("Den korta röda visaren") and hasClickAction()).assertIsNotEnabled()
+        compose.onNode(hasText("Den korta rosa visaren") and hasClickAction()).assertIsNotEnabled()
         assertEquals(completed, runBlocking { locale.repository.progress.first() })
         assertEquals(seed.withLessonDone("viisarit"), completed)
         assertNoIntro(AppLanguage.SWEDISH)
@@ -143,14 +142,14 @@ class ActiveLocaleStateTest {
     fun activeChallengeEndsAtItsOriginalDeadlineAfterLocaleRecreation() {
         home()
         click("Play")
-        waitText("Choose a level")
-        compose.onAllNodes(hasText("Play") and hasClickAction())[5].performScrollTo().performClick()
+        waitText("Whole hours")
+        click("Minute Challenge")
         waitText("Start!")
         // Drive Compose frames explicitly while the real coroutine timer keeps wall-clock time.
+        val started = SystemClock.elapsedRealtime()
+        click("Start!")
         compose.mainClock.autoAdvance = false
         try {
-            val started = SystemClock.elapsedRealtime()
-            click("Start!")
             waitText("What time is it?")
             val choices = optionTimes()
             compose.waitUntil(25_000) { SystemClock.elapsedRealtime() - started >= 20_000 }
@@ -265,10 +264,20 @@ class ActiveLocaleStateTest {
 
     private fun click(text: String) {
         waitText(text)
-        compose.onAllNodes(hasText(text) and hasClickAction())[0].performScrollTo().performClick()
+        compose
+            .onAllNodes(
+                (hasText(text) or hasContentDescription(text, substring = true)) and hasClickAction(),
+            )[0]
+            .scrollToIfScrollable()
+            .performClick()
     }
 
-    private fun shown(text: String) = compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+    private fun shown(text: String) =
+        compose
+            .onAllNodes(
+                hasText(text) or hasContentDescription(text, substring = true),
+            ).fetchSemanticsNodes()
+            .isNotEmpty()
 
     private fun waitText(text: String) {
         compose.waitUntil(15_000) {

@@ -6,7 +6,9 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 
 private val SkColorScheme =
     lightColorScheme(
@@ -29,25 +31,31 @@ private val SkTypography =
         labelLarge = SkType.Button,
     )
 
-/** Sovelluksen ainoa teema: vaalea, kuten web-versiossa. */
+/** The application's light theme. */
 @Composable
 fun ClocklingsTheme(content: @Composable () -> Unit) {
     MaterialTheme(colorScheme = SkColorScheme, typography = SkTypography, content = content)
 }
 
-/** Taustan vaaleanpunainen pistekuvio (web: radial-gradient 26 px:n välein). */
-fun Modifier.dotBackground(): Modifier =
+enum class Section(
+    val color: Color,
+    private val bottom: Color? = null,
+) {
+    /** Home is a place of its own: a soft sky fading into a warm blush. */
+    HOME(SkColors.HomeSky, SkColors.HomeBlush),
+    LEARN(SkColors.KouluFill),
+    EXPLORE(SkColors.VapaaFill),
+    PLAY(SkColors.PelaaFill),
+    TOGETHER(SkColors.KysyFill),
+    COMPANION(SkColors.NukkeFill),
+    SETTINGS(SkColors.SettingsBackground),
+    ;
+
+    val bottomColor: Color get() = bottom ?: lerp(color, SkColors.Surface, SkColors.SECTION_TINT)
+}
+
+/** Soft activity colors cover the full window, including the system bars. */
+fun Modifier.sectionBackground(section: Section): Modifier =
     drawBehind {
-        drawRect(SkColors.Bg)
-        val step = SkDimens.DotPatternStep.toPx()
-        val r = SkDimens.DotRadius.toPx()
-        var y = step / 2
-        while (y < size.height) {
-            var x = step / 2
-            while (x < size.width) {
-                drawCircle(SkColors.Dots, r, Offset(x, y))
-                x += step
-            }
-            y += step
-        }
+        drawRect(Brush.verticalGradient(listOf(section.color, section.bottomColor)))
     }

@@ -46,10 +46,11 @@ import fi.clocklings.ui.components.confettiAnchor
 import fi.clocklings.ui.greetingText
 import fi.clocklings.ui.locale.LocalAppLanguage
 import fi.clocklings.ui.rememberReduceMotion
+import fi.clocklings.ui.theme.Section
 import fi.clocklings.ui.theme.SkColors
 import fi.clocklings.ui.theme.SkDimens
 import fi.clocklings.ui.theme.SkType
-import fi.clocklings.ui.theme.dotBackground
+import fi.clocklings.ui.theme.sectionBackground
 import kotlinx.coroutines.delay
 import fi.clocklings.ui.intro.IntroTimeline as T
 
@@ -142,7 +143,7 @@ private fun Modifier.introSurface(
 ): Modifier =
     fillMaxSize()
         .graphicsLayer { this.alpha = alpha() }
-        .dotBackground()
+        .sectionBackground(Section.HOME)
         .clickable(interactionSource = null, indication = null, onClickLabel = skipLabel, onClick = onSkip)
         .semantics { contentDescription = description }
         .safeDrawingPadding()

@@ -130,6 +130,27 @@ class PersonalizationGalleryTest {
         save("all_clocks")
     }
 
+    @Test
+    fun clockDepthAtFullAndMiniSize() {
+        val theme = mutableStateOf(ClockTheme.CLASSIC)
+        compose.setContent {
+            ClocklingsTheme {
+                Column(Modifier.testTag("gallery").background(SkColors.Bg).padding(8.dp)) {
+                    Text(stringResource(clockThemeName(theme.value)), fontSize = 14.sp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        val appearance = ClockAppearance(theme = theme.value)
+                        ClockFace(ClockCommand(610), Modifier.size(210.dp), appearance = appearance)
+                        ClockFace(ClockCommand(610), Modifier.size(84.dp), mini = true, appearance = appearance)
+                    }
+                }
+            }
+        }
+        for (option in ClockTheme.entries) {
+            compose.runOnIdle { theme.value = option }
+            save("depth_" + option.name)
+        }
+    }
+
     private fun save(name: String) {
         val bitmap = compose.onNodeWithTag("gallery").captureToImage().asAndroidBitmap()
         val context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -162,6 +183,7 @@ class PersonalizationGalleryTest {
             }
             if (option != CompanionKind.HUMAN) compose.onNodeWithText("Polka-dot dress").assertDoesNotExist()
             compose.onNodeWithText("Play again").assertExists()
+            if (option == CompanionKind.HUMAN) LocalizationScreenshots.capture("native-result")
         }
     }
 }

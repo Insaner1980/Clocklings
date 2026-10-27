@@ -6,17 +6,12 @@
     <string name="language_english">English</string>
     <string name="language_finnish">Suomi</string>
     <string name="language_swedish">Svenska</string>
-    <string name="settings_language_description">Changes the app, lessons, and clock words.</string>
     <string name="settings_clock_display">Clock display</string>
-    <string name="settings_clock_example">Examples: %1$s / %2$s</string>
     <string name="settings_guides_title">Clock guides</string>
-    <string name="settings_guides_description">Show minute numbers and highlighted clock halves, plus 24-hour numbers in 24-hour mode.</string>
+    <string name="settings_guides_description">Shows the minute numbers and colours the two halves of the clock. In 24-hour mode, also the numbers 13–23 and 0.</string>
+    <string name="settings_sound_group">Sound</string>
     <string name="settings_sound_title">Sound effects</string>
     <string name="settings_sound_description">Sounds for taps, answers, and celebrations.</string>
-    <string name="settings_speech_title">Read aloud</string>
-    <string name="settings_speech_available">Available for this language</string>
-    <string name="settings_speech_unavailable">Not available for this language</string>
-    <string name="settings_speech_description">Speech starts only when you tap a Listen button.</string>
     <string name="settings_progress_title">Learning progress</string>
     <string name="settings_reset_title">Reset learning progress?</string>
     <string name="settings_reset_body">This clears stars, best scores, completed lessons, companion names, and outfits. Your language, clock display, sound effects, clock guides, and appearance settings stay the same.</string>
@@ -25,4 +20,6 @@
     <string name="settings_save_error">Could not save the change. Please try again.</string>
     <string name="language_save_error">Could not change the language. Please try again.</string>
     <string name="settings_retry">Try again</string>
+    <string name="settings_speech_info_available">Read aloud is available for this language. Speech starts only when you tap the speaker.</string>
+    <string name="settings_speech_info_unavailable">Read aloud is not available for this language.</string>
 </resources>

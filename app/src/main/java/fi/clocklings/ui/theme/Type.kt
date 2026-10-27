@@ -53,12 +53,14 @@ private fun body(
 )
 
 /**
- * Tekstityylit. Koot ovat web-version clamp()-arvot puhelimen leveydellä (noin 400 dp).
+ * Shared text styles for compact screens.
  */
 object SkType {
+    val HomeLogo = display(28, FontWeight.Bold)
     val Body = body(17)
     val BodySoft = body(17).copy(color = SkColors.InkSoft)
     val Small = body(15)
+    val SmallSoft = body(15).copy(color = SkColors.InkSoft)
     val Eyebrow = body(13, lineHeight = 1f).copy(letterSpacing = 0.08.em, color = SkColors.InkSoft)
 
     val Logo = display(40, FontWeight.Bold, 1.1f)
@@ -75,27 +77,26 @@ object SkType {
     val Chip = body(15, lineHeight = 1.2f)
     val Segment = body(15, FontWeight.ExtraBold, 1.2f)
     val Pill = body(13, FontWeight.ExtraBold, 1.2f)
+    val PillLarge = display(19, lineHeight = 1.1f)
+    val NowWords = display(20, lineHeight = 1.15f)
 
     val BigButton = display(22, lineHeight = 1.05f)
-    val BigButtonSmall = body(14, lineHeight = 1.3f).copy(color = SkColors.InkSoft)
-    val NowWords = display(22)
-    val StarCount = display(30, lineHeight = 1.1f)
 
     val FeedbackOk = display(26).copy(color = SkColors.Good)
     val FeedbackHint = body(18).copy(color = SkColors.Try)
 
-    val LevelTitle = display(24, lineHeight = 1.1f)
     val LessonTitle = display(22)
     val LessonNumber = display(22, FontWeight.Bold, 1f)
     val LessonText = body(19, lineHeight = 1.4f)
-    val Caption = display(22)
-    val Intro = body(19)
 
     val ResultTitle = display(34, lineHeight = 1.1f)
     val ResultText = body(19)
     val BigNumber = display(64, FontWeight.Bold, 1f).copy(color = SkColors.Hour)
 
     val SectionTitle = display(24, lineHeight = 1.1f)
+    val SettingsHeading = body(15, FontWeight.ExtraBold, 1.2f).copy(color = SkColors.InkSoft)
+    val ItemNameMinSize = 10.sp
+    val ItemNameStep = 0.5.sp
     val ItemName = body(14, lineHeight = 1.2f)
     val NameField = display(22, lineHeight = 1.2f)
 }

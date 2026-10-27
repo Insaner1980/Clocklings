@@ -38,6 +38,11 @@ object ClockTime {
     const val HALF_DAY = 720
     const val DAY = 1440
 
+    /** Three o'clock: hands clearly apart. In 24 h mode the afternoon (15.00) rather than the night. */
+    private const val START = 180
+
+    fun start(h24: Boolean): Int = if (h24) START + HALF_DAY else START
+
     /** Tuntiviisarin valinnan säde ja kulmaraja sekä keskialue, josta ei aloiteta raahausta. */
     private const val HOUR_PICK_RADIUS = 112f
     private const val PICK_ANGLE = 40f
@@ -100,7 +105,8 @@ object ClockTime {
         y: Float,
     ): Float = mod((atan2(x, -y) * HALF_TURN / PI.toFloat()), FULL_TURN)
 
-    private fun angleDiff(
+    /** Shortest angle between two directions, 0–180 degrees. */
+    fun angleDiff(
         a: Float,
         b: Float,
     ): Float {

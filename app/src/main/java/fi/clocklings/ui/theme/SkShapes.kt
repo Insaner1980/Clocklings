@@ -4,7 +4,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
 
-/** Kulmat web-version CSS:stä. */
+/** Shared shapes for surfaces and controls. */
 object SkShapes {
     val Card = RoundedCornerShape(24.dp)
     val Button = RoundedCornerShape(18.dp)
@@ -17,4 +17,6 @@ object SkShapes {
     val Field = RoundedCornerShape(16.dp)
     val Timer = RoundedCornerShape(8.dp)
     val Pill = CircleShape
+    val Node = CircleShape
+    val Bubble = RoundedCornerShape(20.dp)
 }

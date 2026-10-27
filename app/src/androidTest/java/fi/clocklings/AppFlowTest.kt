@@ -20,7 +20,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performCustomAccessibilityActionWithLabel
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -62,25 +61,37 @@ class AppFlowTest {
         timeout: Long = 10_000,
     ) {
         compose.waitUntil(timeout) {
-            compose.onAllNodesWithText(text, substring = substring).fetchSemanticsNodes().isNotEmpty()
+            compose
+                .onAllNodes(
+                    hasText(text, substring = substring) or hasContentDescription(text, substring = true),
+                ).fetchSemanticsNodes()
+                .isNotEmpty()
         }
     }
 
     private fun click(text: String) {
         waitForText(text)
-        compose.onAllNodes(hasText(text) and hasClickAction())[0].performScrollTo().performClick()
+        compose
+            .onAllNodes(
+                (hasText(text) or hasContentDescription(text, substring = true)) and hasClickAction(),
+            )[0]
+            .scrollToIfScrollable()
+            .performClick()
     }
 
     private fun clockWords(): String {
         val node = compose.onNode(hasContentDescription("Clock face:", substring = true)).fetchSemanticsNode()
-        return node.config[SemanticsProperties.ContentDescription].first().removePrefix("Clock face: ")
+        return node.config[SemanticsProperties.ContentDescription]
+            .first {
+                it.startsWith("Clock face:")
+            }.removePrefix("Clock face: ")
     }
 
     /** Asetus tallentuu DataStoreen taustasäikeessä, joten valintaa odotetaan eikä sitä tarkisteta heti. */
     private fun waitUntilSelected(text: String) {
         compose.waitUntil(5_000) {
             compose
-                .onAllNodes(hasText(text) and hasClickAction())
+                .onAllNodes((hasText(text) or hasContentDescription(text, substring = true)) and hasClickAction())
                 .fetchSemanticsNodes()
                 .any { it.config.getOrElse(SemanticsProperties.Selected) { false } }
         }
@@ -96,11 +107,15 @@ class AppFlowTest {
     private fun isShown(
         text: String,
         substring: Boolean = false,
-    ) = compose.onAllNodesWithText(text, substring = substring).fetchSemanticsNodes().isNotEmpty()
+    ) = compose
+        .onAllNodes(
+            hasText(text, substring = substring) or hasContentDescription(text, substring = true),
+        ).fetchSemanticsNodes()
+        .isNotEmpty()
 
     /** Gives the first level [stars] stars straight through the repository. */
     private fun seedStars(stars: Int) {
-        waitForText("RIGHT NOW")
+        waitForText("Clocklings")
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val repository = (context.applicationContext as ClocklingsApplication).container.repository
         runBlocking { repository.updateProgress { it.withLevelResult(0, stars) } }
@@ -109,8 +124,11 @@ class AppFlowTest {
     /** The item's tile (merged with its "Wearing" pill) shows that the companion wears it. */
     private fun wearing(item: String): Boolean =
         compose
-            .onAllNodes(hasText(item) and hasClickAction() and hasText("Wearing"))
-            .fetchSemanticsNodes()
+            .onAllNodes(
+                hasText(item) and hasClickAction() and
+                    androidx.compose.ui.test.SemanticsMatcher
+                        .expectValue(SemanticsProperties.Selected, true),
+            ).fetchSemanticsNodes()
             .isNotEmpty()
 
     private fun assertWearing(item: String) {
@@ -126,7 +144,7 @@ class AppFlowTest {
         val layouts = mutableListOf<TextLayoutResult>()
         compose
             .onNodeWithText(text, useUnmergedTree = true)
-            .performScrollTo()
+            .scrollToIfScrollable()
             .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
         assertTrue("Missing text layout: $text", layouts.isNotEmpty())
         for (layout in layouts) {
@@ -154,12 +172,12 @@ class AppFlowTest {
 
     @Test
     fun homeAndTogetherKeepWordsReadable() {
-        waitForText("RIGHT NOW")
+        waitForText("Clocklings")
         assertWholeWords(clockWords().replaceFirstChar { it.uppercase() })
-        assertWholeWords("MY COMPANION")
+        compose.onNodeWithContentDescription("My Companion").assertExists()
         assertWholeWords("Explore")
         assertWholeWords("Play Together")
-        assertWholeWords("My Companion")
+
         click("Play Together")
         assertWholeWords("Play Together")
     }
@@ -167,8 +185,8 @@ class AppFlowTest {
     @Test
     fun playWholeHoursThenDressCompanionAndSurviveRecreate() {
         click("Play")
-        waitForText("Choose a level")
-        click("Play")
+        waitForText("Whole hours")
+        click("Whole hours")
         click("Skip and play")
         repeat(10) { task ->
             compose.waitUntil(5_000) { isShown("What time is it?") || isShown("Set the clock to") }
@@ -204,7 +222,7 @@ class AppFlowTest {
                 while (clockWords() != target && guard++ < 12) {
                     compose
                         .onNode(hasContentDescription("Clock face:", substring = true))
-                        .performCustomAccessibilityActionWithLabel("Add 60 minutes")
+                        .performCustomAccessibilityActionWithLabel("Add 60\u00A0minutes")
                     compose.waitForIdle()
                 }
                 assertTrue("tehtävä $task: kello ${clockWords()} != $target", clockWords() == target)
@@ -220,7 +238,7 @@ class AppFlowTest {
         click("Choose an outfit")
         waitForText("Outfits")
         click("Polka-dot dress")
-        compose.waitUntil(5_000) { isShown("Wearing") && pilkkumekkoSelected() }
+        compose.waitUntil(5_000) { pilkkumekkoSelected() }
 
         compose.activityRule.scenario.recreate()
         waitForText("Outfits")
@@ -238,14 +256,14 @@ class AppFlowTest {
     fun animalWardrobeWearsItemsAndColors() {
         seedStars(3)
         click("My Companion")
-        compose.onNodeWithTag("choose_companion_CAT").performScrollTo().performClick()
+        compose.onNodeWithTag("choose_companion_CAT").scrollToIfScrollable().performClick()
         click("Choose an outfit")
         waitForText("Outfits")
         click("Striped scarf")
         assertWearing("Striped scarf")
         click("Striped scarf")
         assertNotWearing("Striped scarf")
-        compose.onNodeWithTag("color_BLUE").performScrollTo().performClick()
+        compose.onNodeWithTag("color_BLUE").scrollToIfScrollable().performClick()
         compose.waitUntil(5_000) {
             compose
                 .onNodeWithTag("color_BLUE")
@@ -255,7 +273,7 @@ class AppFlowTest {
         }
         compose.onNodeWithTag("color_BLUE").assertIsSelected()
         // The bobble hat opens at four stars.
-        compose.onNodeWithContentDescription("Locked. Stars needed: 4").assertExists()
+        compose.onNodeWithContentDescription("Locked. Opens at 4\u00A0stars. You have 3.").assertExists()
         // No loose free-item chip from the old picker.
         compose.onAllNodesWithText("Bandana").assertCountEquals(0)
     }
@@ -267,20 +285,20 @@ class AppFlowTest {
         waitUntilSelected("24 h")
         click("Sound effects")
         waitForSoundOff()
-        click("← Back")
+        click("Back")
         click("Explore")
-        waitForText("THE TIME IS")
+        waitForText("Explore")
         assertTrue(clockWords().contains("three"))
         compose
             .onNode(hasContentDescription("Clock face:", substring = true))
-            .performCustomAccessibilityActionWithLabel("Add 5 minutes")
+            .performCustomAccessibilityActionWithLabel("Add 5\u00A0minutes")
         compose.onNodeWithText("15:05").assertExists()
         val subtract =
             compose
                 .onNode(hasContentDescription("Clock face:", substring = true))
                 .fetchSemanticsNode()
                 .config[SemanticsActions.CustomActions]
-                .single { it.label == "Subtract 5 minutes" }
+                .single { it.label == "Subtract 5\u00A0minutes" }
         compose.runOnIdle { repeat(144) { subtract.action() } }
         compose.onNodeWithText("03:05").assertExists()
         click("Help on")
@@ -288,27 +306,27 @@ class AppFlowTest {
         compose.activityRule.scenario.recreate()
         waitForText("Help off")
         compose.onNodeWithText("03:05").assertExists()
-        click("← Back")
+        click("Back")
         click("Play Together")
         click("Random time")
-        click("Ask")
+        click("Pass to partner")
         waitForText("What time is it?")
         compose.onAllNodes(hasContentDescription("Clock face:", substring = true)).assertCountEquals(0)
-        compose.onNodeWithText("PLAYER 2 ANSWERS").assertExists()
+        compose.onNodeWithContentDescription("Player 2 answers", substring = true).assertExists()
         compose.activityRule.scenario.recreate()
         waitForText("What time is it?")
         compose.onAllNodes(hasContentDescription("Clock face:", substring = true)).assertCountEquals(0)
         click("Show the answer")
-        compose.onNodeWithText("Swap turns").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Swap turns").scrollToIfScrollable().assertIsDisplayed()
         assertTrue(clockWords().isNotBlank())
         click("Swap turns")
         waitForText("Choose a time")
-        compose.onNodeWithText("PLAYER 2 SETS THE TIME").assertExists()
+        compose.onNodeWithContentDescription("Player 2 sets the time", substring = true).assertExists()
         compose.activityRule.scenario.recreate()
-        waitForText("PLAYER 2 SETS THE TIME")
-        click("Ask")
-        compose.onNodeWithText("PLAYER 1 ANSWERS").assertExists()
-        click("← Back")
+        waitForText("Player 2 sets the time")
+        click("Pass to partner")
+        compose.onNodeWithContentDescription("Player 1 answers", substring = true).assertExists()
+        click("Back")
         compose.onNodeWithText("0 / 15").assertExists()
         click("Settings")
         click("12 h")
@@ -317,18 +335,18 @@ class AppFlowTest {
         waitForText("Reset learning progress?")
         compose.onAllNodesWithText("Reset progress").onLast().performClick()
         compose.waitUntil(5_000) { !isShown("Reset learning progress?") }
-        compose.onNodeWithText("Sound effects").performScrollTo().assertIsOff()
+        compose.onNodeWithText("Sound effects").scrollToIfScrollable().assertIsOff()
     }
 
     @Test
     fun everyLevelAndTheChallengeArePlayableFromTheStart() {
         click("Play")
-        waitForText("Choose a level")
+        waitForText("Whole hours")
         // Viisi tasoa ja Minuuttihaaste: kaikki Pelaa-napit toimivat ilman tähtiä.
-        val play = compose.onAllNodes(hasText("Play") and hasClickAction())
-        compose.waitUntil(5_000) { play.fetchSemanticsNodes().size == LEVEL_CARDS }
-        repeat(LEVEL_CARDS) { play[it].performScrollTo().assertIsEnabled() }
-        play[LEVEL_CARDS - 1].performScrollTo().performClick()
+        val play = compose.onAllNodes(hasContentDescription("For example", substring = true) and hasClickAction())
+        compose.waitUntil(5_000) { play.fetchSemanticsNodes().size == LEVEL_CARDS - 1 }
+        repeat(LEVEL_CARDS - 1) { play[it].scrollToIfScrollable().assertIsEnabled() }
+        click("Minute Challenge")
         waitForText("Start!")
     }
 
@@ -342,11 +360,11 @@ class AppFlowTest {
         click("Try it")
         waitForText("Which hand shows the hour?")
         click("The long blue hand")
-        waitForText("The hour hand is the shorter, red hand.")
-        click("The short red hand")
+        waitForText("The hour hand is the shorter, pink hand.")
+        click("The short pink hand")
         waitForText("You completed Two hands.", substring = true)
         click("Done")
         waitForText("Completed")
-        compose.onNodeWithText("Completed").assertExists()
+        compose.onNodeWithContentDescription("Completed", substring = true).assertExists()
     }
 }

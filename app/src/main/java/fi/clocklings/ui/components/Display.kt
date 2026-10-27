@@ -7,9 +7,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -22,13 +24,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import fi.clocklings.ui.locale.LocalAppLanguage
 import fi.clocklings.ui.rememberReduceMotion
@@ -36,6 +38,7 @@ import fi.clocklings.ui.theme.SkColors
 import fi.clocklings.ui.theme.SkDimens
 import fi.clocklings.ui.theme.SkShapes
 import fi.clocklings.ui.theme.SkType
+import fi.clocklings.ui.theme.ledgeColor
 import kotlinx.coroutines.delay
 import java.util.Locale
 
@@ -48,6 +51,7 @@ fun Pill(
     modifier: Modifier = Modifier,
     kind: PillKind = PillKind.GOLD,
     icon: SvgIcon? = null,
+    large: Boolean = false,
 ) {
     val (bg, fg) =
         when (kind) {
@@ -56,13 +60,21 @@ fun Pill(
             PillKind.OK -> SkColors.GoodBg to SkColors.Good
         }
     Row(
-        modifier.background(bg, SkShapes.Pill).padding(horizontal = 10.dp, vertical = 3.dp),
+        modifier
+            .background(bg, SkShapes.Pill)
+            .then(
+                if (large) {
+                    Modifier.heightIn(min = SkDimens.IconButton).padding(horizontal = SkDimens.GapM)
+                } else {
+                    Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
+                },
+            ),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(if (large) 6.dp else 4.dp),
     ) {
-        icon?.let { SkIcon(it, 14.dp) }
+        icon?.let { SkIcon(it, if (large) SkDimens.PillIconLarge else 14.dp) }
         // Shrinks rather than splits a word that does not fit (narrow tiles with large text).
-        WordSafeText(text, SkType.Pill.copy(color = fg))
+        WordSafeText(text, (if (large) SkType.PillLarge else SkType.Pill).copy(color = fg))
     }
 }
 
@@ -95,31 +107,6 @@ fun DigitalPill(
                     SkShapes.Digital,
                 ).padding(horizontal = 14.dp, vertical = 4.dp),
     )
-}
-
-@Composable
-fun StarIcon(
-    on: Boolean,
-    modifier: Modifier = Modifier,
-    size: Dp = SkDimens.Star,
-) {
-    SkIcon(if (on) SkIcons.StarOn else SkIcons.StarOff, size, modifier)
-}
-
-/** Kolme tähteä, joista [count] on täynnä. [description] luetaan ruudunlukijalla. */
-@Composable
-fun StarRow(
-    count: Int,
-    description: String,
-    modifier: Modifier = Modifier,
-    size: Dp = SkDimens.Star,
-) {
-    Row(
-        modifier.clearAndSetSemantics { contentDescription = description },
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        repeat(STAR_COUNT) { StarIcon(it < count, size = size) }
-    }
 }
 
 /**
@@ -211,7 +198,7 @@ fun OptionButton(
 ) {
     val (bg, border, shadow) =
         when (state) {
-            OptionState.NORMAL -> Triple(SkColors.Surface, SkColors.Line, SkColors.Line)
+            OptionState.NORMAL -> Triple(SkColors.Surface, SkColors.Line, ledgeColor(SkColors.Surface))
             OptionState.CORRECT -> Triple(SkColors.GoodBg, SkColors.OptCorrectBorder, SkColors.OptCorrectShadow)
             OptionState.WRONG -> Triple(SkColors.TryBg, SkColors.OptWrongBorder, SkColors.OptWrongShadow)
         }
@@ -257,7 +244,6 @@ fun OptionButton(
 private const val SHAKE_MS = 350
 private const val WRONG_ALPHA = 0.75f
 
-private const val STAR_COUNT = 3
 private const val SHAKE_LEFT_START = 7f
 private const val SHAKE_RIGHT = 6f
 private const val SHAKE_LEFT_END = 4f
@@ -271,26 +257,42 @@ private fun OptionLabel(
     digital: String?,
     wordsStyle: TextStyle,
 ) {
-    FlowRow(
-        Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        itemVerticalAlignment = Alignment.CenterVertically,
+    BoxWithConstraints(
+        Modifier.fillMaxWidth().padding(horizontal = SkDimens.GapM, vertical = SkDimens.GapS),
     ) {
-        Text(words, style = wordsStyle)
-        if (digital != null) {
-            Text(
-                digital,
-                style = SkType.OptDigital,
-                modifier =
-                    Modifier
-                        .background(
-                            SkColors.OptDigitalBg,
-                            SkShapes.OptDigital,
-                        ).padding(horizontal = 10.dp, vertical = 2.dp),
-            )
+        if (digital != null && maxWidth < SkDimens.GridBreakpoint &&
+            LocalDensity.current.fontScale > SkDimens.MAX_ROW_FONT_SCALE
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapS)) {
+                WordSafeText(words, wordsStyle, Modifier.fillMaxWidth(), textAlign = TextAlign.Start)
+                OptionTime(digital, Modifier.align(Alignment.End))
+            }
+        } else {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                WordSafeText(words, wordsStyle, Modifier.weight(1f), textAlign = TextAlign.Start)
+                if (digital != null) OptionTime(digital)
+            }
         }
     }
+}
+
+@Composable
+private fun OptionTime(
+    digital: String,
+    modifier: Modifier = Modifier,
+) {
+    Text(
+        digital,
+        style = SkType.OptDigital,
+        modifier =
+            modifier
+                .background(SkColors.OptDigitalBg, SkShapes.OptDigital)
+                .padding(horizontal = 10.dp, vertical = 2.dp),
+    )
 }
 
 /** Nykyinen pallo täyttyy värillä ja pompahtaa, kun tähti laskeutuu siihen. */

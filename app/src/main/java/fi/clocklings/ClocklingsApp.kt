@@ -1,5 +1,6 @@
 package fi.clocklings
 
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -27,7 +28,9 @@ import fi.clocklings.audio.Sound
 import fi.clocklings.domain.Lessons
 import fi.clocklings.ui.AppViewModel
 import fi.clocklings.ui.LocalAppViewModel
+import fi.clocklings.ui.LocalSharedTransitionScope
 import fi.clocklings.ui.appearance.AppearanceScreen
+import fi.clocklings.ui.appearance.LocalCompanionOutfit
 import fi.clocklings.ui.appearance.LocalPersonalization
 import fi.clocklings.ui.ask.AskScreen
 import fi.clocklings.ui.challenge.ChallengeRoute
@@ -45,10 +48,11 @@ import fi.clocklings.ui.lesson.LessonRoute
 import fi.clocklings.ui.levels.LevelsScreen
 import fi.clocklings.ui.locale.AppLocaleProvider
 import fi.clocklings.ui.locale.LocalAppLanguage
+import fi.clocklings.ui.navigationTransition
+import fi.clocklings.ui.rememberReduceMotion
 import fi.clocklings.ui.settings.LanguageScreen
 import fi.clocklings.ui.settings.SettingsScreen
 import fi.clocklings.ui.theme.ClocklingsTheme
-import fi.clocklings.ui.theme.dotBackground
 
 @Composable
 // Keep all Navigation 3 route bindings visible in one declarative graph.
@@ -66,7 +70,7 @@ fun ClocklingsApp(
         }
         LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { app.services.refreshSpeech() }
         ClocklingsTheme {
-            Box(modifier.fillMaxSize().dotBackground()) {
+            Box(modifier.fillMaxSize()) {
                 val progress by app.progress.collectAsStateWithLifecycle()
                 val settings by app.settings.collectAsStateWithLifecycle()
                 // Tallennus luetaan muutamassa millisekunnissa; siihen asti näytetään pelkkä tausta.
@@ -76,6 +80,7 @@ fun ClocklingsApp(
                 CompositionLocalProvider(
                     LocalAppViewModel provides app,
                     LocalPersonalization provides s.personalization,
+                    LocalCompanionOutfit provides p.outfitFor(s.personalization.companion),
                 ) {
                     ConfettiHost {
                         // Aloitusnäkymä jokaisella käynnistyksellä; ei palaa näkyviin, kun näkymä luodaan uudelleen.
@@ -97,101 +102,142 @@ fun ClocklingsApp(
                             app.play(Sound.POP)
                             nav.startLevel(level, app.startLevel(level), replaceTop)
                         }
-                        NavDisplay(
-                            backStack = backStack,
-                            modifier = Modifier.coveredByIntro(!introDone),
-                            onBack = { nav.pop() },
-                            entryDecorators =
-                                listOf(
-                                    rememberSaveableStateHolderNavEntryDecorator(),
-                                    rememberViewModelStoreNavEntryDecorator(),
-                                ),
-                            entryProvider =
-                                entryProvider {
-                                    entry<Screen.Home> {
-                                        HomeScreen(p, s, onOpen = { destination ->
-                                            go(
-                                                when (destination) {
-                                                    HomeDestination.KOULU -> Screen.LessonList
-                                                    HomeDestination.VAPAA -> Screen.FreeClock
-                                                    HomeDestination.PELAA -> Screen.Levels
-                                                    HomeDestination.KYSY -> Screen.Ask
-                                                    HomeDestination.NUKKE -> Screen.Personalize()
-                                                    HomeDestination.CLOCK_STYLES -> Screen.Personalize(clocks = true)
-                                                    HomeDestination.SETTINGS -> Screen.Settings
-                                                },
-                                            )
-                                        })
-                                    }
-                                    entry<Screen.Settings> { SettingsScreen(s, speech, { go(Screen.Language) }, back) }
-                                    entry<Screen.Language> { LanguageScreen(back) }
-                                    entry<Screen.FreeClock> { FreeClockScreen(s.h24, s.help, speech, back) }
-                                    entry<Screen.Ask> { AskScreen(s.h24, s.help, speech, back) }
-                                    entry<Screen.Wardrobe> {
-                                        val kind = s.personalization.companion
-                                        WardrobeScreen(kind, p, s.personalization.styleFor(kind).color, back)
-                                    }
-                                    entry<Screen.Personalize> { key ->
-                                        AppearanceScreen(
-                                            s.personalization,
-                                            p,
-                                            key.clocks,
-                                            { go(Screen.Wardrobe) },
-                                            back,
-                                        )
-                                    }
-                                    entry<Screen.LessonList> {
-                                        LessonListScreen(
-                                            s.h24,
-                                            p.lessonsDone,
-                                            onOpen = { go(Screen.Lesson(listOf(it))) },
-                                            onBack = back,
-                                        )
-                                    }
-                                    entry<Screen.Lesson> { key ->
-                                        LessonRoute(
-                                            key = key,
-                                            speechAvailable = speech,
-                                            onLeave = { nav.pop() },
-                                            onStartGame = { level ->
-                                                nav.replace(Screen.Game(level, round = System.nanoTime()))
-                                            },
-                                        )
-                                    }
-                                    entry<Screen.Levels> {
-                                        LevelsScreen(
-                                            progress = p,
-                                            onPlay = { playLevel(it, false) },
-                                            onLesson = { go(Screen.Lesson(Lessons.levelLessons[it])) },
-                                            onChallenge = { go(Screen.Challenge) },
-                                            onBack = back,
-                                        )
-                                    }
-                                    entry<Screen.Game> { key ->
-                                        GameRoute(key, s.h24, s.help, onBack = back, onFinish = { nav.replace(it) })
-                                    }
-                                    entry<Screen.Result> { key ->
-                                        ResultScreen(
-                                            result = key,
-                                            outfit = p.outfitFor(s.personalization.companion),
-                                            onPlayAgain = {
-                                                app.play(Sound.POP)
-                                                nav.replace(Screen.Game(key.level, round = System.nanoTime()))
-                                            },
-                                            onNextLevel = { playLevel(key.level + 1, true) },
-                                            onDress = {
-                                                app.play(Sound.POP)
-                                                nav.replace(Screen.Wardrobe)
-                                            },
-                                            onLevels = {
-                                                app.play(Sound.POP)
-                                                nav.popTo(Screen.Levels)
-                                            },
-                                        )
-                                    }
-                                    entry<Screen.Challenge> { ChallengeRoute(s.h24, s.help, back) }
-                                },
-                        )
+                        val reducedMotion = rememberReduceMotion()
+                        SharedTransitionLayout {
+                            CompositionLocalProvider(LocalSharedTransitionScope provides this) {
+                                NavDisplay(
+                                    sharedTransitionScope = this@SharedTransitionLayout,
+                                    transitionSpec = { navigationTransition(reducedMotion) },
+                                    popTransitionSpec = { navigationTransition(reducedMotion, back = true) },
+                                    predictivePopTransitionSpec = { edge ->
+                                        navigationTransition(reducedMotion, back = true, predictiveEdge = edge)
+                                    },
+                                    backStack = backStack,
+                                    modifier = Modifier.coveredByIntro(!introDone),
+                                    onBack = { nav.pop() },
+                                    entryDecorators =
+                                        listOf(
+                                            rememberSaveableStateHolderNavEntryDecorator(),
+                                            rememberViewModelStoreNavEntryDecorator(),
+                                        ),
+                                    entryProvider =
+                                        entryProvider {
+                                            entry<Screen.Home> {
+                                                HomeScreen(p, s, onOpen = { destination ->
+                                                    go(
+                                                        when (destination) {
+                                                            HomeDestination.KOULU -> {
+                                                                Screen.LessonList
+                                                            }
+
+                                                            HomeDestination.VAPAA -> {
+                                                                Screen.FreeClock
+                                                            }
+
+                                                            HomeDestination.PELAA -> {
+                                                                Screen.Levels
+                                                            }
+
+                                                            HomeDestination.KYSY -> {
+                                                                Screen.Ask
+                                                            }
+
+                                                            HomeDestination.NUKKE -> {
+                                                                Screen.Personalize
+                                                            }
+
+                                                            HomeDestination.SETTINGS -> {
+                                                                Screen.Settings
+                                                            }
+                                                        },
+                                                    )
+                                                })
+                                            }
+                                            entry<Screen.Settings> {
+                                                SettingsScreen(
+                                                    s,
+                                                    speech,
+                                                    { go(Screen.Language) },
+                                                    back,
+                                                )
+                                            }
+                                            entry<Screen.Language> { LanguageScreen(back) }
+                                            entry<Screen.FreeClock> { FreeClockScreen(s.h24, s.help, speech, back) }
+                                            entry<Screen.Ask> { AskScreen(s.h24, s.help, speech, back) }
+                                            entry<Screen.Wardrobe> {
+                                                val kind = s.personalization.companion
+                                                WardrobeScreen(kind, p, s.personalization.styleFor(kind).color, back)
+                                            }
+                                            entry<Screen.Personalize> {
+                                                AppearanceScreen(
+                                                    s.personalization,
+                                                    p,
+                                                    { go(Screen.Wardrobe) },
+                                                    back,
+                                                )
+                                            }
+                                            entry<Screen.LessonList> {
+                                                LessonListScreen(
+                                                    s.h24,
+                                                    p,
+                                                    onPlayLevel = { playLevel(it, false) },
+                                                    onOpen = { go(Screen.Lesson(listOf(it))) },
+                                                    onBack = back,
+                                                )
+                                            }
+                                            entry<Screen.Lesson> { key ->
+                                                LessonRoute(
+                                                    key = key,
+                                                    speechAvailable = speech,
+                                                    onLeave = { nav.pop() },
+                                                    onStartGame = { level ->
+                                                        nav.replace(Screen.Game(level, round = System.nanoTime()))
+                                                    },
+                                                )
+                                            }
+                                            entry<Screen.Levels> {
+                                                LevelsScreen(
+                                                    progress = p,
+                                                    onPlay = { playLevel(it, false) },
+                                                    onLesson = { go(Screen.Lesson(Lessons.levelLessons[it])) },
+                                                    onChallenge = { go(Screen.Challenge) },
+                                                    onBack = back,
+                                                )
+                                            }
+                                            entry<Screen.Game> { key ->
+                                                GameRoute(
+                                                    key,
+                                                    s.h24,
+                                                    s.help,
+                                                    onBack = back,
+                                                    onFinish = { nav.replace(it) },
+                                                )
+                                            }
+                                            entry<Screen.Result> { key ->
+                                                ResultScreen(
+                                                    result = key,
+                                                    outfit = p.outfitFor(s.personalization.companion),
+                                                    onPlayAgain = {
+                                                        app.play(Sound.POP)
+                                                        nav.replace(Screen.Game(key.level, round = System.nanoTime()))
+                                                    },
+                                                    onNextLevel = { playLevel(key.level + 1, true) },
+                                                    onDress = {
+                                                        app.play(Sound.POP)
+                                                        nav.replace(Screen.Wardrobe)
+                                                    },
+                                                    onLevels = {
+                                                        app.play(Sound.POP)
+                                                        nav.popTo(Screen.Levels)
+                                                    },
+                                                    onSound = app::play,
+                                                )
+                                            }
+                                            entry<Screen.Challenge> { ChallengeRoute(s.h24, s.help, back) }
+                                        },
+                                )
+                            }
+                        }
                         if (!introDone) {
                             IntroOverlay(
                                 p.outfitFor(s.personalization.companion),

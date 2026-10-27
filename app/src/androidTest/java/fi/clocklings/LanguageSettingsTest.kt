@@ -22,10 +22,10 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onLast
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performCustomAccessibilityActionWithLabel
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -133,7 +133,7 @@ class LanguageSettingsTest {
         openSettings()
         val guides = compose.onNode(hasText("Clock guides") and hasClickAction())
         guides
-            .performScrollTo()
+            .scrollToIfScrollable()
             .assert(
                 SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch),
             ).assertIsOff()
@@ -142,7 +142,7 @@ class LanguageSettingsTest {
         guides.assertIsOn()
         val sound = compose.onNode(hasText("Sound effects") and hasClickAction())
         sound
-            .performScrollTo()
+            .scrollToIfScrollable()
             .assert(
                 SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch),
             ).assertIsOff()
@@ -189,12 +189,12 @@ class LanguageSettingsTest {
         waitText("15:00")
         compose
             .onNode(hasContentDescription("Clock face:", substring = true))
-            .performCustomAccessibilityActionWithLabel("Add 5 minutes")
+            .performCustomAccessibilityActionWithLabel("Add 5\u00A0minutes")
         waitText("15:05")
         changeExternalLanguage(AppLanguage.FINNISH)
         waitText(string(AppLanguage.FINNISH, R.string.free_title))
         waitText("15.05")
-        compose.onNodeWithText(string(AppLanguage.FINNISH, R.string.help_off)).assertIsDisplayed()
+        compose.onNodeWithContentDescription(string(AppLanguage.FINNISH, R.string.help_off)).assertIsDisplayed()
         assertDataUnchanged()
         back()
         click(string(AppLanguage.FINNISH, R.string.menu_kysy))
@@ -209,11 +209,11 @@ class LanguageSettingsTest {
         changeExternalLanguage(AppLanguage.SWEDISH)
         waitText(string(AppLanguage.SWEDISH, R.string.ask_reveal))
         val player = locale.resources(AppLanguage.SWEDISH).getString(R.string.ask_small_eyebrow, 2)
-        compose.onNodeWithText(player.uppercase(Locale.forLanguageTag("sv"))).assertExists()
+        compose.onNodeWithContentDescription(player, substring = true).assertExists()
         compose.onAllNodes(hasContentDescription("Urtavla:", substring = true)).assertCountEquals(0)
-        compose.onAllNodesWithText("00.05").assertCountEquals(0)
+        compose.onAllNodesWithText("15.05").assertCountEquals(0)
         click(string(AppLanguage.SWEDISH, R.string.ask_reveal))
-        waitText("00.05")
+        waitText("15.05")
         assertDataUnchanged()
     }
 
@@ -248,13 +248,22 @@ class LanguageSettingsTest {
             assertSettingsAndResetReadable(language)
             back()
             waitText(string(language, R.string.settings_title))
-            assertReadable(string(language, R.string.settings_title))
+            compose.onNodeWithContentDescription(string(language, R.string.settings_title)).assertIsDisplayed()
             compose.waitForIdle()
             LocalizationScreenshots.capture("${language.tag}-home")
             click(string(language, R.string.settings_title))
             click("${string(language, R.string.language_title)}: $autonym")
         }
         assertDataUnchanged()
+    }
+
+    private fun speechInfoKey(language: AppLanguage): Int {
+        val available = string(language, R.string.settings_speech_info_available)
+        return if (compose.onAllNodesWithText(available).fetchSemanticsNodes().isNotEmpty()) {
+            R.string.settings_speech_info_available
+        } else {
+            R.string.settings_speech_info_unavailable
+        }
     }
 
     private fun assertSettingsAndResetReadable(language: AppLanguage) {
@@ -264,14 +273,13 @@ class LanguageSettingsTest {
             .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
         for (key in listOf(
             R.string.settings_title,
-            R.string.settings_language_description,
+            R.string.language_title,
             R.string.settings_clock_display,
             R.string.settings_guides_title,
             R.string.settings_guides_description,
             R.string.settings_sound_title,
             R.string.settings_sound_description,
-            R.string.settings_speech_title,
-            R.string.settings_speech_description,
+            speechInfoKey(language),
             R.string.settings_progress_title,
             R.string.settings_reset_action,
         )) {
@@ -279,7 +287,7 @@ class LanguageSettingsTest {
                 when (key) {
                     R.string.settings_title -> "${language.tag}-settings-top"
                     R.string.settings_guides_description -> "${language.tag}-settings-guides"
-                    R.string.settings_speech_description -> "${language.tag}-settings-speech-description"
+                    speechInfoKey(language) -> "${language.tag}-settings-speech-description"
                     R.string.settings_reset_action -> "${language.tag}-settings-progress"
                     else -> null
                 }
@@ -350,7 +358,7 @@ class LanguageSettingsTest {
         )) {
             val text = string(language, key)
             assertReadable(text)
-            val node = radio(text).performScrollTo().fetchSemanticsNode()
+            val node = radio(text).scrollToIfScrollable().fetchSemanticsNode()
             val density = locale.context.resources.displayMetrics.density
             assertTrue("Radio touch height: $text", node.boundsInRoot.height / density >= 47.5f)
         }
@@ -361,7 +369,7 @@ class LanguageSettingsTest {
             if (compose.onAllNodesWithText("Skip intro").fetchSemanticsNodes().isNotEmpty()) {
                 compose.onNodeWithText("Skip intro").performClick()
             }
-            compose.onAllNodesWithText("Settings").fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodes(hasContentDescription("Settings")).fetchSemanticsNodes().isNotEmpty()
         }
     }
 
@@ -373,19 +381,29 @@ class LanguageSettingsTest {
 
     private fun click(text: String) {
         waitText(text)
-        val node = compose.onAllNodes(hasText(text) and hasClickAction()).onLast()
+        val node =
+            compose
+                .onAllNodes(
+                    (hasText(text) or hasContentDescription(text, substring = true)) and hasClickAction(),
+                ).onLast()
         if (generateSequence(node.fetchSemanticsNode().parent) { it.parent }.any {
                 SemanticsActions.ScrollBy in
                     it.config
             }
         ) {
-            node.performScrollTo()
+            node.scrollToIfScrollable()
         }
         node.assertIsDisplayed().performClick()
     }
 
     private fun waitText(text: String) {
-        compose.waitUntil(15_000) { compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) {
+            compose
+                .onAllNodes(
+                    hasText(text) or hasContentDescription(text, substring = true),
+                ).fetchSemanticsNodes()
+                .isNotEmpty()
+        }
     }
 
     private fun radio(text: String) =
@@ -443,7 +461,7 @@ class LanguageSettingsTest {
         screenshot: String? = null,
     ) {
         val node = compose.onAllNodesWithText(text, useUnmergedTree = true).onLast()
-        if (scroll) node.performScrollTo()
+        if (scroll) node.scrollToIfScrollable()
         compose.waitForIdle()
         screenshot?.let(LocalizationScreenshots::capture)
         node.assertIsDisplayed()

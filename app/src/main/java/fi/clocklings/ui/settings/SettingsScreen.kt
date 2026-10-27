@@ -1,5 +1,6 @@
 package fi.clocklings.ui.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -8,13 +9,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -26,22 +23,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import fi.clocklings.R
 import fi.clocklings.domain.AppLanguage
 import fi.clocklings.domain.Settings
 import fi.clocklings.domain.timeLanguage
 import fi.clocklings.ui.LocalAppViewModel
-import fi.clocklings.ui.components.ButtonKind
-import fi.clocklings.ui.components.Panel
 import fi.clocklings.ui.components.ScreenScaffold
 import fi.clocklings.ui.components.SkButton
+import fi.clocklings.ui.components.SkIcon
+import fi.clocklings.ui.components.SkIcons
 import fi.clocklings.ui.components.TopBar
 import fi.clocklings.ui.locale.LocalAppLanguage
 import fi.clocklings.ui.locale.LocalAppLocale
+import fi.clocklings.ui.theme.Section
+import fi.clocklings.ui.theme.SkColors
 import fi.clocklings.ui.theme.SkDimens
 import fi.clocklings.ui.theme.SkType
 
@@ -60,43 +59,40 @@ fun SettingsScreen(
     // A language change or activity recreation dismisses a destructive confirmation safely.
     var confirmReset by remember(language) { mutableStateOf(false) }
     LaunchedEffect(app) { app.clearSettingsError() }
-    val words = timeLanguage(language)
-    ScreenScaffold(modifier) {
-        TopBar(stringResource(R.string.settings_title), stringResource(R.string.back), onBack)
-        Panel {
-            SkButton("${stringResource(R.string.language_title)}: ${languageName(locale.choice)}", onLanguage)
-            Text(stringResource(R.string.settings_language_description), style = SkType.Body)
+    ScreenScaffold(
+        modifier,
+        section = Section.SETTINGS,
+        topBar = { TopBar(stringResource(R.string.settings_title), onBack) },
+    ) {
+        // Every group: a small heading outside, then one calm container of rows with dividers.
+        SettingsGroup(stringResource(R.string.language_title)) {
+            LanguageRow(languageName(locale.choice), onLanguage)
         }
-        Panel {
-            SettingsHeading(stringResource(R.string.settings_clock_display))
-            Column(Modifier.selectableGroup()) {
-                RadioRow(stringResource(R.string.mode_12), !settings.h24, !action.pending) { app.setH24(false) }
-                RadioRow(stringResource(R.string.mode_24), settings.h24, !action.pending) { app.setH24(true) }
-            }
-            Text(
-                stringResource(
-                    R.string.settings_clock_example,
-                    words.digital(EXAMPLE_TIME),
-                    words.digital(EXAMPLE_TIME, true),
-                ),
-                style = SkType.Body,
-            )
-        }
-        Panel {
-            SettingsSwitch(stringResource(R.string.settings_guides_title), settings.help, !action.pending, app::setHelp)
-            Text(stringResource(R.string.settings_guides_description), style = SkType.Body)
+        ClockDisplayGroup(settings, enabled = !action.pending)
+        SettingsGroup(stringResource(R.string.settings_sound_group)) {
             SettingsSwitch(
                 stringResource(R.string.settings_sound_title),
+                stringResource(R.string.settings_sound_description),
                 settings.sound,
                 !action.pending,
                 app::setSound,
             )
-            Text(stringResource(R.string.settings_sound_description), style = SkType.Body)
         }
-        SpeechAvailability(speechAvailable)
-        ResetProgressPanel(!action.pending) {
-            app.clearSettingsError()
-            confirmReset = true
+        Text(
+            stringResource(
+                if (speechAvailable) {
+                    R.string.settings_speech_info_available
+                } else {
+                    R.string.settings_speech_info_unavailable
+                },
+            ),
+            style = SkType.SmallSoft,
+        )
+        SettingsGroup(stringResource(R.string.settings_progress_title)) {
+            ResetProgressRow(!action.pending) {
+                app.clearSettingsError()
+                confirmReset = true
+            }
         }
         if (action.failed) Text(stringResource(R.string.settings_save_error), style = SkType.Body)
     }
@@ -111,25 +107,55 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun ResetProgressPanel(
+private fun ClockDisplayGroup(
+    settings: Settings,
     enabled: Boolean,
-    onReset: () -> Unit,
 ) {
-    Panel {
-        SettingsHeading(stringResource(R.string.settings_progress_title))
-        SkButton(stringResource(R.string.settings_reset_action), onReset, enabled = enabled)
+    val app = LocalAppViewModel.current
+    val words = timeLanguage(LocalAppLanguage.current)
+    SettingsGroup(stringResource(R.string.settings_clock_display)) {
+        Column(Modifier.selectableGroup()) {
+            RadioRow(
+                stringResource(R.string.mode_12),
+                words.digital(EXAMPLE_TIME),
+                !settings.h24,
+                enabled,
+            ) {
+                app.setH24(false)
+            }
+            SettingsDivider()
+            RadioRow(
+                stringResource(R.string.mode_24),
+                words.digital(EXAMPLE_TIME, true),
+                settings.h24,
+                enabled,
+            ) { app.setH24(true) }
+        }
+        SettingsDivider()
+        SettingsSwitch(
+            stringResource(R.string.settings_guides_title),
+            stringResource(R.string.settings_guides_description),
+            settings.help,
+            enabled,
+            app::setHelp,
+        )
     }
 }
 
+/** Destructive, so it gets its own colour and a confirmation dialog. */
 @Composable
-private fun SpeechAvailability(available: Boolean) {
-    Panel {
-        SettingsHeading(stringResource(R.string.settings_speech_title))
-        Text(
-            stringResource(if (available) R.string.settings_speech_available else R.string.settings_speech_unavailable),
-            style = SkType.Body,
-        )
-        Text(stringResource(R.string.settings_speech_description), style = SkType.Body)
+private fun ResetProgressRow(
+    enabled: Boolean,
+    onReset: () -> Unit,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = SkDimens.IconButton)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onReset),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(stringResource(R.string.settings_reset_action), style = SkType.Body.copy(color = SkColors.Danger))
     }
 }
 
@@ -170,12 +196,16 @@ fun LanguageScreen(
     val controller = LocalAppLocale.current
     val selection by controller.selection.collectAsStateWithLifecycle()
     val app = LocalAppViewModel.current
-    ScreenScaffold(modifier) {
-        TopBar(stringResource(R.string.language_title), stringResource(R.string.back), onBack)
-        Panel {
+    ScreenScaffold(
+        modifier,
+        section = Section.SETTINGS,
+        topBar = { TopBar(stringResource(R.string.language_title), onBack) },
+    ) {
+        SettingsCard {
             Column(Modifier.selectableGroup()) {
-                (listOf<AppLanguage?>(null) + AppLanguage.entries).forEach { language ->
-                    RadioRow(languageName(language), selection.choice == language, !selection.pending) {
+                (listOf<AppLanguage?>(null) + AppLanguage.entries).forEachIndexed { index, language ->
+                    if (index > 0) SettingsDivider()
+                    RadioRow(languageName(language), null, selection.choice == language, !selection.pending) {
                         if (selection.choice != language) app.stopSpeech()
                         controller.select(language)
                     }
@@ -197,50 +227,23 @@ private fun languageName(language: AppLanguage?): String =
         },
     )
 
-@Composable
-private fun SettingsHeading(text: String) {
-    Text(text, style = SkType.Question, modifier = Modifier.semantics { heading() })
-}
-
-@Composable
-private fun RadioRow(
-    text: String,
-    selected: Boolean,
-    enabled: Boolean,
-    onClick: () -> Unit,
-) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .selectable(selected = selected, enabled = enabled, role = Role.RadioButton, onClick = onClick)
-            .padding(vertical = SkDimens.GapS),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM),
-    ) {
-        RadioButton(selected, onClick = null, enabled = enabled)
-        Text(text, style = SkType.Body, modifier = Modifier.weight(1f))
-    }
-}
-
-@Composable
-private fun SettingsSwitch(
-    text: String,
-    checked: Boolean,
-    enabled: Boolean,
-    onChange: (Boolean) -> Unit,
-) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onChange),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM),
-    ) {
-        Text(text, style = SkType.Body, modifier = Modifier.weight(1f))
-        Switch(checked, onCheckedChange = null, enabled = enabled)
-    }
-}
-
 private const val EXAMPLE_TIME = 15 * 60 + 30
+
+@Composable
+private fun LanguageRow(
+    value: String,
+    onLanguage: () -> Unit,
+) {
+    val languageTitle = stringResource(R.string.language_title)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = SkDimens.SettingsRowHeight)
+            .semantics { contentDescription = "$languageTitle: $value" }
+            .clickable(role = Role.Button, onClick = onLanguage),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(value, style = SkType.Body, modifier = Modifier.weight(1f))
+        SkIcon(SkIcons.Chevron, SkDimens.ActionIcon)
+    }
+}
