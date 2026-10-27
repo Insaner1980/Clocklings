@@ -148,7 +148,10 @@
     </plurals>
     <string name="doll_all_open">Kaikki asusteet ovat käytettävissä. Kokeile erilaisia yhdistelmiä!</string>
     <string name="doll_optional_hint">Riisu napauttamalla uudelleen.</string>
-    <string name="doll_item_locked" tools:ignore="PluralsCandidate">Lukittu. Avautuu, kun tähtiä on %1$d. Sinulla on %2$d.</string>
+    <plurals name="doll_item_locked">
+        <item quantity="one">Lukittu. Avautuu, kun tähtiä on %1$d. Sinulla on %2$d.</item>
+        <item quantity="other">Lukittu. Avautuu, kun tähtiä on %1$d. Sinulla on %2$d.</item>
+    </plurals>
     <string name="slot_hair">Hiukset</string>
     <string name="slot_dress">Mekot</string>
     <string name="slot_shoes">Kengät</string>

@@ -148,7 +148,10 @@
     </plurals>
     <string name="doll_all_open">Alla kläddelar går att använda. Prova olika kombinationer!</string>
     <string name="doll_optional_hint">Tryck igen för att ta av den.</string>
-    <string name="doll_item_locked" tools:ignore="PluralsCandidate">Låst. Låses upp vid %1$d\u00A0stjärnor. Du har %2$d.</string>
+    <plurals name="doll_item_locked">
+        <item quantity="one">Låst. Låses upp vid %1$d\u00A0stjärna. Du har %2$d.</item>
+        <item quantity="other">Låst. Låses upp vid %1$d\u00A0stjärnor. Du har %2$d.</item>
+    </plurals>
     <string name="slot_hair">Hår</string>
     <string name="slot_dress">Klänningar</string>
     <string name="slot_shoes">Skor</string>

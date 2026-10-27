@@ -351,7 +351,7 @@ private fun LockedTile(
     modifier: Modifier = Modifier,
     nameStyle: TextStyle = SkType.ItemName,
 ) {
-    val description = stringResource(R.string.doll_item_locked, item.star, total)
+    val description = pluralStringResource(R.plurals.doll_item_locked, item.star, item.star, total)
     Column(
         modifier
             .background(SkColors.ItemLockedBg, SkShapes.Item)

@@ -16,6 +16,7 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -49,6 +50,60 @@ import java.util.Locale
 @RunWith(RobolectricTestRunner::class)
 class ScreenshotReviewUiTest {
     @get:Rule val compose = createComposeRule()
+
+    @Test
+    fun lockedItemDescriptionsUseTheThresholdQuantityInEveryLanguageAndDisplaySize() {
+        val app = ApplicationProvider.getApplicationContext<ClocklingsApplication>()
+        val model = AppViewModel(FakeServices())
+        val language = mutableStateOf("en")
+        val viewport = mutableStateOf(411 to 1f)
+        compose.setContent {
+            val context =
+                app.createConfigurationContext(
+                    Configuration(app.resources.configuration).apply {
+                        setLocale(Locale.forLanguageTag(language.value))
+                    },
+                )
+            CompositionLocalProvider(
+                LocalAppViewModel provides model,
+                LocalContext provides context,
+                LocalResources provides context.resources,
+                LocalDensity provides Density(2f, viewport.value.second),
+            ) {
+                ClocklingsTheme {
+                    Box(Modifier.requiredSize(viewport.value.first.dp, 640.dp)) {
+                        WardrobeScreen(CompanionKind.CAT, Progress(), CompanionColor.ORIGINAL, {})
+                    }
+                }
+            }
+        }
+        val descriptions =
+            mapOf(
+                "en" to
+                    listOf("Locked. Opens at 1\u00a0star. You have 0.", "Locked. Opens at 2\u00a0stars. You have 0."),
+                "fi" to
+                    listOf(
+                        "Lukittu. Avautuu, kun tähtiä on 1. Sinulla on 0.",
+                        "Lukittu. Avautuu, kun tähtiä on 2. Sinulla on 0.",
+                    ),
+                "sv" to
+                    listOf(
+                        "Låst. Låses upp vid 1\u00a0stjärna. Du har 0.",
+                        "Låst. Låses upp vid 2\u00a0stjärnor. Du har 0.",
+                    ),
+            )
+        for ((tag, expected) in descriptions) {
+            for (cell in listOf(411 to 1f, 320 to 1f, 411 to 2f, 320 to 2f)) {
+                compose.runOnIdle {
+                    language.value = tag
+                    viewport.value = cell
+                }
+                for (description in expected) {
+                    compose.onNodeWithContentDescription(description).performScrollTo().assertIsDisplayed()
+                }
+            }
+        }
+    }
 
     @Test
     fun wardrobeNamesKeepWholeWordsAtOneSizePerGrid() {

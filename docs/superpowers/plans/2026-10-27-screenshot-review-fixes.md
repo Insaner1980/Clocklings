@@ -1,7 +1,7 @@
 # Screenshot Review Fixes: Implementation Plan
 
 Date: 2026-10-27
-Source: owner review of the Finnish UI screenshots in `C:\Users\EmmaH\Downloads\clocklings-screenshots4` (18 images, 12:55 to 12:59).
+Source: owner review of the Finnish UI screenshots in the `clocklings-screenshots4` set (18 images, 12:55 to 12:59).
 Audience: the implementing agent (Codex). The owner approved every finding below unless it is listed under "Dropped findings".
 
 ## 0. Ground rules (read before touching code)
