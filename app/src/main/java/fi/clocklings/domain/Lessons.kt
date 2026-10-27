@@ -170,6 +170,8 @@ object Lessons {
     const val DAY_LESSON = "vrk"
     private const val H24_INTRO = "h24"
 
+    fun levelOf(lessonId: String): Int? = levelLessons.indexOfFirst { lessonId in it }.takeIf { it >= 0 }
+
     /** Tasojen oppitunnit (web: LEVEL_LESSONS). */
     val levelLessons: List<List<String>> =
         listOf(

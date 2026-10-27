@@ -35,15 +35,12 @@ project(":app") {
         properties {
             property(
                 "sonar.coverage.jacoco.xmlReportPaths",
-                listOf(
-                    "reports/coverage/test/debug/report.xml",
-                    "reports/coverage/androidTest/debug/connected/report.xml",
-                ).joinToString(",") { layout.buildDirectory.file(it).get().asFile.absolutePath },
+                layout.buildDirectory.file("reports/coverage/test/debug/report.xml").get().asFile.absolutePath,
             )
         }
     }
 }
 
 tasks.named("sonar") {
-    dependsOn(":app:assembleDebug", ":app:createDebugUnitTestCoverageReport", ":app:createDebugAndroidTestCoverageReport")
+    dependsOn(":app:assembleDebug", ":app:createDebugUnitTestCoverageReport")
 }

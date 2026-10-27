@@ -20,7 +20,6 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onRoot
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -152,7 +151,7 @@ class ClockSurfaceStateTest {
 
     private fun assertActionFits(text: String) {
         assertTextFits(text)
-        val node = compose.onNode(hasText(text) and hasClickAction()).performScrollTo()
+        val node = compose.onNode(hasText(text) and hasClickAction()).scrollToIfScrollable()
         val bounds = node.getUnclippedBoundsInRoot()
         val root = compose.onRoot().getUnclippedBoundsInRoot()
         compose.waitForIdle()
@@ -171,7 +170,7 @@ class ClockSurfaceStateTest {
         compose
             .onAllNodesWithText(text, useUnmergedTree = true)
             .onFirst()
-            .performScrollTo()
+            .scrollToIfScrollable()
             .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
         compose.waitForIdle()
         LocalizationScreenshots.capture("$evidencePrefix-text-${text.hashCode()}")

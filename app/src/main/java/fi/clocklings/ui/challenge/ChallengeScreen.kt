@@ -24,6 +24,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -40,10 +42,10 @@ import fi.clocklings.ui.clock.ClockFace
 import fi.clocklings.ui.components.ButtonKind
 import fi.clocklings.ui.components.ClockBox
 import fi.clocklings.ui.components.Eyebrow
+import fi.clocklings.ui.components.FlatPanel
 import fi.clocklings.ui.components.LocalConfetti
 import fi.clocklings.ui.components.OptionButton
 import fi.clocklings.ui.components.OptionState
-import fi.clocklings.ui.components.Panel
 import fi.clocklings.ui.components.Pill
 import fi.clocklings.ui.components.ReadOptions
 import fi.clocklings.ui.components.ScreenScaffold
@@ -51,6 +53,7 @@ import fi.clocklings.ui.components.SkButton
 import fi.clocklings.ui.components.TopBar
 import fi.clocklings.ui.components.confettiAnchor
 import fi.clocklings.ui.locale.LocalAppLanguage
+import fi.clocklings.ui.theme.Section
 import fi.clocklings.ui.theme.SkColors
 import fi.clocklings.ui.theme.SkDimens
 import fi.clocklings.ui.theme.SkShapes
@@ -67,6 +70,7 @@ fun ChallengeRoute(
         viewModel(factory = viewModelFactory { initializer { ChallengeViewModel(h24, app.services) } }),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
+    val haptic = LocalHapticFeedback.current
     ChallengeScreen(
         state = state,
         h24 = h24,
@@ -76,7 +80,24 @@ fun ChallengeRoute(
             app.play(Sound.POP)
             vm.start()
         },
-        onPick = vm::pick,
+        onPick = { value ->
+            val before = vm.state.value
+            vm.pick(value)
+            val after = vm.state.value
+            if (after !==
+                before
+            ) {
+                haptic.performHapticFeedback(
+                    if (after.score >
+                        before.score
+                    ) {
+                        HapticFeedbackType.Confirm
+                    } else {
+                        HapticFeedbackType.Reject
+                    },
+                )
+            }
+        },
     )
 }
 
@@ -92,13 +113,19 @@ fun ChallengeScreen(
 ) {
     val finalAnchor = remember { mutableStateOf(Offset.Zero) }
     RecordCelebrationEffect(state) { finalAnchor.value }
-    ScreenScaffold(modifier) { clockSize ->
-        TopBar(
-            title = stringResource(R.string.challenge_title),
-            backLabel = stringResource(R.string.back_levels),
-            onBack = onBack,
-            trailing = { Pill(stringResource(R.string.challenge_score, state.score)) },
-        )
+    ScreenScaffold(
+        modifier,
+        clockHeightShare = SkDimens.PLAY_CLOCK_HEIGHT_SHARE,
+        section = Section.PLAY,
+        topBar = {
+            TopBar(
+                title = stringResource(R.string.challenge_title),
+                backLabel = stringResource(R.string.back_levels),
+                onBack = onBack,
+                trailing = { Pill(stringResource(R.string.challenge_score, state.score)) },
+            )
+        },
+    ) { clockSize ->
         TimerBar(state)
         ClockBox(clockSize) {
             ClockFace(
@@ -108,20 +135,13 @@ fun ChallengeScreen(
                 describeTime = state.phase != ChallengePhase.RUN || state.busy,
             )
         }
-        Panel {
+        FlatPanel {
             when (state.phase) {
                 ChallengePhase.START -> {
                     Text(stringResource(R.string.challenge_desc), style = SkType.Question)
                     Text(stringResource(R.string.challenge_intro), style = SkType.Body)
-                    Eyebrow(
-                        if (state.best >
-                            0
-                        ) {
-                            stringResource(R.string.challenge_best, state.best)
-                        } else {
-                            stringResource(R.string.challenge_no_best)
-                        },
-                    )
+                    val best = stringResource(R.string.challenge_best, state.best)
+                    Eyebrow(if (state.best > 0) best else stringResource(R.string.challenge_no_best))
                     SkButton(stringResource(R.string.challenge_go), onStart, kind = ButtonKind.PRIMARY)
                 }
 

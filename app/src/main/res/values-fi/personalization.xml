@@ -3,8 +3,6 @@
     <string name="appearance_title">Tee omannäköinen</string>
     <string name="companions_title">Kaverit</string>
     <string name="clock_styles_title">Kellotyylit</string>
-    <string name="appearance_selected">Valittu</string>
-    <string name="companion_choice_hint">Valitse kaveri tai pelkkä kello. Jokainen kaveri on valmiina mukaan.</string>
     <string name="companion_human">Ihminen</string>
     <string name="companion_cat">Kissa</string>
     <string name="companion_dog">Koira</string>
@@ -19,7 +17,6 @@
     <string name="color_green">Vihreä</string>
     <string name="color_purple">Violetti</string>
     <string name="color_coral">Koralli</string>
-    <string name="clock_choice_hint">Valitse kello oppitunteihin, peleihin ja tutkimiseen. Kaikki tyylit ovat käytettävissä heti.</string>
     <string name="theme_classic">Klassinen</string>
     <string name="theme_rainbow">Sateenkaari</string>
     <string name="theme_space">Avaruus</string>
@@ -28,7 +25,7 @@
     <string name="theme_garden">Puutarha</string>
     <string name="theme_workshop">Työpaja</string>
     <string name="theme_custom">Oma kello</string>
-    <string name="custom_clock_hint">Yhdistä lempivärejäsi ja -muotojasi. Lyhyt punainen viisari näyttää tunnit ja pitkä sininen minuutit.</string>
+    <string name="custom_clock_hint">Yhdistä lempivärejäsi ja -muotojasi. Lyhyt pinkki viisari näyttää tunnit ja pitkä sininen minuutit.</string>
     <string name="clock_color">Kehyksen väri</string>
     <string name="clock_frame">Kehyksen kuvio</string>
     <string name="frame_round">Sileä</string>

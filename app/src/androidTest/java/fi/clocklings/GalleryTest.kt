@@ -306,7 +306,7 @@ class GalleryTest {
                 kind,
                 Outfit().with(item.slot, item.id),
                 if (cropped) {
-                    Modifier.size(SkDimens.ItemArt)
+                    Modifier.size(SkDimens.ItemWindow)
                 } else {
                     Modifier.size(width = TILE_WIDTH.dp, height = TILE_HEIGHT.dp)
                 },

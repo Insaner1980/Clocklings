@@ -5,6 +5,24 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LessonsTest {
+    @org.junit.Test
+    fun `lesson chapters map every lesson to its practice level`() {
+        val expected =
+            mapOf(
+                "viisarit" to 0,
+                "kierros" to 0,
+                "tasan" to 0,
+                "puoli" to 1,
+                "vartti" to 2,
+                "ylivaille" to 2,
+                "viisi" to 3,
+                "minuutit" to 4,
+                "vrk" to null,
+            )
+        expected.forEach { (id, level) -> org.junit.Assert.assertEquals(id, level, Lessons.levelOf(id)) }
+        org.junit.Assert.assertNull(Lessons.levelOf("unknown"))
+    }
+
     @Test
     fun `level lessons match the web mapping`() {
         assertEquals(

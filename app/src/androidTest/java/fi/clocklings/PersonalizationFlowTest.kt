@@ -1,7 +1,6 @@
 package fi.clocklings
 
 import android.graphics.Bitmap
-import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
@@ -13,13 +12,11 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performCustomAccessibilityActionWithLabel
-import androidx.compose.ui.test.performScrollTo
-import androidx.compose.ui.test.performSemanticsAction
-import androidx.compose.ui.text.TextLayoutResult
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import fi.clocklings.domain.CompanionKind
@@ -52,10 +49,10 @@ class PersonalizationFlowTest {
             click("My Companion")
             choose("choose_companion_${kind.name}")
             if (kind != CompanionKind.NONE) {
-                compose.onNodeWithTag("companion_preview").performScrollTo()
+                compose.onNodeWithTag("companion_pager").scrollToIfScrollable()
                 save("companion_${kind.name}")
             }
-            click("← Back")
+            click("Back")
             if (kind == CompanionKind.NONE) {
                 compose.onAllNodes(companionArt(), useUnmergedTree = true).assertCountEquals(0)
             } else {
@@ -63,12 +60,12 @@ class PersonalizationFlowTest {
             }
         }
         compose.activityRule.scenario.recreate()
-        waitFor("RIGHT NOW")
+        waitFor("Clocklings")
         compose.onAllNodes(companionArt(), useUnmergedTree = true).assertCountEquals(0)
         click("Explore")
         compose
             .onNode(hasContentDescription("Clock face:", substring = true))
-            .performCustomAccessibilityActionWithLabel("Add 5 minutes")
+            .performCustomAccessibilityActionWithLabel("Add 5\u00A0minutes")
         compose.onNodeWithText("3:05").assertExists()
         save("no_companion_explore")
     }
@@ -81,11 +78,11 @@ class PersonalizationFlowTest {
         choose("color_BLUE")
         click("Striped scarf")
         waitSelected("Striped scarf")
-        click("← Back")
+        click("Back")
         choose("choose_companion_DOG")
         click("Choose an outfit")
         choose("color_PURPLE")
-        click("← Back")
+        click("Back")
         choose("choose_companion_CAT")
         click("Choose an outfit")
         waitTagSelected("color_BLUE")
@@ -110,17 +107,20 @@ class PersonalizationFlowTest {
                 "CUSTOM" to "My own clock",
             )
         for ((id, name) in themes) {
+            // Clock styles live behind the companion stage, next to the companion choices.
+            click("My Companion")
             click("Clock styles")
             choose("choose_clock_$id")
-            compose.onNodeWithTag("selected_clock").performScrollTo()
+            compose.onNodeWithTag("selected_clock").scrollToIfScrollable()
             save("clock_$id")
-            click("← Back")
+            click("Back")
             clockWithTheme(name).assertExists()
             click("Explore")
-            clockWithTheme(name).performCustomAccessibilityActionWithLabel("Add 5 minutes")
+            clockWithTheme(name).performCustomAccessibilityActionWithLabel("Add 5\u00A0minutes")
             compose.onNodeWithText("3:05").assertExists()
-            click("← Back")
+            click("Back")
         }
+        click("My Companion")
         click("Clock styles")
         click("Coral")
         click("Blocks")
@@ -130,17 +130,19 @@ class PersonalizationFlowTest {
         waitFor("Make it yours")
         for (label in listOf("Coral", "Blocks", "Plain", "Pointed ends")) {
             waitSelected(label)
-            compose.onNodeWithText(label).performScrollTo()
+            compose.onNodeWithContentDescription(label).scrollToIfScrollable()
             save("control_$label")
-            assertReadable(label)
+            val bounds = compose.onNodeWithContentDescription(label).fetchSemanticsNode().boundsInRoot
+            val minimum = 48 * compose.activity.resources.displayMetrics.density
+            assertTrue("Touch target: $label", bounds.width >= minimum && bounds.height >= minimum)
         }
         save("custom_controls")
-        compose.onNodeWithTag("selected_clock").performScrollTo()
+        compose.onNodeWithTag("selected_clock").scrollToIfScrollable()
         save("custom_clock")
-        click("← Back")
+        click("Back")
         click("Play Together")
         clockWithTheme("My own clock").assertExists()
-        click("← Back")
+        click("Back")
         click("Learn")
         // The first lesson uses the same global clock appearance.
         click("Two hands")
@@ -148,17 +150,28 @@ class PersonalizationFlowTest {
     }
 
     private fun waitFor(text: String) {
-        compose.waitUntil(10_000) { compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(10_000) {
+            compose
+                .onAllNodes(
+                    hasText(text) or hasContentDescription(text, substring = true),
+                ).fetchSemanticsNodes()
+                .isNotEmpty()
+        }
     }
 
     private fun click(text: String) {
         waitFor(text)
-        compose.onAllNodes(hasText(text) and hasClickAction())[0].performScrollTo().performClick()
+        compose
+            .onAllNodes(
+                (hasText(text) or hasContentDescription(text, substring = true)) and hasClickAction(),
+            )[0]
+            .scrollToIfScrollable()
+            .performClick()
     }
 
     private fun choose(tag: String) {
         compose.waitUntil(10_000) { compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithTag(tag).performScrollTo().performClick()
+        compose.onNodeWithTag(tag).scrollToIfScrollable().performClick()
         waitTagSelected(tag)
     }
 
@@ -175,9 +188,13 @@ class PersonalizationFlowTest {
     private fun waitSelected(text: String) {
         waitFor(text)
         compose.waitUntil(5_000) {
-            compose.onAllNodes(hasText(text) and hasClickAction()).fetchSemanticsNodes().any {
-                it.config.getOrElse(SemanticsProperties.Selected) { false }
-            }
+            compose
+                .onAllNodes(
+                    (hasText(text) or hasContentDescription(text, substring = true)) and hasClickAction(),
+                ).fetchSemanticsNodes()
+                .any {
+                    it.config.getOrElse(SemanticsProperties.Selected) { false }
+                }
         }
     }
 
@@ -188,32 +205,9 @@ class PersonalizationFlowTest {
 
     private fun companionArt() =
         SemanticsMatcher("Companion artwork") {
-            it.config.getOrElse(SemanticsProperties.TestTag) { "" }.startsWith("companion_")
+            it.config.getOrElse(SemanticsProperties.TestTag) { "" } in
+                CompanionKind.entries.map { kind -> "companion_${kind.name}" }
         }
-
-    private fun assertReadable(text: String) {
-        val layouts = mutableListOf<TextLayoutResult>()
-        compose
-            .onNodeWithText(text, useUnmergedTree = true)
-            .performScrollTo()
-            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
-        assertTrue(layouts.isNotEmpty())
-        for (layout in layouts) {
-            assertTrue("Clipped text: $text", !layout.didOverflowHeight)
-            for (line in 0 until layout.lineCount) {
-                // Centered wrap-content Text retains paragraph coordinates from its wider
-                // measurement. Compare the rendered line width, not its paragraph offset.
-                assertTrue(
-                    "Clipped line: $text",
-                    layout.getLineRight(line) - layout.getLineLeft(line) <= layout.size.width + 1f,
-                )
-                val end = layout.getLineEnd(line)
-                if (line < layout.lineCount - 1 && end in 1 until text.length) {
-                    assertTrue("Split word: $text", text[end - 1].isWhitespace() || text[end].isWhitespace())
-                }
-            }
-        }
-    }
 
     private fun save(name: String) {
         compose.waitForIdle()

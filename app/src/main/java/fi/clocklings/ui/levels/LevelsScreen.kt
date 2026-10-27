@@ -1,47 +1,35 @@
 package fi.clocklings.ui.levels
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 import fi.clocklings.R
 import fi.clocklings.domain.Levels
 import fi.clocklings.domain.Progress
 import fi.clocklings.domain.timeLanguage
 import fi.clocklings.ui.clock.ClockCommand
 import fi.clocklings.ui.clock.ClockFace
-import fi.clocklings.ui.components.ButtonKind
-import fi.clocklings.ui.components.ChipButton
-import fi.clocklings.ui.components.Eyebrow
-import fi.clocklings.ui.components.Pill
+import fi.clocklings.ui.components.PathNode
+import fi.clocklings.ui.components.RoundIconButton
 import fi.clocklings.ui.components.ScreenScaffold
-import fi.clocklings.ui.components.SkButton
+import fi.clocklings.ui.components.SkIcon
+import fi.clocklings.ui.components.SkIcons
 import fi.clocklings.ui.components.StarRow
 import fi.clocklings.ui.components.TopBar
-import fi.clocklings.ui.components.cardShadow
 import fi.clocklings.ui.levelName
 import fi.clocklings.ui.locale.LocalAppLanguage
+import fi.clocklings.ui.sharedClocklingsElement
+import fi.clocklings.ui.theme.Section
 import fi.clocklings.ui.theme.SkColors
 import fi.clocklings.ui.theme.SkDimens
-import fi.clocklings.ui.theme.SkShapes
 import fi.clocklings.ui.theme.SkType
 
-/** Tasojen valinta: viisi tasokorttia ja lopuksi Minuuttihaaste (web: renderLevels). */
 @Composable
 fun LevelsScreen(
     progress: Progress,
@@ -51,112 +39,64 @@ fun LevelsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    ScreenScaffold(modifier) {
-        TopBar(stringResource(R.string.levels_title), stringResource(R.string.back), onBack)
+    ScreenScaffold(
+        modifier,
+        section = Section.PLAY,
+        topBar = { TopBar(stringResource(R.string.menu_pelaa), onBack) },
+    ) {
+        val current = progress.stars.indexOfFirst { it < LEVEL_COMPLETE_STARS }
         for (level in Levels.all) {
             val i = level.index
-            LevelCard(
+            val title = stringResource(levelName(i))
+            val example =
+                stringResource(R.string.level_example, timeLanguage(LocalAppLanguage.current).timeWords(level.sample))
+            val stars = pluralStringResource(R.plurals.stars_count, progress.stars[i], progress.stars[i])
+            val completed = if (progress.stars[i] == LEVEL_COMPLETE_STARS) stringResource(R.string.lesson_done) else ""
+            PathNode(
+                i,
+                title,
+                "$title. $example. $stars. $completed",
+                { onPlay(i) },
                 color = SkColors.LevelCards[i],
-                sample = level.sample,
-                actions = {
+                current = i == current,
+                // Stars and the lesson shortcut share one row so the text block stays no taller than the node
+                // and the trail never runs through the button.
+                badge = {
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM),
                         verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(SkDimens.GapS),
                     ) {
-                        SkButton(
-                            stringResource(R.string.play),
-                            { onPlay(i) },
-                            kind = ButtonKind.PRIMARY,
-                            small = true,
+                        StarRow(progress.stars[i], stars, size = SkDimens.StarSmall)
+                        RoundIconButton(
+                            SkIcons.Book,
+                            "${stringResource(R.string.watch_lesson)}: $title",
+                            { onLesson(i) },
                         )
-                        ChipButton(stringResource(R.string.watch_lesson), { onLesson(i) })
                     }
                 },
-            ) {
-                Eyebrow(stringResource(R.string.level_eyebrow, i + 1))
-                Text(
-                    stringResource(levelName(i)),
-                    style = SkType.LevelTitle,
-                    modifier = Modifier.semantics { heading() },
-                )
-                Text(
-                    stringResource(
-                        R.string.level_example,
-                        timeLanguage(LocalAppLanguage.current).timeWords(level.sample),
-                    ),
-                    style = SkType.Small.copy(color = SkColors.InkSoft),
-                )
-                StarRow(
-                    progress.stars[i],
-                    pluralStringResource(R.plurals.stars_count, progress.stars[i], progress.stars[i]),
-                )
-            }
-        }
-        ChallengeCard(progress, onChallenge)
-    }
-}
-
-/** Tasokortti: pieni kello, tiedot ja napit. Kaikki tasot ovat pelattavissa missä järjestyksessä tahansa. */
-@Composable
-private fun LevelCard(
-    color: Color,
-    sample: Int,
-    actions: @Composable () -> Unit,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    val command = remember(sample) { ClockCommand(sample) }
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .cardShadow(
-                depth = SkDimens.LevelDepth,
-                color = SkColors.Shadow.copy(alpha = LEVEL_SHADOW_ALPHA),
-                soft = false,
-            ).background(color, SkShapes.Card)
-            .padding(18.dp),
-        verticalArrangement = Arrangement.spacedBy(SkDimens.GapS),
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(SkDimens.GapS),
-        ) {
-            ClockFace(
-                command = command,
-                mini = true,
-                modifier = Modifier.size(SkDimens.MiniClockLevel).padding(bottom = 4.dp),
+                art = {
+                    ClockFace(
+                        ClockCommand(level.sample),
+                        Modifier.sharedClocklingsElement("level-clock-$i").size(SkDimens.MiniClockLevel),
+                        mini = true,
+                    )
+                },
             )
-            content()
         }
-        Column(Modifier.padding(top = 6.dp)) { actions() }
-    }
-}
-
-private const val CHALLENGE_SAMPLE = 45
-private const val LEVEL_SHADOW_ALPHA = 0.10f
-
-@Composable
-private fun ChallengeCard(
-    progress: Progress,
-    onChallenge: () -> Unit,
-) {
-    LevelCard(
-        color = SkColors.ChallengeCard,
-        sample = CHALLENGE_SAMPLE,
-        actions = {
-            SkButton(
-                stringResource(R.string.play),
-                onChallenge,
-                kind = ButtonKind.PRIMARY,
-                small = true,
-            )
-        },
-    ) {
-        Eyebrow(stringResource(R.string.challenge_eyebrow))
-        Text(
-            stringResource(R.string.challenge_title),
-            style = SkType.LevelTitle,
-            modifier = Modifier.semantics { heading() },
+        val title = stringResource(R.string.challenge_title)
+        val description = stringResource(R.string.challenge_desc)
+        val record = if (progress.challengeBest > 0) stringResource(R.string.record, progress.challengeBest) else ""
+        PathNode(
+            Levels.all.size,
+            title,
+            "$title. $description. $record",
+            onChallenge,
+            color = SkColors.ChallengeCard,
+            last = true,
+            badge = { if (record.isNotEmpty()) Text(record, style = SkType.Small) },
+            art = { SkIcon(SkIcons.Star, SkDimens.ChildTarget) },
         )
-        Text(stringResource(R.string.challenge_desc), style = SkType.Small.copy(color = SkColors.InkSoft))
-        if (progress.challengeBest > 0) Pill(stringResource(R.string.record, progress.challengeBest))
     }
 }
+
+private const val LEVEL_COMPLETE_STARS = 3

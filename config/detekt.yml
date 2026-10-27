@@ -22,7 +22,7 @@ Compose:
   CompositionLocalAllowlist:
     active: true
     # Existing app-wide services and the shared confetti overlay are provided at the app root.
-    allowedCompositionLocals: ['LocalAppViewModel', 'LocalConfetti', 'LocalPersonalization', 'LocalAppLanguage', 'LocalAppLocale']
+    allowedCompositionLocals: ['LocalAppViewModel', 'LocalConfetti', 'LocalPersonalization', 'LocalCompanionOutfit', 'LocalSharedTransitionScope', 'LocalAppLanguage', 'LocalAppLocale']
   CompositionLocalNaming:
     active: true
   ContentEmitterReturningValues:

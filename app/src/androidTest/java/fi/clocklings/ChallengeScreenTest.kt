@@ -6,7 +6,6 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import fi.clocklings.ui.challenge.ChallengePhase
 import fi.clocklings.ui.challenge.ChallengeScreen
@@ -41,12 +40,12 @@ class ChallengeScreenTest {
             }
         }
         compose.onNodeWithText("NO SCORE YET").assertExists()
-        compose.onNodeWithText("Start!").performScrollTo().performClick()
+        compose.onNodeWithText("Start!").scrollToIfScrollable().performClick()
         compose.runOnIdle {
             assertEquals(1, starts)
             state.value = state.value.copy(phase = ChallengePhase.RUN, options = listOf(180, 240, 300))
         }
-        compose.onNodeWithText("03:00").performScrollTo().performClick()
+        compose.onNodeWithText("03:00").scrollToIfScrollable().performClick()
         compose.runOnIdle {
             assertEquals(180, chosen)
             state.value =
@@ -60,9 +59,9 @@ class ChallengeScreenTest {
         compose.runOnIdle {
             state.value = state.value.copy(phase = ChallengePhase.END, score = 2, best = 5)
         }
-        compose.onNodeWithText("You answered 2 correctly. Your best is 5.").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Play again").performScrollTo().performClick()
-        compose.onNodeWithText("Levels").performScrollTo().performClick()
+        compose.onNodeWithText("You answered 2 correctly. Your best is 5.").scrollToIfScrollable().assertIsDisplayed()
+        compose.onNodeWithText("Play again").scrollToIfScrollable().performClick()
+        compose.onNodeWithText("Levels").scrollToIfScrollable().performClick()
         compose.runOnIdle {
             assertEquals(2, starts)
             assertEquals(1, backs)

@@ -15,12 +15,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -29,6 +32,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import fi.clocklings.R
 import fi.clocklings.Screen
+import fi.clocklings.audio.Sound
+import fi.clocklings.audio.companionVoice
 import fi.clocklings.domain.CompanionKind
 import fi.clocklings.domain.Item
 import fi.clocklings.domain.Levels
@@ -40,20 +45,21 @@ import fi.clocklings.ui.companion.CompanionView
 import fi.clocklings.ui.companion.ItemTile
 import fi.clocklings.ui.companion.companionAspectRatio
 import fi.clocklings.ui.components.ButtonKind
+import fi.clocklings.ui.components.FlatPanel
 import fi.clocklings.ui.components.LocalConfetti
 import fi.clocklings.ui.components.ScreenScaffold
 import fi.clocklings.ui.components.SkButton
-import fi.clocklings.ui.components.SkCard
 import fi.clocklings.ui.components.StarIcon
 import fi.clocklings.ui.components.confettiAnchor
 import fi.clocklings.ui.levelName
 import fi.clocklings.ui.rememberReduceMotion
+import fi.clocklings.ui.theme.Section
 import fi.clocklings.ui.theme.SkDimens
 import fi.clocklings.ui.theme.SkType
 import kotlinx.coroutines.delay
 
 /**
- * Tasotulos: tähdet, uudet vaatteet ja jatkonapit (web: finish). Kaikki lasketaan avaimesta,
+ * Tasotulos: tähdet, uudet vaatteet ja jatkonapit. Kaikki lasketaan avaimesta,
  * joten näkymä on sama, vaikka siihen palattaisiin myöhemmin.
  */
 @Composable
@@ -65,6 +71,7 @@ fun ResultScreen(
     onDress: () -> Unit,
     onLevels: () -> Unit,
     modifier: Modifier = Modifier,
+    onSound: (Sound) -> Unit = {},
 ) {
     val stars = result.stars
     val after = result.starsBefore + maxOf(0, stars - result.previousBest)
@@ -75,20 +82,22 @@ fun ResultScreen(
     val text = resultMessage(result, newItems.size)
 
     val confetti = LocalConfetti.current
+    val haptic = LocalHapticFeedback.current
     var celebrated by rememberSaveable { mutableStateOf(false) }
     // Nukke juhlii vain ensimmäisellä kerralla, ei palattaessa samaan tulokseen.
     val firstVisit = remember { !celebrated }
-    val dollCelebration = remember(firstVisit) { if (firstVisit) dollCelebration(outfit, newItems, stars) else null }
+    val dollCelebration = rememberDollCelebration(firstVisit, kind, outfit, newItems, stars, onSound)
     val anchor = remember { mutableStateOf(Offset.Zero) }
     LaunchedEffect(Unit) {
         if (celebrated) return@LaunchedEffect
         celebrated = true
+        haptic.performHapticFeedback(HapticFeedbackType.Confirm)
         delay(CONFETTI_DELAY_MS)
         confetti?.burst(anchor.value, RESULT_CONFETTI)
     }
 
-    ScreenScaffold(modifier) {
-        SkCard(Modifier.fillMaxWidth()) {
+    ScreenScaffold(modifier, section = Section.PLAY) {
+        FlatPanel(Modifier.fillMaxWidth()) {
             Column(
                 Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -126,7 +135,29 @@ fun ResultScreen(
     }
 }
 
-/** Tähti ponnahtaa esiin pyörähtäen (web: @keyframes pop). */
+/**
+ * The companion's celebration on the first visit, or null when returning to the same result.
+ * The companion speaks as its celebration starts, after the success sound.
+ */
+@Composable
+private fun rememberDollCelebration(
+    firstVisit: Boolean,
+    kind: CompanionKind,
+    outfit: Outfit,
+    newItems: List<Item>,
+    stars: Int,
+    onSound: (Sound) -> Unit,
+): CompanionCelebration? {
+    val currentOnSound by rememberUpdatedState(onSound)
+    LaunchedEffect(kind, firstVisit) {
+        if (!firstVisit) return@LaunchedEffect
+        delay(DOLL_CELEBRATE_DELAY_MS)
+        companionVoice(kind)?.let(currentOnSound)
+    }
+    return remember(firstVisit) { if (firstVisit) dollCelebration(outfit, newItems, stars) else null }
+}
+
+/** Tähti ponnahtaa esiin pyörähtäen. */
 @Composable
 private fun PoppingStar(
     on: Boolean,

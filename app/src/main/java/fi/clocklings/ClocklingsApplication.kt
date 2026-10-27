@@ -49,7 +49,7 @@ class AppContainer(
 ) : AppServices {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     override val repository = ProgressRepository(context.dataStore)
-    private val sfx = Sfx()
+    private val sfx = Sfx(context)
     private val soundOn = repository.settings.map { it.sound }.stateIn(scope, SharingStarted.Eagerly, true)
     private val speech = Speech(context)
     override val speechAvailable: StateFlow<Boolean> = speech.available

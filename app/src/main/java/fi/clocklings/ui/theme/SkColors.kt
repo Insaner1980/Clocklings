@@ -3,18 +3,40 @@ package fi.clocklings.ui.theme
 import androidx.compose.ui.graphics.Color
 
 /**
- * Kaikki sovelluksen värit. Arvot tulevat web-version CSS:n :root-muuttujista ja tyyleistä.
+ * Kaikki sovelluksen värit. Shared tokens for activity surfaces and artwork.
  * Näkymät eivät koskaan kirjoita värejä suoraan, vaan käyttävät näitä.
  */
 object SkColors {
     // Pinnat ja teksti
     val Bg = Color(0xFFFFF5FA)
-    val Dots = Color(0xFFFFE1EF)
     val Surface = Color(0xFFFFFFFF)
     val Line = Color(0xFFF1DDEA)
     val Ink = Color(0xFF3A2453)
     val InkSoft = Color(0xFF76638C)
     val Shadow = Color(0xFF3A2453)
+    val FlatSurface = Surface.copy(alpha = 0.72f)
+    val IconSurface = Surface.copy(alpha = 0.8f)
+    val IconFill = Color(0xFFE9DDF7)
+    val IconBookCover = Color(0xFFFFA94D)
+    val IconClockRing = Color(0xFF4DABF7)
+
+    /** A faint lilac so the bubble reads against both white panels and the coloured screens. */
+    val Bubble = Color(0xFFF6F0FD)
+    val Trail = Surface.copy(alpha = 0.85f)
+    val Badge = Color(0xFF2B8A3E)
+    val Danger = Color(0xFFC92A2A)
+    val StageShadow = Shadow.copy(alpha = 0.1f)
+    val HomeSky = Color(0xFFE4F1FF)
+    val HomeBlush = Color(0xFFFFF0F6)
+    val HomeGround = Color(0xFFD7F2DC)
+    val Cloud = Surface.copy(alpha = 0.75f)
+    val SettingsBackground = Color(0xFFF5F3F7)
+    val FaceEdge = Color(0xFFFAF7FC)
+    val FaceShadow = Shadow.copy(alpha = 0.06f)
+    val Glass = Surface.copy(alpha = 0.55f)
+    val HandShadow = Shadow.copy(alpha = 0.14f)
+    const val DISABLED_CONTROL_ALPHA = 0.45f
+    const val SECTION_TINT = 0.58f
 
     // Viisarit
     val Hour = Color(0xFFE64980)
@@ -22,6 +44,7 @@ object SkColors {
 
     // Kulta
     val Gold = Color(0xFFFCC419)
+    val HelpOnFill = Color(0xFFFFE066)
     val GoldDeep = Color(0xFFF59F00)
 
     // Palaute
@@ -88,19 +111,7 @@ object SkColors {
     val KysyFill = Color(0xFFC3F2CB)
     val KysyShadow = Color(0xFF69DB7C)
     val NukkeFill = Color(0xFFE5DBFF)
-    val NukkeShadow = Color(0xFFB197FC)
     val MenuDressBelt = Color(0xFFF06595)
-
-    /** Etusivun sateenkaarikaaret ulkoa sisään. */
-    val HeroArcs =
-        listOf(
-            Color(0xFFFF6B6B),
-            Color(0xFFFFA94D),
-            Color(0xFFFCC419),
-            Color(0xFF51CF66),
-            Color(0xFF339AF0),
-            Color(0xFF845EF7),
-        )
 
     /** Tasokorttien värit (Tasatunnit … Minuutit). */
     val LevelCards =
@@ -128,7 +139,6 @@ object SkColors {
     val OptDigitalBg = Color(0xFFF6F0FA)
     val Legend = Color(0xFFFFF9E6)
     val DotEmpty = Color(0xFFEADDF0)
-    val Caption = Color(0xFFFFF3BF)
 
     // Vastausvaihtoehdot
     val OptCorrectBorder = Color(0xFF51CF66)
@@ -146,8 +156,11 @@ object SkColors {
     // Nukke ja vaatekaappi
     val DollStageTop = Color(0xFFFFF0F6)
     val DollStageBottom = Color(0xFFF3F0FF)
-    val ItemOnBorder = Color(0xFFB197FC)
     val ItemOnBg = Color(0xFFF3F0FF)
+    val ItemOnBorder = Color(0xFFB197FC)
+    val ItemWindow = Color(0xFFFFF4F9)
+    val SegmentTrack = Shadow.copy(alpha = 0.07f)
+    val SegmentShadow = Shadow.copy(alpha = 0.12f)
     val ItemLockedBg = Color(0xFFF7F2FA)
 
     // Kellotaulu

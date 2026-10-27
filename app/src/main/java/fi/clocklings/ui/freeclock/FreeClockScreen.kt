@@ -4,10 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,8 +20,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import fi.clocklings.R
 import fi.clocklings.audio.Sound
 import fi.clocklings.domain.ClockTime
@@ -30,16 +31,20 @@ import fi.clocklings.ui.LocalAppViewModel
 import fi.clocklings.ui.clock.ClockCommand
 import fi.clocklings.ui.clock.ClockFace
 import fi.clocklings.ui.components.ClockBox
+import fi.clocklings.ui.components.CompanionTip
 import fi.clocklings.ui.components.DigitalPill
-import fi.clocklings.ui.components.Eyebrow
+import fi.clocklings.ui.components.FlatPanel
 import fi.clocklings.ui.components.HelpTopBar
-import fi.clocklings.ui.components.Panel
+import fi.clocklings.ui.components.RoundIconButton
 import fi.clocklings.ui.components.ScreenScaffold
 import fi.clocklings.ui.components.SkButton
+import fi.clocklings.ui.components.SkIcons
 import fi.clocklings.ui.digitalLabel
 import fi.clocklings.ui.locale.LocalAppLanguage
 import fi.clocklings.ui.resources
+import fi.clocklings.ui.sharedClocklingsElement
 import fi.clocklings.ui.spokenTime
+import fi.clocklings.ui.theme.Section
 import fi.clocklings.ui.theme.SkColors
 import fi.clocklings.ui.theme.SkDimens
 import fi.clocklings.ui.theme.SkShapes
@@ -47,7 +52,7 @@ import fi.clocklings.ui.theme.SkType
 import fi.clocklings.ui.timeLabel
 import kotlin.random.Random
 
-/** Vapaa kello: raahattava kello, aika sanoina ja numeroina, Kuuntele ja Arvo aika (web: Opettele). */
+/** Vapaa kello: raahattava kello, aika sanoina ja numeroina, Kuuntele ja Arvo aika. */
 @Composable
 fun FreeClockScreen(
     h24: Boolean,
@@ -57,9 +62,8 @@ fun FreeClockScreen(
     modifier: Modifier = Modifier,
 ) {
     val app = LocalAppViewModel.current
-    val res = resources()
     val period = ClockTime.period(h24)
-    var time by rememberSaveable { mutableIntStateOf(if (h24) START_TIME + ClockTime.HALF_DAY else START_TIME) }
+    var time by rememberSaveable { mutableIntStateOf(ClockTime.start(h24)) }
     var previousH24 by rememberSaveable { mutableStateOf(h24) }
     var command by remember { mutableStateOf(ClockCommand(time)) }
     // 24 h -tilassa aloitetaan iltapäivästä (15.00) eikä yöstä (3.00), kuten webissä.
@@ -72,16 +76,22 @@ fun FreeClockScreen(
             command = ClockCommand(adjusted)
         }
     }
-    ScreenScaffold(modifier) { clockSize ->
-        HelpTopBar(
-            title = stringResource(R.string.free_title),
-            help = help,
-            onBack = onBack,
-            onToggleHelp = app::toggleHelp,
-        )
+    ScreenScaffold(
+        modifier,
+        section = Section.EXPLORE,
+        topBar = {
+            HelpTopBar(
+                title = stringResource(R.string.free_title),
+                help = help,
+                onBack = onBack,
+                onToggleHelp = app::toggleHelp,
+            )
+        },
+    ) { clockSize ->
         ClockBox(clockSize) {
             ClockFace(
                 command = command,
+                modifier = Modifier.sharedClocklingsElement("clock"),
                 period = period,
                 step = STEP,
                 interactive = true,
@@ -89,59 +99,87 @@ fun FreeClockScreen(
                 onChange = { time = it },
             )
         }
-        Panel {
-            Eyebrow(stringResource(R.string.clock_is))
-            Text(timeLabel(LocalAppLanguage.current, time, h24), style = SkType.Words)
-            DigitalPill(digitalLabel(res, time, h24))
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM),
-                verticalArrangement = Arrangement.spacedBy(SkDimens.GapM),
-            ) {
-                if (speechAvailable) {
-                    SkButton(
-                        stringResource(R.string.listen),
-                        { app.speak(spokenTime(res, time, h24)) },
-                    )
-                }
-                SkButton(stringResource(R.string.random_time), {
-                    val t = Levels.randomClockTime(period, time, Random.Default)
-                    time = t
-                    command = ClockCommand(t, RANDOM_MOVE_MS)
-                    app.play(Sound.POP)
-                })
-            }
-            Legend()
+        ExplorePanel(time, h24, speechAvailable) {
+            val t = Levels.randomClockTime(period, time, Random.Default)
+            time = t
+            command = ClockCommand(t, RANDOM_MOVE_MS)
+            app.play(Sound.POP)
         }
     }
 }
 
-/** Selite viisareista (web: .legend). */
+/** The time in words and digits, a listen button beside it, a random-time button and the hand legend. */
 @Composable
-private fun Legend() {
-    Column(
-        Modifier.background(SkColors.Legend, SkShapes.Feedback).padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
+private fun ExplorePanel(
+    time: Int,
+    h24: Boolean,
+    speechAvailable: Boolean,
+    onRandom: () -> Unit,
+) {
+    val app = LocalAppViewModel.current
+    val res = resources()
+    FlatPanel {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM),
         ) {
-            Box(
-                Modifier.width(54.dp),
-            ) { Box(Modifier.width(34.dp).height(12.dp).background(SkColors.Hour, SkShapes.Pill)) }
-            Text(stringResource(R.string.legend_hour), style = SkType.Small)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(SkDimens.GapS)) {
+                Text(timeLabel(LocalAppLanguage.current, time, h24), style = SkType.Words)
+                DigitalPill(digitalLabel(res, time, h24))
+            }
+            if (speechAvailable) {
+                RoundIconButton(
+                    SkIcons.Listen,
+                    stringResource(R.string.listen),
+                    { app.speak(spokenTime(res, time, h24)) },
+                    large = true,
+                )
+            }
         }
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM),
-        ) {
-            Box(Modifier.width(54.dp).height(8.dp).background(SkColors.Minute, SkShapes.Pill))
-            Text(stringResource(R.string.legend_minute), style = SkType.Small)
-        }
-        Text(stringResource(R.string.legend_drag), style = SkType.Small)
+        SkButton(stringResource(R.string.random_time), onRandom, Modifier.fillMaxWidth(), icon = SkIcons.Shuffle)
+        HandLegend()
     }
 }
 
-private const val START_TIME = 180
+/** The companion points out which hand is which, with a coloured sample of each hand. */
+@Composable
+private fun HandLegend() {
+    val hour = stringResource(R.string.legend_hour)
+    val minute = stringResource(R.string.legend_minute)
+    val drag = stringResource(R.string.legend_drag)
+    CompanionTip(
+        fallback = {
+            FlatPanel(color = SkColors.Legend) { LegendRows(hour, minute, drag) }
+        },
+    ) {
+        LegendRows(hour, minute, drag)
+    }
+}
+
+@Composable
+private fun ColumnScope.LegendRows(
+    hour: String,
+    minute: String,
+    drag: String,
+) {
+    LegendRow(SkColors.Hour, SkDimens.LegendSwatchShort, hour)
+    LegendRow(SkColors.Minute, SkDimens.LegendSwatchLong, minute)
+    Text(drag, style = SkType.SmallSoft)
+}
+
+@Composable
+private fun LegendRow(
+    color: Color,
+    length: Dp,
+    text: String,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(SkDimens.GapS)) {
+        Box(Modifier.width(SkDimens.LegendSwatchLong), contentAlignment = Alignment.CenterStart) {
+            Box(Modifier.size(length, SkDimens.LegendSwatchHeight).background(color, SkShapes.Pill))
+        }
+        Text(text, style = SkType.Small, modifier = Modifier.weight(1f))
+    }
+}
+
 private const val STEP = 5
 private const val RANDOM_MOVE_MS = 900

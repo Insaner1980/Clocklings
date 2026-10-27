@@ -23,15 +23,19 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.vector.PathParser
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -64,6 +68,7 @@ import fi.clocklings.ui.rememberReduceMotion
 import fi.clocklings.ui.theme.Fredoka
 import fi.clocklings.ui.theme.Nunito
 import fi.clocklings.ui.theme.SkColors
+import fi.clocklings.ui.theme.SkDimens
 import kotlin.math.hypot
 import fi.clocklings.ui.clock.ClockSpec as S
 
@@ -97,17 +102,8 @@ fun ClockFace(
     onSettle: (() -> Unit)? = null,
     appearance: ClockAppearance = LocalPersonalization.current.clock,
 ) {
-    val scope = rememberCoroutineScope()
-    val state = remember { ClockState(command.time, period, scope) }
+    val state = rememberClockState(command, period, step, onChange, onSettle)
     val reduceMotion = rememberReduceMotion()
-    SideEffect {
-        state.step = step
-        state.reduceMotion = reduceMotion
-        state.onChange = onChange
-        state.onSettle = onSettle
-    }
-    LaunchedEffect(period) { state.updatePeriod(period) }
-    LaunchedEffect(command) { state.apply(command) }
 
     val textMeasurer = rememberTextMeasurer(cacheSize = 64)
     val density = LocalDensity.current
@@ -145,19 +141,63 @@ fun ClockFace(
             translate(-origin, -origin)
         }) {
             val reveal = paintRingFrom?.let { S.ringReveal(state.raw, it, state.period) } ?: ClockTime.FULL_TURN
-            if (appearance.theme == ClockTheme.RAINBOW) drawRing(reveal) else drawThemedRim(appearance, reveal)
-            drawCircle(SkColors.Face, S.FACE_RADIUS, Offset(S.CENTER, S.CENTER))
-            if (help && !mini) drawHelp(textMeasurer, styles, is24, zoneLabels)
+            drawClockRim(appearance, reveal)
+            if (help && !mini) drawHelp(textMeasurer, styles, is24, zoneLabels, state.raw)
+            drawClockDepth(mini)
             under.forEach { drawMark(it, textMeasurer, styles) }
             drawTicks()
             drawNumbers(textMeasurer, styles)
             if (is24) drawDayPart(dayPart, textMeasurer, styles)
-            drawHands(state.raw, highlight, pulse, interactive && !mini, appearance.hands)
+            drawHands(state.raw, highlight, pulse, interactive && !mini, appearance.handsAt(mini))
             drawCircle(SkColors.Ink, S.PIN_RADIUS, Offset(S.CENTER, S.CENTER))
             drawCircle(SkColors.Face, S.PIN_DOT, Offset(S.CENTER, S.CENTER))
             over.forEach { drawMark(it, textMeasurer, styles) }
+            if (!mini) drawGlassArc()
         }
     }
+}
+
+private fun DrawScope.drawClockRim(
+    appearance: ClockAppearance,
+    reveal: Float,
+) {
+    if (appearance.theme == ClockTheme.RAINBOW) drawRing(reveal) else drawThemedRim(appearance, reveal)
+    drawCircle(
+        Brush.radialGradient(
+            listOf(SkColors.Face, SkColors.FaceEdge),
+            center = Offset(S.CENTER, S.CENTER),
+            radius = S.FACE_RADIUS,
+        ),
+        S.FACE_RADIUS,
+        Offset(S.CENTER, S.CENTER),
+    )
+}
+
+/** Arrowheads are noise at thumbnail size, so mini clocks always use round hands. */
+private fun ClockAppearance.handsAt(mini: Boolean): HandStyle = if (mini) HandStyle.ROUND else hands
+
+/** A soft inner shadow along the rim; thumbnails stay flat and crisp. */
+private fun DrawScope.drawClockDepth(mini: Boolean) {
+    if (mini) return
+    drawCircle(
+        SkColors.FaceShadow,
+        S.FACE_RADIUS - SkDimens.CLOCK_INNER_SHADOW_WIDTH / 2,
+        Offset(S.CENTER, S.CENTER),
+        style = Stroke(SkDimens.CLOCK_INNER_SHADOW_WIDTH),
+    )
+}
+
+private fun DrawScope.drawGlassArc() {
+    val radius = S.FACE_RADIUS - SkDimens.CLOCK_GLASS_INSET
+    drawArc(
+        SkColors.Glass,
+        SkDimens.CLOCK_GLASS_START,
+        SkDimens.CLOCK_GLASS_SWEEP,
+        false,
+        topLeft = Offset(S.CENTER - radius, S.CENTER - radius),
+        size = Size(radius * 2, radius * 2),
+        style = Stroke(SkDimens.CLOCK_GLASS_WIDTH, cap = StrokeCap.Round),
+    )
 }
 
 /** Finnish and Swedish can refer to the half hour on either side of the face. */
@@ -205,7 +245,7 @@ internal class ClockTextStyles(
     val zone = style(Fredoka, FontWeight.SemiBold, S.ZONE_FONT, SkColors.InkSoft)
     val inner24 = style(Nunito, FontWeight.ExtraBold, S.INNER_24_FONT, SkColors.Hour24)
     val day = style(Fredoka, FontWeight.SemiBold, S.DAY_FONT, SkColors.Ink)
-    val bubble = style(Nunito, FontWeight.ExtraBold, S.BUBBLE_FONT, SkColors.Minute)
+    val bubble = minute.copy(fontSize = with(density) { S.BUBBLE_FONT.toSp() })
 }
 
 private val MoonPath: Path = PathParser().parsePathString("M203 220A12 12 0 0 0 203 244A7 12 0 0 1 203 220Z").toPath()
@@ -264,15 +304,16 @@ private fun DrawScope.drawHelp(
     styles: ClockTextStyles,
     is24: Boolean,
     zoneLabels: Pair<String, String>?,
+    raw: Float,
 ) {
     val r = S.HALF_RADIUS
     val topLeft = Offset(S.CENTER - r, S.CENTER - r)
     val size = Size(2 * r, 2 * r)
     drawArc(SkColors.Yli, -QUARTER_TURN, ClockTime.HALF_TURN, useCenter = true, topLeft = topLeft, size = size)
     drawArc(SkColors.Vaille, QUARTER_TURN, ClockTime.HALF_TURN, useCenter = true, topLeft = topLeft, size = size)
-    zoneLabels?.let {
-        drawOnBaseline(measurer, it.first, styles.zone, S.ZONE_YLI_X, S.ZONE_Y)
-        drawOnBaseline(measurer, it.second, styles.zone, S.ZONE_VAILLE_X, S.ZONE_Y)
+    zoneLabels?.let { (past, to) ->
+        drawZoneLabel(measurer, past, styles.zone, S.ZONE_LABEL_ANGLE, raw)
+        drawZoneLabel(measurer, to, styles.zone, -S.ZONE_LABEL_ANGLE, raw)
     }
     for (i in 0 until ClockTime.HOURS_PER_HALF_DAY) {
         drawCentered(
@@ -297,6 +338,25 @@ private fun DrawScope.drawHelp(
                 ),
             )
         }
+    }
+}
+
+/** A half-face label below the pin that fades out while a hand lies over it, so no clipped word peeks out. */
+private fun DrawScope.drawZoneLabel(
+    measurer: TextMeasurer,
+    text: String,
+    style: TextStyle,
+    angle: Float,
+    raw: Float,
+) {
+    val nearest =
+        minOf(
+            ClockTime.angleDiff(angle, ClockTime.hourAngle(raw)),
+            ClockTime.angleDiff(angle, ClockTime.minuteAngle(raw)),
+        )
+    val alpha = ((nearest - S.ZONE_HIDE_ANGLE) / (S.ZONE_FADE_ANGLE - S.ZONE_HIDE_ANGLE)).coerceIn(0f, 1f)
+    if (alpha > 0f) {
+        drawCentered(measurer, text, style.copy(color = style.color.copy(alpha = alpha)), S.point(S.ZONE_RADIUS, angle))
     }
 }
 
@@ -367,24 +427,32 @@ private fun DrawScope.drawHands(
         } else {
             S.MINUTE_WIDTH
         }
-    drawHand(
-        S.point(S.HOUR_TAIL, ClockTime.hourAngle(raw) + ClockTime.HALF_TURN),
-        S.point(S.HOUR_LENGTH, ClockTime.hourAngle(raw)),
-        hourWidth,
-        if (knobs) S.HOUR_KNOB else null,
-        SkColors.Hour,
-        hourAlpha,
-        handStyle,
-    )
-    drawHand(
-        S.point(S.MINUTE_TAIL, ClockTime.minuteAngle(raw) + ClockTime.HALF_TURN),
-        S.point(S.MINUTE_LENGTH, ClockTime.minuteAngle(raw)),
-        minuteWidth,
-        if (knobs) S.MINUTE_KNOB else null,
-        SkColors.Minute,
-        minuteAlpha,
-        handStyle,
-    )
+    val hour =
+        HandGeometry(
+            S.point(S.HOUR_TAIL, ClockTime.hourAngle(raw) + ClockTime.HALF_TURN),
+            S.point(S.HOUR_LENGTH, ClockTime.hourAngle(raw)),
+            hourWidth,
+            handStyle,
+        )
+    val minute =
+        HandGeometry(
+            S.point(S.MINUTE_TAIL, ClockTime.minuteAngle(raw) + ClockTime.HALF_TURN),
+            S.point(S.MINUTE_LENGTH, ClockTime.minuteAngle(raw)),
+            minuteWidth,
+            handStyle,
+        )
+    drawHandShadow(hour, hourAlpha)
+    drawHandShadow(minute, minuteAlpha)
+    drawHandShape(hour, SkColors.Face.copy(alpha = hourAlpha), extraWidth = S.HAND_HALO * 2)
+    drawHandBody(hour, SkColors.Hour.copy(alpha = hourAlpha))
+    drawHandShape(minute, SkColors.Face.copy(alpha = minuteAlpha), extraWidth = S.HAND_HALO * 2)
+    drawHandBody(minute, SkColors.Minute.copy(alpha = minuteAlpha))
+    // Knobs go on top of both hands so an overlapping hand never hides the other one's grip.
+    // Pointed hands use the arrowhead itself as the grip, so they get no knob.
+    if (knobs && handStyle == HandStyle.ROUND) {
+        drawKnob(hour.tip, S.HOUR_KNOB, SkColors.Hour.copy(alpha = hourAlpha), hourAlpha)
+        drawKnob(minute.tip, S.MINUTE_KNOB, SkColors.Minute.copy(alpha = minuteAlpha), minuteAlpha)
+    }
 }
 
 private fun lerp(
@@ -393,57 +461,79 @@ private fun lerp(
     t: Float,
 ) = a + (b - a) * t
 
-private fun DrawScope.drawHand(
-    end: Offset,
-    tip: Offset,
-    width: Float,
-    knob: Float?,
-    color: Color,
-    alpha: Float = 1f,
-    handStyle: HandStyle = HandStyle.ROUND,
+/** One hand from its tail [end] to its [tip]. A pointed hand's shaft stops where the arrowhead starts. */
+private class HandGeometry(
+    val end: Offset,
+    val tip: Offset,
+    val width: Float,
+    style: HandStyle,
 ) {
-    // Pehmeä varjo kahdella kerroksella (web: drop-shadow 0 3px 2px)
-    val shadowOffset = Offset(0f, S.SHADOW_DY)
-    val shadow = SkColors.Shadow.copy(alpha = S.SHADOW_ALPHA * alpha)
-    drawLine(
-        shadow.copy(alpha = shadow.alpha / 2),
-        end + shadowOffset,
-        tip + shadowOffset,
-        width + HAND_SHADOW_EXTRA_WIDTH,
-        StrokeCap.Round,
-    )
-    drawLine(shadow.copy(alpha = shadow.alpha / 2), end + shadowOffset, tip + shadowOffset, width, StrokeCap.Round)
-    drawLine(color.copy(alpha = alpha), end, tip, width, StrokeCap.Round)
-    if (handStyle == HandStyle.POINTER) drawPointer(end, tip, width, color.copy(alpha = alpha))
-    if (knob != null) {
-        drawCircle(color.copy(alpha = alpha), knob, tip)
-        drawCircle(SkColors.Face.copy(alpha = alpha), knob, tip, style = Stroke(S.KNOB_STROKE))
+    private val direction: Offset =
+        (tip - end).let { d -> d / hypot(d.x, d.y) }
+    val head: Path? =
+        if (style == HandStyle.POINTER) {
+            val base = tip - direction * width * S.POINTER_HEAD_LENGTH
+            val normal = Offset(-direction.y, direction.x) * (width * S.POINTER_HEAD_WIDTH / 2)
+            Path().apply {
+                moveTo(tip.x, tip.y)
+                lineTo((base + normal).x, (base + normal).y)
+                lineTo((base - normal).x, (base - normal).y)
+                close()
+            }
+        } else {
+            null
+        }
+
+    /** Where the shaft ends: the tip for round hands, inside the arrowhead base for pointed ones. */
+    val shaftEnd: Offset =
+        if (head != null) tip - direction * width * (S.POINTER_HEAD_LENGTH - S.POINTER_SHAFT_OVERLAP) else tip
+}
+
+private fun DrawScope.drawHandShape(
+    hand: HandGeometry,
+    color: Color,
+    offset: Offset = Offset.Zero,
+    extraWidth: Float = 0f,
+) {
+    drawLine(color, hand.end + offset, hand.shaftEnd + offset, hand.width + extraWidth, StrokeCap.Round)
+    hand.head?.let { head ->
+        withTransform({ translate(offset.x, offset.y) }) {
+            drawPath(head, color)
+            // A stroke in the same color rounds the arrowhead corners.
+            drawPath(
+                head,
+                color,
+                style = Stroke(S.POINTER_CORNER + extraWidth, join = StrokeJoin.Round),
+            )
+        }
     }
 }
 
-private fun DrawScope.drawPointer(
-    end: Offset,
-    tip: Offset,
-    width: Float,
-    color: Color,
+// Pehmeä varjo kahdella kerroksella (web: drop-shadow 0 3px 2px)
+private fun DrawScope.drawHandShadow(
+    hand: HandGeometry,
+    alpha: Float,
 ) {
-    val delta = tip - end
-    val length = hypot(delta.x, delta.y)
-    val direction = delta / length
-    val normal = Offset(-direction.y, direction.x) * width
-    val base = tip - direction * width * POINTER_LENGTH
-    drawPath(
-        Path().apply {
-            moveTo(tip.x, tip.y)
-            lineTo((base + normal).x, (base + normal).y)
-            lineTo((base - normal).x, (base - normal).y)
-            close()
-        },
-        color,
-    )
+    val offset = Offset(0f, SkDimens.CLOCK_HAND_SHADOW_OFFSET)
+    val shadow = SkColors.HandShadow.copy(alpha = SkColors.HandShadow.alpha * alpha / 2)
+    drawHandShape(hand, shadow, offset, SkDimens.CLOCK_HAND_SHADOW_SPREAD)
+    drawHandShape(hand, shadow, offset)
 }
 
-private const val POINTER_LENGTH = 2.5f
+private fun DrawScope.drawHandBody(
+    hand: HandGeometry,
+    color: Color,
+) = drawHandShape(hand, color)
+
+private fun DrawScope.drawKnob(
+    center: Offset,
+    radius: Float,
+    color: Color,
+    alpha: Float,
+) {
+    drawCircle(color, radius, center)
+    drawCircle(SkColors.Face.copy(alpha = alpha), radius, center, style = Stroke(S.KNOB_STROKE))
+}
 
 private fun DrawScope.drawMark(
     mark: Mark,
@@ -496,7 +586,6 @@ private const val QUARTER_TURN = 90f
 private const val DEGREES_PER_HOUR = 30f
 private const val SUN_RAY_COUNT = 8
 private const val SUN_RAY_ANGLE = 45f
-private const val HAND_SHADOW_EXTRA_WIDTH = 3f
 
 private fun Modifier.clockDrag(
     state: ClockState,
@@ -564,3 +653,38 @@ private fun clockActions(
         true
     },
 )
+
+@Composable
+private fun rememberClockState(
+    command: ClockCommand,
+    period: Int,
+    step: Int,
+    onChange: ((Int) -> Unit)?,
+    onSettle: (() -> Unit)?,
+): ClockState {
+    val scope = rememberCoroutineScope()
+    val state = remember { ClockState(command.time, period, scope) }
+    val reduceMotion = rememberReduceMotion()
+    val haptic = LocalHapticFeedback.current
+    SideEffect {
+        state.step = step
+        state.reduceMotion = reduceMotion
+        state.onChange = onChange
+        state.onSettle = onSettle
+        state.onDragStep = { tick ->
+            haptic.performHapticFeedback(
+                if (tick ==
+                    DragTick.MARK
+                ) {
+                    HapticFeedbackType.SegmentTick
+                } else {
+                    HapticFeedbackType.SegmentFrequentTick
+                },
+            )
+        }
+    }
+    LaunchedEffect(period) { state.updatePeriod(period) }
+    LaunchedEffect(command) { state.apply(command) }
+
+    return state
+}

@@ -48,7 +48,7 @@ class LocalizationContentTest {
         mapOf(
             AppLanguage.ENGLISH to
                 listOf(
-                    "The short red hand",
+                    "The short pink hand",
                     "One hour",
                     "Nine o'clock",
                     "Half past five",
@@ -60,7 +60,7 @@ class LocalizationContentTest {
                 ),
             AppLanguage.FINNISH to
                 listOf(
-                    "Lyhyt punainen viisari",
+                    "Lyhyt pinkki viisari",
                     "Yksi tunti",
                     "Tasan yhdeksän",
                     "Puoli kuusi",
@@ -72,7 +72,7 @@ class LocalizationContentTest {
                 ),
             AppLanguage.SWEDISH to
                 listOf(
-                    "Den korta röda visaren",
+                    "Den korta rosa visaren",
                     "En timme",
                     "Nio",
                     "Halv sex",

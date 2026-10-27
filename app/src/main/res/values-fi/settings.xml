@@ -6,17 +6,12 @@
     <string name="language_english">English</string>
     <string name="language_finnish">Suomi</string>
     <string name="language_swedish">Svenska</string>
-    <string name="settings_language_description">Vaihtaa sovelluksen, oppituntien ja kellonaikojen kielen.</string>
     <string name="settings_clock_display">Kellon näyttötapa</string>
-    <string name="settings_clock_example">Esimerkit: %1$s / %2$s</string>
     <string name="settings_guides_title">Kellon apumerkinnät</string>
-    <string name="settings_guides_description">Näytä minuuttiluvut ja korostetut kellonpuoliskot sekä 24 tunnin luvut 24 tunnin tilassa.</string>
+    <string name="settings_guides_description">Näyttää minuuttiluvut ja kellon puoliskot värillä. 24 tunnin tilassa myös luvut 13–23 ja 0.</string>
+    <string name="settings_sound_group">Äänet</string>
     <string name="settings_sound_title">Äänitehosteet</string>
     <string name="settings_sound_description">Äänet napautuksille, vastauksille ja onnistumisille.</string>
-    <string name="settings_speech_title">Ääneen lukeminen</string>
-    <string name="settings_speech_available">Saatavilla tälle kielelle</string>
-    <string name="settings_speech_unavailable">Ei saatavilla tälle kielelle</string>
-    <string name="settings_speech_description">Puhe alkaa vain, kun napautat Kuuntele.</string>
     <string name="settings_progress_title">Oppimisen edistyminen</string>
     <string name="settings_reset_title">Nollataanko oppimisen edistyminen?</string>
     <string name="settings_reset_body">Tämä tyhjentää tähdet, parhaat tulokset, suoritetut oppitunnit, kaverien nimet ja asut. Kieli, kellon näyttötapa, äänitehosteet, kellon apumerkinnät ja ulkoasuasetukset säilyvät.</string>
@@ -25,4 +20,6 @@
     <string name="settings_save_error">Muutosta ei voitu tallentaa. Yritä uudelleen.</string>
     <string name="language_save_error">Kieltä ei voitu vaihtaa. Yritä uudelleen.</string>
     <string name="settings_retry">Yritä uudelleen</string>
+    <string name="settings_speech_info_available">Ääneen lukeminen on käytössä tällä kielellä. Puhe alkaa vain, kun napautat kaiutinta.</string>
+    <string name="settings_speech_info_unavailable">Ääneen lukeminen ei ole käytössä tällä kielellä.</string>
 </resources>

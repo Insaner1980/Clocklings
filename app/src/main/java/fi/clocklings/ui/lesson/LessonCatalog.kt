@@ -372,12 +372,14 @@ object LessonCatalog {
                                 val bubbles = mutableListOf<Mark>()
                                 pause(400)
                                 for (n in 1..12) {
+                                    move(180 + n * 5, 600, exact = true)
+                                    pause(600)
                                     nums += num(n)
                                     bubbles += bubble(n * 5)
                                     under(nums)
                                     over(bubbles)
                                     say(Text.Res(R.string.say_number_minutes, listOf(n, n * 5)))
-                                    pause(800)
+                                    pause(500)
                                 }
                             },
                         ),
