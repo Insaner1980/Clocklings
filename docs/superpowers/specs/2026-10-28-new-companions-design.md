@@ -29,7 +29,7 @@ Other decisions:
 - Animals, including the bunny and the unicorn: HEAD, NECK, EXTRA.
 - Car: ROOF, FRONT, WHEELS, MODEL.
 
-Section names: Roof, Front, Wheels, Transformations (fi: Katolle, Keulaan, Vanteet, Muodonmuutokset; sv: På taket, Fram, Fälgar, Förvandlingar).
+Section names: Roof, Front, Wheels, Transformations (fi: Katolle, Keulaan, Pyörät, Muodonmuutokset; sv: På taket, Fram, Hjul, Förvandlingar).
 
 Items of different slots must never cover each other badly, because any combination can be worn. So car transformations keep the roof top, the wheels and the bumper free.
 
@@ -102,7 +102,7 @@ Head items sit around the horn so the horn always shows. Mane decorations are he
 All three use the existing toolkit (`VinylShading.kt`, `ArtTones`, `ItemArtKit`), the 240 x 300 animal grid and `AnimalRig`, so they size like the other animals on every screen. Brushes are built once per color.
 
 - **Bunny**: sitting, front view, after the reference. Large round head with small brows, long floppy ears with pink inner sides that hang beside the head, a pearl muzzle with a small pink nose and a "w" mouth, glossy eyes, cheeks, a round body with a pearl belly, small front paws and big feet with pink pads. Idle: breathing, blinking, head tilt, the ears swing with `partDeg`. Hats sit on top of the head and cover the ear roots, as on the dog.
-- **Car**: a chunky toy car seen from the front, after the reference: cream cabin with a blue windshield, round mirrors like ears, a body in the companion color, a cream face panel with glossy eyes in cream rings, a smile and cheeks, a cream bumper and two round wheels with cream hubs showing at the lower corners. Idle: blinking, breathing squash, and the body rocks gently on its wheels with `partDeg`. Hubcap items are drawn on the hubs before the body (`ArtPart.WHEELS`).
+- **Car**: a chunky toy car seen from the front, after the reference: cream cabin with a blue windshield, round mirrors like ears, a body in the companion color, a cream face panel with glossy eyes in cream rings, a smile and cheeks, a cream bumper and two round wheels with cream hubs showing at the lower corners. Idle: blinking, breathing squash, and the body rocks gently on its wheels with `partDeg`. Hubcap items are drawn on the hubs after the body and wheels (`ArtPart.WHEELS`).
 - **Unicorn**: front view, standing, with the horn, a pastel mane and tail, pastel hooves and a pink belly patch.
 
 Colors: new pigments in `PersonalizationColors` (bunny beige, car orange, car tire plum, windshield glass, unicorn white and mane pastels). The four color choices work as for the others; for the car they repaint the body.

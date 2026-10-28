@@ -33,7 +33,7 @@ internal enum class ItemLayer { BEHIND, FRONT, OVER_EARS, SCREEN }
 
 /**
  * The companion part whose transform an item follows. [ANTENNA] bounces on top of the robot's head;
- * [WHEELS] items are drawn on the car's hubs before its body.
+ * [WHEELS] items are drawn on the car's hubs after its body and wheels.
  */
 internal enum class ArtPart { BODY, HEAD, WINGS, HAND, ANTENNA, WHEELS }
 
