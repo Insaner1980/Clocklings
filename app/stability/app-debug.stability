@@ -604,6 +604,14 @@ public fun fi.clocklings.ui.components.RoundIconButton(icon: fi.clocklings.ui.co
     - large: STABLE (primitive type)
 
 @Composable
+private fun fi.clocklings.ui.components.ScaffoldBottomBar(section: fi.clocklings.ui.theme.Section, content: @[Composable] androidx.compose.runtime.internal.ComposableFunction0<kotlin.Unit>): kotlin.Unit
+  skippable: true
+  restartable: true
+  params:
+    - section: STABLE (class with no mutable properties)
+    - content: STABLE (composable function type)
+
+@Composable
 public fun fi.clocklings.ui.components.ScreenScaffold(modifier: androidx.compose.ui.Modifier, section: fi.clocklings.ui.theme.Section, topBar: @[Composable] androidx.compose.runtime.internal.ComposableFunction0<kotlin.Unit>?, scroll: kotlin.Boolean, bottomBar: @[Composable] androidx.compose.runtime.internal.ComposableFunction0<kotlin.Unit>?, clockHeightShare: kotlin.Float, content: @[Composable] @[ExtensionFunctionType] androidx.compose.runtime.internal.ComposableFunction2<androidx.compose.foundation.layout.ColumnScope, @[ParameterName(name = \): kotlin.Unit
   skippable: true
   restartable: true
@@ -847,15 +855,16 @@ public fun fi.clocklings.ui.game.GameScreen(state: fi.clocklings.ui.game.GameUiS
     - modifier: STABLE (marked @Stable or @Immutable)
 
 @Composable
-private fun fi.clocklings.ui.game.PoppingStar(on: kotlin.Boolean, delayMs: kotlin.Int): kotlin.Unit
+private fun fi.clocklings.ui.game.PoppingStar(on: kotlin.Boolean, delayMs: kotlin.Int, onPop: kotlin.Function0<kotlin.Unit>?): kotlin.Unit
   skippable: true
   restartable: true
   params:
     - on: STABLE (primitive type)
     - delayMs: STABLE (primitive type)
+    - onPop: STABLE (function type)
 
 @Composable
-public fun fi.clocklings.ui.game.ResultScreen(result: fi.clocklings.Screen.Result, outfit: fi.clocklings.domain.Outfit, onPlayAgain: kotlin.Function0<kotlin.Unit>, onNextLevel: kotlin.Function0<kotlin.Unit>, onDress: kotlin.Function0<kotlin.Unit>, onLevels: kotlin.Function0<kotlin.Unit>, modifier: androidx.compose.ui.Modifier, onSound: kotlin.Function1<fi.clocklings.audio.Sound, kotlin.Unit>): kotlin.Unit
+public fun fi.clocklings.ui.game.ResultScreen(result: fi.clocklings.Screen.Result, outfit: fi.clocklings.domain.Outfit, onPlayAgain: kotlin.Function0<kotlin.Unit>, onNextLevel: kotlin.Function0<kotlin.Unit>, onDress: kotlin.Function0<kotlin.Unit>, onLevels: kotlin.Function0<kotlin.Unit>, modifier: androidx.compose.ui.Modifier, onSound: kotlin.Function2<fi.clocklings.audio.Sound, kotlin.Float, kotlin.Unit>): kotlin.Unit
   skippable: true
   restartable: true
   params:
@@ -869,11 +878,12 @@ public fun fi.clocklings.ui.game.ResultScreen(result: fi.clocklings.Screen.Resul
     - onSound: STABLE (function type)
 
 @Composable
-private fun fi.clocklings.ui.game.ResultStars(stars: kotlin.Int, onCenter: kotlin.Function1<androidx.compose.ui.geometry.Offset, kotlin.Unit>): kotlin.Unit
+private fun fi.clocklings.ui.game.ResultStars(stars: kotlin.Int, onSound: kotlin.Function2<fi.clocklings.audio.Sound, kotlin.Float, kotlin.Unit>?, onCenter: kotlin.Function1<androidx.compose.ui.geometry.Offset, kotlin.Unit>): kotlin.Unit
   skippable: true
   restartable: true
   params:
     - stars: STABLE (primitive type)
+    - onSound: STABLE (function type)
     - onCenter: STABLE (function type)
 
 @Composable
@@ -892,7 +902,7 @@ private fun fi.clocklings.ui.game.SetTarget(time: kotlin.Int, h24: kotlin.Boolea
     - h24: STABLE (primitive type)
 
 @Composable
-private fun fi.clocklings.ui.game.rememberDollCelebration(firstVisit: kotlin.Boolean, kind: fi.clocklings.domain.CompanionKind, outfit: fi.clocklings.domain.Outfit, newItems: kotlin.collections.List<fi.clocklings.domain.Item>, stars: kotlin.Int, onSound: kotlin.Function1<fi.clocklings.audio.Sound, kotlin.Unit>): fi.clocklings.ui.companion.CompanionCelebration?
+private fun fi.clocklings.ui.game.rememberDollCelebration(firstVisit: kotlin.Boolean, kind: fi.clocklings.domain.CompanionKind, outfit: fi.clocklings.domain.Outfit, newItems: kotlin.collections.List<fi.clocklings.domain.Item>, stars: kotlin.Int, onSound: kotlin.Function2<fi.clocklings.audio.Sound, kotlin.Float, kotlin.Unit>): fi.clocklings.ui.companion.CompanionCelebration?
   skippable: false
   restartable: false
   params:

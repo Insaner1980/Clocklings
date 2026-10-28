@@ -133,8 +133,8 @@ internal fun itemPolkaDotBowTie(
 
 /**
  * A flower lei along the neckline curve [at] (0 to 1): [flowers] evenly spaced flowers of five petals
- * ([petalRing], [petalR]) cycling pink, sun, pearl and knit with gold centers, each turned [stepDeg]
- * more than the last, on leaves hanging [leafDrop] below the curve between them.
+ * ([petalRing], [petalR]) cycling through [petalTones] with gold centers, each turned [stepDeg] more
+ * than the last, on leaves hanging [leafDrop] below the curve between them. It follows [part].
  */
 @Suppress("LongParameterList")
 internal fun itemFlowerLei(
@@ -144,9 +144,10 @@ internal fun itemFlowerLei(
     petalRing: Float,
     petalR: Float,
     stepDeg: Float,
+    petalTones: List<VinylTones> = LeiPetalTones,
+    part: ArtPart = ArtPart.BODY,
 ): ItemArt {
     val gaps = flowers - 1
-    val petalTones = listOf(ArtTones.Pink, ArtTones.Sun, ArtTones.Pearl, ArtTones.Knit)
     val leaves =
         VinylShape(
             Path().apply {
@@ -163,7 +164,7 @@ internal fun itemFlowerLei(
             val petals = VinylShape(itemPetals(c.x, c.y, petalRing, petalR, i * stepDeg), tones)
             petals to itemCircle(c.x, c.y, FLOWER_CENTER_R, ArtTones.Gold)
         }
-    return ItemArt(ArtPart.BODY, ItemLayer.FRONT) {
+    return ItemArt(part, ItemLayer.FRONT) {
         vinylShape(leaves)
         for (i in blooms.indices) {
             vinylShape(blooms[i].first)
@@ -171,6 +172,8 @@ internal fun itemFlowerLei(
         }
     }
 }
+
+private val LeiPetalTones = listOf(ArtTones.Pink, ArtTones.Sun, ArtTones.Pearl, ArtTones.Knit)
 
 /** Stripe geometry for the neck wrap and the hanging end of a scarf. */
 internal class ScarfStripes(

@@ -3,6 +3,10 @@ package fi.clocklings
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import fi.clocklings.domain.CompanionKind
 import fi.clocklings.domain.Wardrobe
+import fi.clocklings.ui.companion.BunnyItemArt
+import fi.clocklings.ui.companion.BunnyRig
+import fi.clocklings.ui.companion.CarItemArt
+import fi.clocklings.ui.companion.CarRig
 import fi.clocklings.ui.companion.CatItemArt
 import fi.clocklings.ui.companion.CatRig
 import fi.clocklings.ui.companion.DinosaurItemArt
@@ -13,6 +17,8 @@ import fi.clocklings.ui.companion.DragonItemArt
 import fi.clocklings.ui.companion.DragonRig
 import fi.clocklings.ui.companion.RobotItemArt
 import fi.clocklings.ui.companion.RobotRig
+import fi.clocklings.ui.companion.UnicornItemArt
+import fi.clocklings.ui.companion.UnicornRig
 import fi.clocklings.ui.companion.itemArt
 import fi.clocklings.ui.companion.rigFor
 import org.junit.Assert.assertEquals
@@ -67,5 +73,26 @@ class CompanionArtCoverageTest {
         assertEquals(ids(CompanionKind.DINOSAUR), DinosaurItemArt.keys)
         for (id in ids(CompanionKind.DINOSAUR)) assertSame(id, DinosaurItemArt[id], itemArt(id))
         assertSame(DinosaurRig, rigFor(CompanionKind.DINOSAUR))
+    }
+
+    @Test
+    fun everyBunnyItemHasArtwork() {
+        assertEquals(ids(CompanionKind.BUNNY), BunnyItemArt.keys)
+        for (id in ids(CompanionKind.BUNNY)) assertSame(id, BunnyItemArt[id], itemArt(id))
+        assertSame(BunnyRig, rigFor(CompanionKind.BUNNY))
+    }
+
+    @Test
+    fun everyUnicornItemHasArtwork() {
+        assertEquals(ids(CompanionKind.UNICORN), UnicornItemArt.keys)
+        for (id in ids(CompanionKind.UNICORN)) assertSame(id, UnicornItemArt[id], itemArt(id))
+        assertSame(UnicornRig, rigFor(CompanionKind.UNICORN))
+    }
+
+    @Test
+    fun everyCarItemHasArtwork() {
+        assertEquals(ids(CompanionKind.CAR), CarItemArt.keys)
+        for (id in ids(CompanionKind.CAR)) assertSame(id, CarItemArt[id], itemArt(id))
+        assertSame(CarRig, rigFor(CompanionKind.CAR))
     }
 }

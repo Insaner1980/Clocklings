@@ -190,6 +190,10 @@ fun slotName(slot: Slot): Int =
         Slot.HEAD -> R.string.slot_head
         Slot.NECK -> R.string.slot_neck
         Slot.EXTRA -> R.string.slot_extra
+        Slot.ROOF -> R.string.slot_roof
+        Slot.FRONT -> R.string.slot_front
+        Slot.WHEELS -> R.string.slot_wheels
+        Slot.MODEL -> R.string.slot_model
     }
 
 private val ItemNames =
@@ -297,6 +301,57 @@ private val ItemNames =
         "dinosaur-neck-medal" to R.string.item_dinosaur_neck_medal,
         "dinosaur-head-explorer-hat" to R.string.item_dinosaur_head_explorer_hat,
         "dinosaur-extra-skateboard" to R.string.item_dinosaur_extra_skateboard,
+        // Bunny
+        "bunny-neck-ribbon" to R.string.item_bunny_neck_ribbon,
+        "bunny-extra-carrot" to R.string.item_bunny_extra_carrot,
+        "bunny-head-ear-bow" to R.string.item_bunny_head_ear_bow,
+        "bunny-neck-daisies" to R.string.item_bunny_neck_daisies,
+        "bunny-extra-basket" to R.string.item_bunny_extra_basket,
+        "bunny-head-sun-hat" to R.string.item_bunny_head_sun_hat,
+        "bunny-neck-locket" to R.string.item_bunny_neck_locket,
+        "bunny-extra-watering-can" to R.string.item_bunny_extra_watering_can,
+        "bunny-head-top-hat" to R.string.item_bunny_head_top_hat,
+        "bunny-neck-bow-tie" to R.string.item_bunny_neck_bow_tie,
+        "bunny-extra-bubbles" to R.string.item_bunny_extra_bubbles,
+        "bunny-head-flower-crown" to R.string.item_bunny_head_flower_crown,
+        "bunny-extra-bouquet" to R.string.item_bunny_extra_bouquet,
+        "bunny-neck-cape" to R.string.item_bunny_neck_cape,
+        "bunny-head-tiara" to R.string.item_bunny_head_tiara,
+        "bunny-extra-wings" to R.string.item_bunny_extra_wings,
+        // Unicorn
+        "unicorn-neck-lei" to R.string.item_unicorn_neck_lei,
+        "unicorn-head-horn-rings" to R.string.item_unicorn_head_horn_rings,
+        "unicorn-extra-cloud" to R.string.item_unicorn_extra_cloud,
+        "unicorn-neck-stars" to R.string.item_unicorn_neck_stars,
+        "unicorn-head-flower-crown" to R.string.item_unicorn_head_flower_crown,
+        "unicorn-extra-balloon" to R.string.item_unicorn_extra_balloon,
+        "unicorn-neck-scarf" to R.string.item_unicorn_neck_scarf,
+        "unicorn-head-ribbons" to R.string.item_unicorn_head_ribbons,
+        "unicorn-extra-boots" to R.string.item_unicorn_extra_boots,
+        "unicorn-neck-rainbow-scarf" to R.string.item_unicorn_neck_rainbow_scarf,
+        "unicorn-head-butterfly" to R.string.item_unicorn_head_butterfly,
+        "unicorn-extra-rainbow" to R.string.item_unicorn_extra_rainbow,
+        "unicorn-neck-moon" to R.string.item_unicorn_neck_moon,
+        "unicorn-head-crown" to R.string.item_unicorn_head_crown,
+        "unicorn-neck-cape" to R.string.item_unicorn_neck_cape,
+        "unicorn-extra-wings" to R.string.item_unicorn_extra_wings,
+        // Car
+        "car-front-plate" to R.string.item_car_front_plate,
+        "car-wheels-sport" to R.string.item_car_wheels_sport,
+        "car-roof-suitcase" to R.string.item_car_roof_suitcase,
+        "car-front-sunglasses" to R.string.item_car_front_sunglasses,
+        "car-wheels-offroad" to R.string.item_car_wheels_offroad,
+        "car-model-race" to R.string.item_car_model_race,
+        "car-roof-surfboard" to R.string.item_car_roof_surfboard,
+        "car-front-bull-bar" to R.string.item_car_front_bull_bar,
+        "car-wheels-flames" to R.string.item_car_wheels_flames,
+        "car-roof-flag" to R.string.item_car_roof_flag,
+        "car-model-fire-engine" to R.string.item_car_model_fire_engine,
+        "car-front-plow" to R.string.item_car_front_plow,
+        "car-roof-taxi" to R.string.item_car_roof_taxi,
+        "car-wheels-gold" to R.string.item_car_wheels_gold,
+        "car-roof-rally-lights" to R.string.item_car_roof_rally_lights,
+        "car-model-rocket" to R.string.item_car_model_rocket,
     )
 
 @StringRes

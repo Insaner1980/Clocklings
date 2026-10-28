@@ -80,4 +80,58 @@
     <string name="item_dinosaur_neck_medal">Medalj</string>
     <string name="item_dinosaur_head_explorer_hat">Upptäckarhatt</string>
     <string name="item_dinosaur_extra_skateboard">Skateboard</string>
+
+    <!-- Bunny -->
+    <string name="item_bunny_neck_ribbon">Sidenrosett</string>
+    <string name="item_bunny_extra_carrot">Morot</string>
+    <string name="item_bunny_head_ear_bow">Rosett på örat</string>
+    <string name="item_bunny_neck_daisies">Prästkragekedja</string>
+    <string name="item_bunny_extra_basket">Äggkorg</string>
+    <string name="item_bunny_head_sun_hat">Solhatt</string>
+    <string name="item_bunny_neck_locket">Hjärtmedaljong</string>
+    <string name="item_bunny_extra_watering_can">Vattenkanna</string>
+    <string name="item_bunny_head_top_hat">Trollkarlshatt</string>
+    <string name="item_bunny_neck_bow_tie">Prickig fluga</string>
+    <string name="item_bunny_extra_bubbles">Såpbubblor</string>
+    <string name="item_bunny_head_flower_crown">Blomsterkrans</string>
+    <string name="item_bunny_extra_bouquet">Blombukett</string>
+    <string name="item_bunny_neck_cape">Stjärnmantel</string>
+    <string name="item_bunny_head_tiara">Tiara</string>
+    <string name="item_bunny_extra_wings">Älvvingar</string>
+
+    <!-- Unicorn -->
+    <string name="item_unicorn_neck_lei">Blomstergirlang</string>
+    <string name="item_unicorn_head_horn_rings">Hornringar</string>
+    <string name="item_unicorn_extra_cloud">Molnkudde</string>
+    <string name="item_unicorn_neck_stars">Stjärnhalsband</string>
+    <string name="item_unicorn_head_flower_crown">Blomsterkrans</string>
+    <string name="item_unicorn_extra_balloon">Stjärnballong</string>
+    <string name="item_unicorn_neck_scarf">Halsduk</string>
+    <string name="item_unicorn_head_ribbons">Rosetter i manen</string>
+    <string name="item_unicorn_extra_boots">Glittriga stövlar</string>
+    <string name="item_unicorn_neck_rainbow_scarf">Regnbågshalsduk</string>
+    <string name="item_unicorn_head_butterfly">Fjärilsspänne</string>
+    <string name="item_unicorn_extra_rainbow">Regnbåge</string>
+    <string name="item_unicorn_neck_moon">Månhänge</string>
+    <string name="item_unicorn_head_crown">Krona</string>
+    <string name="item_unicorn_neck_cape">Kunglig mantel</string>
+    <string name="item_unicorn_extra_wings">Fjädervingar</string>
+
+    <!-- Car -->
+    <string name="item_car_front_plate">Registreringsskylt</string>
+    <string name="item_car_wheels_sport">Sportfälgar</string>
+    <string name="item_car_roof_suitcase">Resväska på taket</string>
+    <string name="item_car_front_sunglasses">Solglasögon</string>
+    <string name="item_car_wheels_offroad">Terrängdäck</string>
+    <string name="item_car_model_race">Racerbil</string>
+    <string name="item_car_roof_surfboard">Surfbräda</string>
+    <string name="item_car_front_bull_bar">Frontbåge</string>
+    <string name="item_car_wheels_flames">Flamfälgar</string>
+    <string name="item_car_roof_flag">Målflagga</string>
+    <string name="item_car_model_fire_engine">Brandbil</string>
+    <string name="item_car_front_plow">Snöplog</string>
+    <string name="item_car_roof_taxi">Taxiskylt</string>
+    <string name="item_car_wheels_gold">Guldfälgar</string>
+    <string name="item_car_roof_rally_lights">Rallyljus</string>
+    <string name="item_car_model_rocket">Raketbil</string>
 </resources>

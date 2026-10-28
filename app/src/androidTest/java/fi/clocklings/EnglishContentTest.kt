@@ -61,6 +61,6 @@ class EnglishContentTest {
         val half = LessonCatalog.lesson("puoli")
         assertEquals(210, half.pages[2].time)
         assertTrue(res.getString(R.string.l_puoli_p3a).contains("half past three"))
-        assertEquals("Half past three is 3:30", res.getString(R.string.l_puoli_say_digits))
+        assertEquals("Half past three is 3:30.", res.getString(R.string.l_puoli_say_digits))
     }
 }

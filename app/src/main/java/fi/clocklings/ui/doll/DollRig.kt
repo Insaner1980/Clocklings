@@ -297,6 +297,9 @@ private fun DrawScope.drawDoll(
     // Jalat ja kengät
     line(86f, 226f, 86f, 298f, LegLeft, 16f)
     line(114f, 226f, 114f, 298f, LegRight, 16f)
+    contactShadow(HemShadow)
+    contactShadow(ShoeShadowLeft)
+    contactShadow(ShoeShadowRight)
     drawShoes(o[Slot.SHOES])
 
     // Kaula ja mekko
@@ -581,3 +584,8 @@ private val JewelDot = dot(C.Jewel)
 
 private val Bag = VinylShape(roundRectPath(138f, 198f, 168f, 222f, 7f), vinylTones(C.Bag))
 private val StarYellowDot = dot(C.StarYellow)
+
+// Contact shadows on the legs: under the hem and just above the shoes.
+private val HemShadow = ovalRect(100f, 246f, 24f, 9f)
+private val ShoeShadowLeft = ovalRect(86f, 298f, 9f, 4f)
+private val ShoeShadowRight = ovalRect(114f, 298f, 9f, 4f)

@@ -212,13 +212,10 @@ class LocalAppFlowTest {
     }
 
     private fun waitText(text: String) {
-        compose.waitUntil(10_000) {
-            compose
-                .onAllNodes(
-                    hasText(text) or hasContentDescription(text, substring = true),
-                ).fetchSemanticsNodes()
-                .isNotEmpty()
-        }
+        compose.waitUntilAtLeastOneExists(
+            matcher = hasText(text) or hasContentDescription(text, substring = true),
+            timeoutMillis = 10_000,
+        )
     }
 
     private fun click(text: String) {

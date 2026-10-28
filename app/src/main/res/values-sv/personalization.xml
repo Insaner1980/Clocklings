@@ -9,6 +9,9 @@
     <string name="companion_robot">Robot</string>
     <string name="companion_dragon">Drake</string>
     <string name="companion_dinosaur">Dinosaurie</string>
+    <string name="companion_bunny">Kanin</string>
+    <string name="companion_unicorn">Enhörning</string>
+    <string name="companion_car">Bil</string>
     <string name="companion_none">Bara klockan</string>
     <string name="no_companion_hint">Alla lektioner och spel finns kvar. Du kan välja en kompis när du vill.</string>
     <string name="companion_color">Färg</string>

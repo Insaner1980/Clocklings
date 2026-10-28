@@ -32,17 +32,13 @@ internal object ToneSynth {
     @Suppress("MagicNumber")
     fun tones(sound: Sound): List<Tone> =
         when (sound) {
-            Sound.OK -> listOf(Tone(659.0, 0.0, 0.12), Tone(784.0, 0.1, 0.12), Tone(1047.0, 0.2, 0.28))
-
-            Sound.BAD -> listOf(Tone(330.0, 0.0, 0.16, false, 0.12), Tone(262.0, 0.15, 0.26, false, 0.12))
-
             Sound.POP -> listOf(Tone(880.0, 0.0, 0.08, false, 0.08))
 
             // Aloitusnäkymä: lyhyt tik ja matalampi tak, kun viisarit pysähtyvät.
             Sound.TICK -> listOf(Tone(1760.0, 0.0, 0.05, false, 0.1), Tone(1320.0, 0.14, 0.06, false, 0.1))
 
             // Recorded clips (Sound.clip) are not synthesized.
-            Sound.WIN, Sound.CAT, Sound.DOG -> emptyList()
+            else -> emptyList()
         }
 
     /** Eksponentiaalinen nousu ja lasku kuten exponentialRampToValueAtTime. */

@@ -13,6 +13,9 @@ internal fun companionName(kind: CompanionKind): Int =
         CompanionKind.ROBOT -> R.string.companion_robot
         CompanionKind.DRAGON -> R.string.companion_dragon
         CompanionKind.DINOSAUR -> R.string.companion_dinosaur
+        CompanionKind.BUNNY -> R.string.companion_bunny
+        CompanionKind.UNICORN -> R.string.companion_unicorn
+        CompanionKind.CAR -> R.string.companion_car
         CompanionKind.NONE -> R.string.companion_none
     }
 

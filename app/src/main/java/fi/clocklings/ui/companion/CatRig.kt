@@ -51,10 +51,13 @@ internal object CatRig : AnimalRig(
         val fur = furs[color.ordinal]
         posedAnimal(pose, outfit, Ground) {
             tail(fur, pose.partDeg)
+            contactShadow(TailShadow)
             vinylOval(Body, fur.body)
             vinylShape(Chest)
             specular(BodyShine)
             items(outfit, ArtPart.HAND, ItemLayer.FRONT)
+            contactShadow(PawShadowLeft)
+            contactShadow(PawShadowRight)
             vinylOval(PawLeft, fur.pawLeft)
             vinylOval(PawRight, fur.pawRight)
             specular(PawLeft)
@@ -109,6 +112,8 @@ internal object CatRig : AnimalRig(
         drawPath(EarRightPath, fur.earRight)
         vinylShape(InnerEarLeft)
         vinylShape(InnerEarRight)
+        contactShadow(EarShadowLeft)
+        contactShadow(EarShadowRight)
     }
 }
 
@@ -175,3 +180,10 @@ private val MouthStroke = itemStroke(2.5f)
 private val Whiskers = svgPath("M86 137 L50 130 M86 144 L50 147 M154 137 L190 130 M154 144 L190 147")
 private val WhiskerColor = PersonalizationColors.EyeInk.copy(alpha = 0.8f)
 private val WhiskerStroke = itemStroke(1.6f)
+
+// Contact shadows where parts meet: above the paws, at the tail root and at the ear roots.
+private val PawShadowLeft = ovalRect(94f, 258f, 22f, 7f)
+private val PawShadowRight = ovalRect(146f, 258f, 22f, 7f)
+private val TailShadow = ovalRect(172f, 252f, 13f, 10f)
+private val EarShadowLeft = ovalRect(82f, 74f, 16f, 7f)
+private val EarShadowRight = ovalRect(158f, 74f, 16f, 7f)

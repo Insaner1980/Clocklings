@@ -158,6 +158,10 @@
     <string name="slot_head">Päähineet</string>
     <string name="slot_neck">Kaulaan</string>
     <string name="slot_extra">Lisävarusteet</string>
+    <string name="slot_roof">Katolle</string>
+    <string name="slot_front">Keulaan</string>
+    <string name="slot_wheels">Pyörät</string>
+    <string name="slot_model">Muodonmuutokset</string>
     <string name="item_hair_letit">Ruskeat letit</string>
     <string name="item_dress_perus">Keltainen mekko</string>
     <string name="item_shoes_tossut">Valkoiset tossut</string>

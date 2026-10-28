@@ -14,6 +14,15 @@ object PersonalizationColors {
     val Robot = Color(0xFF83BFCB)
     val Dragon = Color(0xFFAE94DC)
     val Dinosaur = Color(0xFF86B98C)
+    val Bunny = Color(0xFFEBCBA6)
+    val Unicorn = Color(0xFFF8F1F3)
+    val UnicornPatch = Color(0xFFF6CFDA)
+    val UnicornHoof = Color(0xFFBBA0E0)
+    val ManePink = Color(0xFFF4A3C4)
+    val ManeBlue = Color(0xFFA6CBF2)
+    val Car = Color(0xFFEE7F55)
+    val CarTire = Color(0xFF7D6488)
+    val CarGlass = Color(0xFFAFC0E6)
     val Blue = Color(0xFF86BDED)
     val Green = Color(0xFF94C9A1)
     val Purple = Color(0xFFC5A1DD)
@@ -99,14 +108,20 @@ object PersonalizationColors {
             }
 
             CompanionColor.ORIGINAL -> {
-                when (kind) {
-                    CompanionKind.CAT -> Cat
-                    CompanionKind.DOG -> Dog
-                    CompanionKind.ROBOT -> Robot
-                    CompanionKind.DRAGON -> Dragon
-                    else -> Dinosaur
-                }
+                originalCompanion(kind)
             }
+        }
+
+    private fun originalCompanion(kind: CompanionKind): Color =
+        when (kind) {
+            CompanionKind.CAT -> Cat
+            CompanionKind.DOG -> Dog
+            CompanionKind.ROBOT -> Robot
+            CompanionKind.DRAGON -> Dragon
+            CompanionKind.BUNNY -> Bunny
+            CompanionKind.UNICORN -> Unicorn
+            CompanionKind.CAR -> Car
+            else -> Dinosaur
         }
 
     fun clock(palette: ClockPalette): Color =

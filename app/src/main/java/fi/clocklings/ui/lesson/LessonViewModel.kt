@@ -166,7 +166,8 @@ class LessonViewModel(
             show(s.queueIndex, s.page + 1)
             return
         }
-        services.play(Sound.POP)
+        // Leaving a finished quiz completes the lesson.
+        services.play(Sound.LESSON_COMPLETE)
         if (s.queueIndex < queue.size - 1) {
             show(s.queueIndex + 1, 0)
         } else {

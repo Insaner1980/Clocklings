@@ -3,6 +3,8 @@ package fi.clocklings
 import android.app.Application
 import android.content.Context
 import androidx.compose.runtime.Stable
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import fi.clocklings.audio.Sfx
 import fi.clocklings.audio.Sound
@@ -28,10 +30,14 @@ interface AppServices {
     val repository: ProgressRepository
     val speechAvailable: StateFlow<Boolean>
 
-    /** Soittaa äänen, jos äänet ovat päällä. [force] soittaa aina (äänten kytkeminen päälle). */
+    /**
+     * Soittaa äänen, jos äänet ovat päällä. [force] soittaa aina (äänten kytkeminen päälle).
+     * [rate] changes the speed and pitch of a recorded clip (1 = original).
+     */
     fun play(
         sound: Sound,
         force: Boolean = false,
+        rate: Float = 1f,
     )
 
     fun speak(text: String)
@@ -46,9 +52,10 @@ interface AppServices {
 /** Sovelluksen ainoat pitkäikäiset oliot: tallennus, äänet ja puhe. */
 class AppContainer(
     context: Context,
+    store: DataStore<Preferences> = context.dataStore,
 ) : AppServices {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    override val repository = ProgressRepository(context.dataStore)
+    override val repository = ProgressRepository(store)
     private val sfx = Sfx(context)
     private val soundOn = repository.settings.map { it.sound }.stateIn(scope, SharingStarted.Eagerly, true)
     private val speech = Speech(context)
@@ -57,8 +64,9 @@ class AppContainer(
     override fun play(
         sound: Sound,
         force: Boolean,
+        rate: Float,
     ) {
-        if (force || soundOn.value) sfx.play(sound)
+        if (force || soundOn.value) sfx.play(sound, rate)
     }
 
     override fun speak(text: String) = speech.speak(text)
@@ -76,6 +84,9 @@ class AppContainer(
     }
 }
 
-class ClocklingsApplication : Application() {
-    val container: AppContainer by lazy { AppContainer(this) }
+open class ClocklingsApplication : Application() {
+    val container: AppContainer by lazy { AppContainer(this, preferencesStore()) }
+
+    /** Where progress and settings are kept: the app's preferences file. Local JVM tests keep them in memory. */
+    protected open fun preferencesStore(): DataStore<Preferences> = dataStore
 }

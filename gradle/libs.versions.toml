@@ -1,7 +1,5 @@
-# Versiot tarkistettu 2026-10-13 Google Mavenista ja Maven Centralista.
-# AGP 9.3.3 eikä 9.4.x: KGP 2.4.21 on virallisesti testattu AGP 9.3.1:een ja Gradle 9.7.0:aan asti.
 [versions]
-agp = "9.4.1"
+agp = "9.5.0"
 kotlin = "2.4.21"
 composeBom = "2026.09.00"
 activityCompose = "1.13.0"
@@ -52,6 +50,7 @@ androidx-datastore-preferences = { group = "androidx.datastore", name = "datasto
 kotlinx-serialization-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-core", version.ref = "kotlinxSerialization" }
 
 junit = { group = "junit", name = "junit", version.ref = "junit" }
+guava = { module = "com.google.guava:guava", version = "33.7.2-jre" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxTestExtJunit" }

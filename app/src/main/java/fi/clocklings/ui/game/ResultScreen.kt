@@ -71,7 +71,7 @@ fun ResultScreen(
     onDress: () -> Unit,
     onLevels: () -> Unit,
     modifier: Modifier = Modifier,
-    onSound: (Sound) -> Unit = {},
+    onSound: (Sound, Float) -> Unit = { _, _ -> },
 ) {
     val stars = result.stars
     val after = result.starsBefore + maxOf(0, stars - result.previousBest)
@@ -103,7 +103,7 @@ fun ResultScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(SkDimens.Gap),
             ) {
-                ResultStars(stars) { anchor.value = it }
+                ResultStars(stars, onSound.takeIf { firstVisit }) { anchor.value = it }
                 CompanionView(
                     kind,
                     outfit,
@@ -137,7 +137,8 @@ fun ResultScreen(
 
 /**
  * The companion's celebration on the first visit, or null when returning to the same result.
- * The companion speaks as its celebration starts, after the success sound.
+ * As it starts, the unlock sound plays for new items; the companion speaks then or, after an
+ * unlock, once the new outfit has spun in.
  */
 @Composable
 private fun rememberDollCelebration(
@@ -146,28 +147,36 @@ private fun rememberDollCelebration(
     outfit: Outfit,
     newItems: List<Item>,
     stars: Int,
-    onSound: (Sound) -> Unit,
+    onSound: (Sound, Float) -> Unit,
 ): CompanionCelebration? {
     val currentOnSound by rememberUpdatedState(onSound)
     LaunchedEffect(kind, firstVisit) {
         if (!firstVisit) return@LaunchedEffect
         delay(DOLL_CELEBRATE_DELAY_MS)
-        companionVoice(kind)?.let(currentOnSound)
+        if (newItems.isNotEmpty()) {
+            currentOnSound(Sound.UNLOCK, 1f)
+            delay(VOICE_AFTER_UNLOCK_MS)
+        }
+        companionVoice(kind)?.let { currentOnSound(it, 1f) }
     }
     return remember(firstVisit) { if (firstVisit) dollCelebration(outfit, newItems, stars) else null }
 }
 
-/** Tähti ponnahtaa esiin pyörähtäen. */
+/** Tähti ponnahtaa esiin pyörähtäen. [onPop] plays its sound as it pops, also without motion. */
 @Composable
 private fun PoppingStar(
     on: Boolean,
     delayMs: Int,
+    onPop: (() -> Unit)?,
 ) {
     val reduceMotion = rememberReduceMotion()
     val k = remember { Animatable(if (on && !reduceMotion) 0f else 1f) }
+    val currentOnPop by rememberUpdatedState(onPop)
     LaunchedEffect(on) {
-        if (on && !reduceMotion) {
-            delay(delayMs.toLong())
+        if (!on) return@LaunchedEffect
+        delay(delayMs.toLong())
+        currentOnPop?.invoke()
+        if (!reduceMotion) {
             k.animateTo(
                 1f,
                 keyframes {
@@ -204,6 +213,12 @@ private const val RESULT_CONFETTI = 120
 
 /** Nukke alkaa juhlia, kun kolmas tähti on ponnahtanut esiin. */
 private const val DOLL_CELEBRATE_DELAY_MS = 1_100L
+
+/** The companion speaks after the spin into the new outfit, as the unlock sound fades. */
+private const val VOICE_AFTER_UNLOCK_MS = 1_200L
+
+/** Each star sounds higher: root, major third and fifth as SoundPool playback rates. */
+private val STAR_RATES = floatArrayOf(1f, 1.26f, 1.498f)
 
 private const val POP_OVERSHOOT = 1.2f
 private const val POP_PEAK_FRACTION = 0.7f
@@ -244,10 +259,14 @@ private fun resultMessage(
     }.joinToString(" ")
 }
 
-/** Kolme tähteä, jotka ponnahtavat esiin vuorotellen. [onCenter] antaa konfetin lähtöpisteen. */
+/**
+ * Kolme tähteä, jotka ponnahtavat esiin vuorotellen. [onCenter] antaa konfetin lähtöpisteen.
+ * With [onSound] each earned star plays the star sound one step higher than the previous one.
+ */
 @Composable
 private fun ResultStars(
     stars: Int,
+    onSound: ((Sound, Float) -> Unit)?,
     onCenter: (Offset) -> Unit,
 ) {
     val description = pluralStringResource(R.plurals.result_stars_description, stars, stars)
@@ -255,7 +274,13 @@ private fun ResultStars(
         Modifier.clearAndSetSemantics { contentDescription = description }.confettiAnchor(onCenter),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        repeat(MAX_STARS) { k -> PoppingStar(on = k < stars, delayMs = STAR_DELAY_MS + k * STAR_STAGGER_MS) }
+        repeat(MAX_STARS) { k ->
+            PoppingStar(
+                on = k < stars,
+                delayMs = STAR_DELAY_MS + k * STAR_STAGGER_MS,
+                onPop = onSound?.let { play -> { play(Sound.STAR, STAR_RATES[k]) } },
+            )
+        }
     }
 }
 

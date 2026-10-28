@@ -43,8 +43,10 @@ internal object DollParts {
 
             Slot.EXTRA -> Rect(0f, 92f, 200f, 92f + 168f)
 
-            // The doll has no neck slot; this crop only keeps the mapping total.
+            // The doll has no neck or car slots; these crops only keep the mapping total.
             Slot.NECK -> Rect(60f, 100f, 60f + 80f, 100f + 60f)
+
+            Slot.ROOF, Slot.FRONT, Slot.WHEELS, Slot.MODEL -> Full
         }
 
     val Full = Rect(0f, 0f, WIDTH, HEIGHT)

@@ -9,6 +9,9 @@
     <string name="companion_robot">Robot</string>
     <string name="companion_dragon">Dragon</string>
     <string name="companion_dinosaur">Dinosaur</string>
+    <string name="companion_bunny">Bunny</string>
+    <string name="companion_unicorn">Unicorn</string>
+    <string name="companion_car">Car</string>
     <string name="companion_none">Just the clock</string>
     <string name="no_companion_hint">All lessons and games are still yours to explore. You can choose a companion whenever you like.</string>
     <string name="companion_color">Color</string>

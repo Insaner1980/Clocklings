@@ -3,6 +3,11 @@
 buildscript {
     dependencies {
         classpath(libs.kotlin.gradle.plugin)
+        constraints {
+            classpath(libs.guava) {
+                because("Fix CVE-2026-102554 in build-tool dependencies")
+            }
+        }
     }
 }
 
