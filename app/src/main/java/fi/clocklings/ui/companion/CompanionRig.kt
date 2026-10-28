@@ -15,8 +15,10 @@ import fi.clocklings.domain.Wardrobe
 import fi.clocklings.ui.art.ArtTones
 import fi.clocklings.ui.art.VinylShape
 import fi.clocklings.ui.art.VinylTones
+import fi.clocklings.ui.art.contactShadow
 import fi.clocklings.ui.art.glossyEye
 import fi.clocklings.ui.art.groundShadow
+import fi.clocklings.ui.art.ovalRect
 import fi.clocklings.ui.art.specular
 import fi.clocklings.ui.art.vinylBrush
 import fi.clocklings.ui.art.vinylOval
@@ -29,18 +31,23 @@ import fi.clocklings.ui.doll.DollRig
  */
 internal enum class ItemLayer { BEHIND, FRONT, OVER_EARS, SCREEN }
 
-/** The companion part whose transform an item follows. [ANTENNA] bounces on top of the robot's head. */
-internal enum class ArtPart { BODY, HEAD, WINGS, HAND, ANTENNA }
+/**
+ * The companion part whose transform an item follows. [ANTENNA] bounces on top of the robot's head;
+ * [WHEELS] items are drawn on the car's hubs before its body.
+ */
+internal enum class ArtPart { BODY, HEAD, WINGS, HAND, ANTENNA, WHEELS }
 
 /**
  * One item's artwork, drawn in the rig's design grid inside the transform of [part]. An
  * [ItemLayer.OVER_EARS] item may give an [earClip]: the area where the ears, drawn after it, stay
- * visible, so they come out of the hat above its band.
+ * visible, so they come out of the hat above its band. An item drawn on another layer may also give a
+ * [back]: the pieces that go behind the companion, drawn at the [ItemLayer.BEHIND] point of [part].
  */
 internal class ItemArt(
     val part: ArtPart,
     val layer: ItemLayer,
     val earClip: Path? = null,
+    val back: (DrawScope.() -> Unit)? = null,
     val draw: DrawScope.() -> Unit,
 )
 
@@ -67,24 +74,20 @@ internal interface CompanionRig {
 }
 
 /**
- * The frame shared by the animal companions: the 240 x 300 design grid, the [headCrop] and [neckCrop]
- * wardrobe thumbnails, and the whole grid for every other slot.
+ * The frame shared by the animal companions and the car: the 240 x 300 design grid, the wardrobe
+ * thumbnail [crops] by slot, and the whole grid for every other slot.
  */
 internal abstract class AnimalRig(
-    private val headCrop: Rect,
-    private val neckCrop: Rect,
+    private val crops: Map<Slot, Rect>,
 ) : CompanionRig {
+    constructor(headCrop: Rect, neckCrop: Rect) : this(mapOf(Slot.HEAD to headCrop, Slot.NECK to neckCrop))
+
     final override val width = ANIMAL_GRID_WIDTH
     final override val height = ANIMAL_GRID_HEIGHT
 
     private val grid = Rect(0f, 0f, width, height)
 
-    final override fun crop(slot: Slot): Rect =
-        when (slot) {
-            Slot.HEAD -> headCrop
-            Slot.NECK -> neckCrop
-            else -> grid
-        }
+    final override fun crop(slot: Slot): Rect = crops[slot] ?: grid
 
     final override fun full(): Rect = grid
 }
@@ -160,11 +163,23 @@ internal class ClawedLimbs(
     private val footLeft = vinylBrush(feet.first, tones)
     private val footRight = vinylBrush(feet.second, tones)
 
+    // Contact shadows: under each arm on the belly and on the body just above each foot.
+    private val armShadows =
+        listOf(arms.first, arms.second).map {
+            it.getBounds().inflate(armStroke.width / 2).translate(ARM_SHADOW_DX, ARM_SHADOW_DY)
+        }
+    private val footShadows =
+        listOf(feet.first, feet.second).map {
+            ovalRect(it.center.x, it.top + FOOT_SHADOW_DROP, it.width * FOOT_SHADOW_SPREAD, FOOT_SHADOW_RY)
+        }
+
     fun draw(
         scope: DrawScope,
         outfit: Outfit,
     ) = with(scope) {
         items(outfit, ArtPart.HAND, ItemLayer.FRONT)
+        for (i in armShadows.indices) contactShadow(armShadows[i])
+        for (i in footShadows.indices) contactShadow(footShadows[i])
         drawPath(arms.first, armLeft, style = armStroke)
         drawPath(arms.second, armRight, style = armStroke)
         vinylOval(feet.first, footLeft)
@@ -186,6 +201,9 @@ internal fun rigFor(kind: CompanionKind): CompanionRig? =
         CompanionKind.ROBOT -> RobotRig
         CompanionKind.DRAGON -> DragonRig
         CompanionKind.DINOSAUR -> DinosaurRig
+        CompanionKind.BUNNY -> BunnyRig
+        CompanionKind.UNICORN -> UnicornRig
+        CompanionKind.CAR -> CarRig
     }
 
 /** Width to height of [kind]'s whole design grid, for sizing its [CompanionView]; 1 for no companion. */
@@ -202,6 +220,9 @@ private fun itemArtOf(kind: CompanionKind): Map<String, ItemArt>? =
         CompanionKind.ROBOT -> RobotItemArt
         CompanionKind.DRAGON -> DragonItemArt
         CompanionKind.DINOSAUR -> DinosaurItemArt
+        CompanionKind.BUNNY -> BunnyItemArt
+        CompanionKind.UNICORN -> UnicornItemArt
+        CompanionKind.CAR -> CarItemArt
         CompanionKind.NONE, CompanionKind.HUMAN -> null
     }
 
@@ -225,6 +246,17 @@ internal fun DrawScope.items(
     // Indexed loop: rigs call this several times per frame, so it must not allocate an iterator.
     for (i in Slots.indices) {
         val art = outfit[Slots[i]]?.let(::itemArt)
-        if (art != null && art.part == part && art.layer == layer) art.draw(this)
+        if (art == null || art.part != part) continue
+        if (art.layer == layer) {
+            art.draw(this)
+        } else if (layer == ItemLayer.BEHIND) {
+            art.back?.invoke(this)
+        }
     }
 }
+
+private const val ARM_SHADOW_DX = 3f
+private const val ARM_SHADOW_DY = 6f
+private const val FOOT_SHADOW_DROP = 2f
+private const val FOOT_SHADOW_SPREAD = 0.42f
+private const val FOOT_SHADOW_RY = 6f

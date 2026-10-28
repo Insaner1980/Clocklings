@@ -47,7 +47,10 @@ class AppViewModel(
     private val currentSettings get() = settings.value ?: Settings()
     private val currentProgress get() = progress.value ?: Progress()
 
-    fun play(sound: Sound) = services.play(sound)
+    fun play(
+        sound: Sound,
+        rate: Float = 1f,
+    ) = services.play(sound, rate = rate)
 
     fun speak(text: String) = services.speak(text)
 

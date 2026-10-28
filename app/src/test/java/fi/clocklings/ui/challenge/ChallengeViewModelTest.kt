@@ -88,6 +88,7 @@ class ChallengeViewModelTest {
             assertEquals(ChallengePhase.END, s.phase)
             assertEquals(1, s.score)
             assertTrue(s.newRecord)
+            assertEquals(Sound.RECORD, services.sounds.last())
             assertEquals(
                 1,
                 services.repository.progress

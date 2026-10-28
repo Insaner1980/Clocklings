@@ -31,6 +31,7 @@ import fi.clocklings.domain.CompanionColor
 import fi.clocklings.domain.CompanionKind
 import fi.clocklings.domain.Progress
 import fi.clocklings.domain.Wardrobe
+import fi.clocklings.domain.slots
 import fi.clocklings.ui.companion.WardrobeScreen
 import fi.clocklings.ui.components.OptionButton
 import fi.clocklings.ui.lesson.LessonCatalog
@@ -134,6 +135,31 @@ class ScreenshotReviewUiTest {
                     }
                 assertEquals("Different name sizes in ${items.first().slot}", 1, sizes.distinct().size)
             }
+        }
+    }
+
+    @Test
+    fun wardrobeSectionTitlesKeepWholeWordsAtNarrowWidthAndDoubleText() {
+        val context = finnishContext()
+        val model = AppViewModel(FakeServices())
+        val kind = mutableStateOf(CompanionKind.CAR)
+        compose.setContent {
+            CompositionLocalProvider(
+                LocalAppViewModel provides model,
+                LocalContext provides context,
+                LocalResources provides context.resources,
+                LocalDensity provides Density(3.375f, 2f),
+            ) {
+                ClocklingsTheme {
+                    Box(Modifier.requiredSize(320.dp, 640.dp)) {
+                        WardrobeScreen(kind.value, Progress(), CompanionColor.ORIGINAL, {})
+                    }
+                }
+            }
+        }
+        for (companion in CompanionKind.entries.filter { it.slots.isNotEmpty() }) {
+            compose.runOnIdle { kind.value = companion }
+            for (slot in companion.slots) assertWholeWords(context.getString(slotName(slot)))
         }
     }
 

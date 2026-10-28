@@ -3,6 +3,7 @@
 
 package fi.clocklings.ui.art
 
+import android.graphics.Matrix
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -12,6 +13,9 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.RadialGradientShader
+import androidx.compose.ui.graphics.Shader
+import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.withTransform
@@ -30,16 +34,22 @@ data class VinylTones(
     val shade: Color,
 )
 
-private const val LIGHT_MIX = 0.45f
-private const val SHADE_MIX = 0.30f
+private const val LIGHT_MIX = 0.5f
+private const val SHADE_MIX = 0.36f
 private const val LIGHT_CENTER_X = 0.36f
 private const val LIGHT_CENTER_Y = 0.30f
 private const val GRADIENT_RADIUS = 0.78f
-private const val BASE_STOP = 0.55f
+private const val BASE_STOP = 0.45f
+private const val SHADE_STOP = 0.78f
+private const val CORE_STOP = 0.9f
+private const val CORE_MIX = 0.18f
+private const val BOUNCE_MIX = 0.4f
+private const val HOTSPOT_ALPHA = 0.8f
+private const val HOTSPOT_SCALE = 0.42f
 private const val SPECULAR_ALPHA = 0.55f
 private const val SPECULAR_WIDTH = 0.34f
 private const val SPECULAR_HEIGHT = 0.2f
-private const val CONTACT_SHADOW_ALPHA = 0.28f
+private const val CONTACT_SHADOW_ALPHA = 0.34f
 private const val GROUND_SHADOW_ALPHA = 0.22f
 private const val CLOSED_EYE_BLINK = 0.7f
 private const val CLOSED_EYE_WIDTH = 3f
@@ -58,18 +68,43 @@ fun vinylTones(base: Color): VinylTones =
         shade = lerp(base, SkColors.Ink, SHADE_MIX),
     )
 
-/** Radial gradient lit from the upper left of [bounds]. Build it once per color and part, never per frame. */
+/**
+ * Radial gradient lit from the upper left of [bounds] and stretched to its ellipse, so wide and tall
+ * parts shade as round forms: the lit side, the base color, the shaded side, a darker core shadow and,
+ * at the far rim, a little bounced light. Build it once per color and part, never per frame.
+ */
 fun vinylBrush(
     bounds: Rect,
     tones: VinylTones,
-): Brush =
-    Brush.radialGradient(
-        0f to tones.light,
-        BASE_STOP to tones.base,
-        1f to tones.shade,
-        center = Offset(bounds.left + bounds.width * LIGHT_CENTER_X, bounds.top + bounds.height * LIGHT_CENTER_Y),
-        radius = GRADIENT_RADIUS * max(bounds.width, bounds.height),
-    )
+): Brush = VinylBrush(bounds, tones)
+
+/** The gradient of [vinylBrush], laid out in the unit box and mapped onto [bounds] by the shader matrix. */
+private class VinylBrush(
+    private val bounds: Rect,
+    tones: VinylTones,
+) : ShaderBrush() {
+    private val colors =
+        listOf(
+            tones.light,
+            tones.base,
+            tones.shade,
+            lerp(tones.shade, SkColors.Ink, CORE_MIX),
+            lerp(tones.shade, tones.base, BOUNCE_MIX),
+        )
+
+    override fun createShader(size: Size): Shader =
+        RadialGradientShader(Offset(LIGHT_CENTER_X, LIGHT_CENTER_Y), GRADIENT_RADIUS, colors, VinylStops).apply {
+            setLocalMatrix(
+                Matrix().apply {
+                    setScale(max(bounds.width, MIN_EXTENT), max(bounds.height, MIN_EXTENT))
+                    postTranslate(bounds.left, bounds.top)
+                },
+            )
+        }
+}
+
+private val VinylStops = listOf(0f, BASE_STOP, SHADE_STOP, CORE_STOP, 1f)
+private const val MIN_EXTENT = 0.001f
 
 fun DrawScope.vinylOval(
     bounds: Rect,
@@ -93,16 +128,22 @@ fun specularRect(
     return Rect(left, top, left + width, top + height)
 }
 
-/** Soft white highlight in the upper left of [bounds], optionally tilted around its center. */
+/**
+ * White highlight in the upper left of [bounds], optionally tilted around its center: a broad soft
+ * sheen with a small bright hotspot in its middle, as on glossy vinyl.
+ */
 fun DrawScope.specular(
     bounds: Rect,
     rotationDeg: Float = 0f,
 ) {
     val halfWidth = bounds.width * SPECULAR_WIDTH / 2
     val halfHeight = bounds.height * SPECULAR_HEIGHT / 2
-    val left = bounds.left + bounds.width * LIGHT_CENTER_X - halfWidth
-    val top = bounds.top + bounds.height * LIGHT_CENTER_Y - halfHeight
-    unitFade(SpecularBrush, left, top, halfWidth * 2, halfHeight * 2, rotationDeg)
+    val cx = bounds.left + bounds.width * LIGHT_CENTER_X
+    val cy = bounds.top + bounds.height * LIGHT_CENTER_Y
+    unitFade(SpecularBrush, cx - halfWidth, cy - halfHeight, halfWidth * 2, halfHeight * 2, rotationDeg)
+    val hotWidth = halfWidth * HOTSPOT_SCALE
+    val hotHeight = halfHeight * HOTSPOT_SCALE
+    unitFade(HotspotBrush, cx - hotWidth, cy - hotHeight, hotWidth * 2, hotHeight * 2, rotationDeg)
 }
 
 /** Warm dark pool under a part: fades from the contact shadow pigment to transparent. */
@@ -123,6 +164,7 @@ private fun unitFadeBrush(color: Color): Brush =
     )
 
 private val SpecularBrush = unitFadeBrush(Color.White.copy(alpha = SPECULAR_ALPHA))
+private val HotspotBrush = unitFadeBrush(Color.White.copy(alpha = HOTSPOT_ALPHA))
 private val ContactShadowBrush =
     unitFadeBrush(PersonalizationColors.ContactShadow.copy(alpha = CONTACT_SHADOW_ALPHA))
 private val GroundShadowBrush = unitFadeBrush(SkColors.Ink.copy(alpha = GROUND_SHADOW_ALPHA))

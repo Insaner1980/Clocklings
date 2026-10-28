@@ -30,8 +30,8 @@ class WardrobeTest {
     }
 
     @Test
-    fun `head, neck and extra are optional`() {
-        assertEquals(setOf(Slot.HEAD, Slot.NECK, Slot.EXTRA), Slot.entries.filter { it.optional }.toSet())
+    fun `only the doll's hair, dress and shoes are required`() {
+        assertEquals(setOf(Slot.HAIR, Slot.DRESS, Slot.SHOES), Slot.entries.filterNot { it.optional }.toSet())
     }
 
     @Test

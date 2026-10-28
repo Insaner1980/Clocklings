@@ -55,6 +55,8 @@ internal object DogRig : AnimalRig(
             vinylOval(HaunchRight, fur.haunchRight)
             vinylShape(Belly)
             specular(BodyShine)
+            contactShadow(PawShadowLeft)
+            contactShadow(PawShadowRight)
             vinylOval(PawLeft, fur.pawLeft)
             vinylOval(PawRight, fur.pawRight)
             specular(PawLeft)
@@ -74,6 +76,8 @@ internal object DogRig : AnimalRig(
         vinylOval(Head, fur.head)
         specular(HeadShine, HEAD_SHINE_DEG)
         drawPath(PatchPath, fur.patch)
+        contactShadow(EarShadowLeft)
+        contactShadow(EarShadowRight)
         drawPath(EarLeftPath, fur.earLeft)
         specular(EarLeftShine, EAR_SHINE_DEG)
         rotate(-pose.partDeg, EarRightPivot) {
@@ -179,3 +183,9 @@ private val MouthStroke = itemStroke(2.5f)
 private val Tongue = VinylShape(svgPath("M112 141 Q111 157 120 157 Q129 157 128 141 Z"), ArtTones.Pink)
 private val TongueLine = svgPath("M120 144 L120 152")
 private val TongueStroke = itemStroke(1.6f)
+
+// Contact shadows where parts meet: above the paws and under the floppy ears.
+private val PawShadowLeft = ovalRect(94f, 262f, 22f, 7f)
+private val PawShadowRight = ovalRect(146f, 262f, 22f, 7f)
+private val EarShadowLeft = ovalRect(80f, 100f, 14f, 36f)
+private val EarShadowRight = ovalRect(160f, 100f, 14f, 36f)

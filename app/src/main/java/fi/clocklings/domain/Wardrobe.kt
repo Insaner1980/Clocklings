@@ -1,6 +1,9 @@
 package fi.clocklings.domain
 
-/** Clothing slots. Head, neck and extra can be left empty. Neck is an animal-only slot. */
+/**
+ * Clothing slots. Only the doll's hair, dress and shoes are required. Neck is an animal-only slot; roof,
+ * front, wheels and model (transformations) are the car's.
+ */
 enum class Slot(
     val optional: Boolean,
 ) {
@@ -10,13 +13,21 @@ enum class Slot(
     HEAD(true),
     NECK(true),
     EXTRA(true),
+    ROOF(true),
+    FRONT(true),
+    WHEELS(true),
+    MODEL(true),
 }
 
-/** The slots a companion can dress. The doll has no neck slot; animals have only head, neck and extra. */
+/**
+ * The slots a companion can dress, chosen by its anatomy. The doll has no neck slot; animals have only
+ * head, neck and extra; the car has no head at all.
+ */
 val CompanionKind.slots: List<Slot>
     get() =
         when (this) {
             CompanionKind.HUMAN -> listOf(Slot.HAIR, Slot.DRESS, Slot.SHOES, Slot.HEAD, Slot.EXTRA)
+            CompanionKind.CAR -> listOf(Slot.ROOF, Slot.FRONT, Slot.WHEELS, Slot.MODEL)
             CompanionKind.NONE -> emptyList()
             else -> listOf(Slot.HEAD, Slot.NECK, Slot.EXTRA)
         }

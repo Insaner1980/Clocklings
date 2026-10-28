@@ -78,8 +78,12 @@ class Sfx(
         return track
     }
 
-    fun play(sound: Sound) {
-        if (sound.clip != null) playClip(sound) else playTone(sound)
+    /** Plays [sound]; a recorded clip plays at [rate] (1 = original pitch), a synthesized tone ignores it. */
+    fun play(
+        sound: Sound,
+        rate: Float = NORMAL_RATE,
+    ) {
+        if (sound.clip != null) playClip(sound, rate) else playTone(sound)
     }
 
     private fun playTone(sound: Sound) {
@@ -91,11 +95,18 @@ class Sfx(
         }.onFailure { Log.w(TAG, "Ääntä $sound ei voitu soittaa", it) }
     }
 
-    private fun playClip(sound: Sound) {
+    private fun playClip(
+        sound: Sound,
+        rate: Float,
+    ) {
         val sample = samples[sound]?.takeIf { synchronized(loaded) { it in loaded } } ?: return
         synchronized(streams) {
-            streams[sound]?.let(pool::stop)
-            val stream = pool.play(sample, FULL_VOLUME, FULL_VOLUME, 0, NO_LOOP, NORMAL_RATE)
+            // A new voice cuts off the previous one, e.g. while browsing companions.
+            streams.filterKeys { it == sound || (sound.voice && it.voice) }.forEach { (playing, stream) ->
+                pool.stop(stream)
+                streams -= playing
+            }
+            val stream = pool.play(sample, FULL_VOLUME, FULL_VOLUME, 0, NO_LOOP, rate)
             if (stream == 0) Log.w(TAG, "Ääntä $sound ei voitu soittaa") else streams[sound] = stream
         }
     }

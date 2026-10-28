@@ -1,6 +1,6 @@
 package fi.clocklings.domain
 
-enum class CompanionKind { HUMAN, CAT, DOG, ROBOT, DRAGON, DINOSAUR, NONE }
+enum class CompanionKind { HUMAN, CAT, DOG, ROBOT, DRAGON, DINOSAUR, BUNNY, UNICORN, CAR, NONE }
 
 enum class CompanionColor { ORIGINAL, BLUE, GREEN, PURPLE }
 

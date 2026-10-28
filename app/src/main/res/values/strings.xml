@@ -152,6 +152,10 @@
     <string name="slot_head">Headwear</string>
     <string name="slot_neck">Neckwear</string>
     <string name="slot_extra">Extras</string>
+    <string name="slot_roof">On the roof</string>
+    <string name="slot_front">Front</string>
+    <string name="slot_wheels">Wheels</string>
+    <string name="slot_model">Transformations</string>
     <string name="item_hair_letit">Brown braids</string>
     <string name="item_dress_perus">Yellow dress</string>
     <string name="item_shoes_tossut">White slippers</string>

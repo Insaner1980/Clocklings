@@ -6,6 +6,14 @@ private fun neck(id: String) = id to Slot.NECK
 
 private fun extra(id: String) = id to Slot.EXTRA
 
+private fun roof(id: String) = id to Slot.ROOF
+
+private fun front(id: String) = id to Slot.FRONT
+
+private fun wheels(id: String) = id to Slot.WHEELS
+
+private fun model(id: String) = id to Slot.MODEL
+
 /** One free item (star 0), then one unlock per star in the given order (star = 1-based position). */
 private fun ladder(
     kind: CompanionKind,
@@ -15,7 +23,7 @@ private fun ladder(
     listOf(Item(free.first, kind, free.second, 0)) +
         unlocks.mapIndexed { i, (id, slot) -> Item(id, kind, slot, i + 1) }
 
-/** The star-unlocked wardrobes of the five animal companions. Item ids are `<kind>-<slot>-<name>`. */
+/** The star-unlocked wardrobes of every companion but the doll. Item ids are `<kind>-<slot>-<name>`. */
 internal val AnimalItems: List<Item> =
     ladder(
         CompanionKind.CAT,
@@ -111,4 +119,61 @@ internal val AnimalItems: List<Item> =
             neck("dinosaur-neck-medal"),
             head("dinosaur-head-explorer-hat"),
             extra("dinosaur-extra-skateboard"),
+        ) +
+        ladder(
+            CompanionKind.BUNNY,
+            neck("bunny-neck-ribbon"),
+            extra("bunny-extra-carrot"),
+            head("bunny-head-ear-bow"),
+            neck("bunny-neck-daisies"),
+            extra("bunny-extra-basket"),
+            head("bunny-head-sun-hat"),
+            neck("bunny-neck-locket"),
+            extra("bunny-extra-watering-can"),
+            head("bunny-head-top-hat"),
+            neck("bunny-neck-bow-tie"),
+            extra("bunny-extra-bubbles"),
+            head("bunny-head-flower-crown"),
+            extra("bunny-extra-bouquet"),
+            neck("bunny-neck-cape"),
+            head("bunny-head-tiara"),
+            extra("bunny-extra-wings"),
+        ) +
+        ladder(
+            CompanionKind.UNICORN,
+            neck("unicorn-neck-lei"),
+            head("unicorn-head-horn-rings"),
+            extra("unicorn-extra-cloud"),
+            neck("unicorn-neck-stars"),
+            head("unicorn-head-flower-crown"),
+            extra("unicorn-extra-balloon"),
+            neck("unicorn-neck-scarf"),
+            head("unicorn-head-ribbons"),
+            extra("unicorn-extra-boots"),
+            neck("unicorn-neck-rainbow-scarf"),
+            head("unicorn-head-butterfly"),
+            extra("unicorn-extra-rainbow"),
+            neck("unicorn-neck-moon"),
+            head("unicorn-head-crown"),
+            neck("unicorn-neck-cape"),
+            extra("unicorn-extra-wings"),
+        ) +
+        ladder(
+            CompanionKind.CAR,
+            front("car-front-plate"),
+            wheels("car-wheels-sport"),
+            roof("car-roof-suitcase"),
+            front("car-front-sunglasses"),
+            wheels("car-wheels-offroad"),
+            model("car-model-race"),
+            roof("car-roof-surfboard"),
+            front("car-front-bull-bar"),
+            wheels("car-wheels-flames"),
+            roof("car-roof-flag"),
+            model("car-model-fire-engine"),
+            front("car-front-plow"),
+            roof("car-roof-taxi"),
+            wheels("car-wheels-gold"),
+            roof("car-roof-rally-lights"),
+            model("car-model-rocket"),
         )

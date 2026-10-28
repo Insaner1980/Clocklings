@@ -158,6 +158,10 @@
     <string name="slot_head">Huvudbonader</string>
     <string name="slot_neck">Runt halsen</string>
     <string name="slot_extra">Tillbehör</string>
+    <string name="slot_roof">På taket</string>
+    <string name="slot_front">Fram</string>
+    <string name="slot_wheels">Hjul</string>
+    <string name="slot_model">Förvandlingar</string>
     <string name="item_hair_letit">Bruna flätor</string>
     <string name="item_dress_perus">Gul klänning</string>
     <string name="item_shoes_tossut">Vita tofflor</string>

@@ -133,8 +133,8 @@ fun WardrobeScreen(
             ItemGrid(Wardrobe.itemsFor(kind, slot)) { item, cell, nameStyle ->
                 if (item.star <= total) {
                     ItemTile(item, outfit, color, cell, nameStyle = nameStyle, on = outfit.isOn(item), onClick = {
+                        app.play(if (outfit.isOn(item)) Sound.POP else Sound.EQUIP)
                         app.toggleItem(kind, item)
-                        app.play(Sound.POP)
                     })
                 } else {
                     LockedTile(item, outfit, color, total, cell, nameStyle)
@@ -144,9 +144,10 @@ fun WardrobeScreen(
     }
 }
 
+/** A section heading that shrinks rather than breaks a long word, such as Finnish "Muodonmuutokset". */
 @Composable
 private fun SectionTitle(text: String) {
-    Text(text, style = SkType.SectionTitle, modifier = Modifier.semantics { heading() })
+    WordSafeText(text, SkType.SectionTitle, Modifier.semantics { heading() }, textAlign = TextAlign.Start)
 }
 
 @Composable

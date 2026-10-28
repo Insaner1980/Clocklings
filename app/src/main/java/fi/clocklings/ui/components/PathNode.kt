@@ -148,18 +148,17 @@ private fun Modifier.pathTrail(
         val node = Offset(if (nodeOnStart) lead else size.width - lead, size.height / 2)
         val top = Offset(size.width / 2, 0f)
         val bottom = Offset(size.width / 2, size.height)
+        val outside = if (nodeOnStart) SkDimens.PathLead.toPx() else size.width - SkDimens.PathLead.toPx()
         val path =
             Path().apply {
                 if (!first) {
                     moveTo(top.x, top.y)
-                    val outside = if (nodeOnStart) SkDimens.PathLead.toPx() else size.width - SkDimens.PathLead.toPx()
                     cubicTo(top.x, top.y, outside, top.y, outside, node.y)
                     lineTo(node.x, node.y)
                 } else {
                     moveTo(node.x, node.y)
                 }
                 if (!last) {
-                    val outside = if (nodeOnStart) SkDimens.PathLead.toPx() else size.width - SkDimens.PathLead.toPx()
                     lineTo(outside, node.y)
                     cubicTo(outside, bottom.y, bottom.x, bottom.y, bottom.x, bottom.y)
                 }

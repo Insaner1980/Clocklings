@@ -250,6 +250,54 @@ class GalleryTest {
                 Outfit().with(Slot.HEAD, "dinosaur-head-party-hat").with(Slot.NECK, "dinosaur-neck-lei"),
         )
 
+    @Test
+    fun bunnyInEveryItem() = companionInEveryItem(CompanionKind.BUNNY)
+
+    /** Two large bunny looks: Original with sun hat and ribbon, Blue with top hat and bow tie. */
+    @Test
+    fun bunnySampleLooks() =
+        companionLarge(
+            CompanionKind.BUNNY,
+            CompanionColor.ORIGINAL to
+                Outfit().with(Slot.HEAD, "bunny-head-sun-hat").with(Slot.NECK, "bunny-neck-ribbon"),
+            CompanionColor.BLUE to
+                Outfit().with(Slot.HEAD, "bunny-head-top-hat").with(Slot.NECK, "bunny-neck-bow-tie"),
+        )
+
+    @Test
+    fun unicornInEveryItem() = companionInEveryItem(CompanionKind.UNICORN)
+
+    /** Two large unicorn looks: Original with crown and royal cape, Purple with flower crown and garland. */
+    @Test
+    fun unicornSampleLooks() =
+        companionLarge(
+            CompanionKind.UNICORN,
+            CompanionColor.ORIGINAL to
+                Outfit().with(Slot.HEAD, "unicorn-head-crown").with(Slot.NECK, "unicorn-neck-cape"),
+            CompanionColor.PURPLE to
+                Outfit().with(Slot.HEAD, "unicorn-head-flower-crown").with(Slot.NECK, "unicorn-neck-lei"),
+        )
+
+    @Test
+    fun carInEveryItem() = companionInEveryItem(CompanionKind.CAR)
+
+    /** Two large car looks: Original race car with surfboard and sport rims, Blue fire engine with a flag. */
+    @Test
+    fun carSampleLooks() =
+        companionLarge(
+            CompanionKind.CAR,
+            CompanionColor.ORIGINAL to
+                Outfit()
+                    .with(Slot.MODEL, "car-model-race")
+                    .with(Slot.ROOF, "car-roof-surfboard")
+                    .with(Slot.WHEELS, "car-wheels-sport"),
+            CompanionColor.BLUE to
+                Outfit()
+                    .with(Slot.MODEL, "car-model-fire-engine")
+                    .with(Slot.ROOF, "car-roof-flag")
+                    .with(Slot.FRONT, "car-front-plate"),
+        )
+
     /**
      * Saves `<kind>-colors` (the bare companion in every color), `<kind>-items` (the companion in the
      * Original color wearing exactly one item per tile, with the item name underneath) and `<kind>-crops`

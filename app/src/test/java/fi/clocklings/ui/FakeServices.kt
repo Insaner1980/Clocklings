@@ -24,6 +24,7 @@ class FakeServices : AppServices {
     override fun play(
         sound: Sound,
         force: Boolean,
+        rate: Float,
     ) {
         sounds += sound
     }

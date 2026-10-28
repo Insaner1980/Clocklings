@@ -142,12 +142,13 @@ class ChallengeViewModel(
         val s = _state.value
         val record = s.score > s.best
         if (record) services.repository.updateProgress { it.withChallengeScore(s.score) }
-        services.play(Sound.WIN)
+        val newRecord = record && s.score > 0
+        services.play(if (newRecord) Sound.RECORD else Sound.WIN)
         _state.update {
             it.copy(
                 phase = ChallengePhase.END,
                 best = if (record) s.score else s.best,
-                newRecord = record && s.score > 0,
+                newRecord = newRecord,
                 busy = true,
             )
         }

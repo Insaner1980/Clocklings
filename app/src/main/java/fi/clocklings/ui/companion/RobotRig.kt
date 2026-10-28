@@ -60,6 +60,8 @@ internal object RobotRig : AnimalRig(
             vinylShape(LegLeft)
             vinylShape(LegRight)
             vinylShape(Knees)
+            contactShadow(FootShadowLeft)
+            contactShadow(FootShadowRight)
             drawPath(FootLeft, shell.footLeft)
             drawPath(FootRight, shell.footRight)
             specular(FootLeftBounds)
@@ -75,6 +77,8 @@ internal object RobotRig : AnimalRig(
             specular(ButtonLeft.bounds)
             specular(ButtonRight.bounds)
             items(outfit, ArtPart.BODY, ItemLayer.FRONT)
+            contactShadow(ShoulderShadowLeft)
+            contactShadow(ShoulderShadowRight)
             rotate(pose.armDeg, ShoulderLeft) { arm(LeftArm, shell.handLeft) }
             arm(RightArm, shell.handRight) { items(outfit, ArtPart.HAND, ItemLayer.FRONT) }
             contactShadow(HeadShadow)
@@ -254,3 +258,9 @@ private val Eyes = listOf(RobotEye(95f, 94f), RobotEye(145f, 94f))
 private val EyeCorner = CornerRadius(7f)
 private val Smile = svgPath("M106 114 Q120 126 134 114")
 private val SmileStroke = itemStroke(4f)
+
+// Contact shadows where parts meet: the body beside the shoulders and the legs above the feet.
+private val ShoulderShadowLeft = ovalRect(76f, 194f, 8f, 16f)
+private val ShoulderShadowRight = ovalRect(164f, 194f, 8f, 16f)
+private val FootShadowLeft = ovalRect(93f, 260f, 12f, 5f)
+private val FootShadowRight = ovalRect(147f, 260f, 12f, 5f)

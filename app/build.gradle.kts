@@ -1,3 +1,4 @@
+import com.android.build.api.variant.HostTestBuilder
 import io.gitlab.arturbosch.detekt.Detekt
 import org.gradle.testing.jacoco.plugins.JacocoTaskExtension
 import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
@@ -88,6 +89,13 @@ android {
         language {
             enableSplit = false
         }
+    }
+}
+
+androidComponents {
+    // AGP 9.5 preview tasks require unit-test resources when stability checks realize all tasks.
+    beforeVariants(selector().withBuildType("release")) {
+        it.hostTests.getValue(HostTestBuilder.UNIT_TEST_TYPE).enable = true
     }
 }
 
@@ -199,6 +207,11 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
+    constraints {
+        testImplementation(libs.guava) {
+            because("Fix CVE-2026-102554 in Robolectric's transitive dependency")
+        }
+    }
     testImplementation(composeBom)
     testImplementation(libs.androidx.compose.ui.test.junit4)
     testImplementation(libs.androidx.test.ext.junit)

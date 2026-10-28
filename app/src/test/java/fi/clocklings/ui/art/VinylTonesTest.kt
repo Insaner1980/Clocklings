@@ -18,13 +18,13 @@ class VinylTonesTest {
     }
 
     @Test
-    fun `light mixes 45 percent toward white`() {
-        assertEquals(lerp(Color.Black, Color.White, 0.45f), vinylTones(Color.Black).light)
+    fun `light mixes 50 percent toward white`() {
+        assertEquals(lerp(Color.Black, Color.White, 0.5f), vinylTones(Color.Black).light)
     }
 
     @Test
-    fun `shade mixes 30 percent toward ink`() {
+    fun `shade mixes 36 percent toward ink`() {
         val base = Color(0xFFEE8C3E)
-        assertEquals(lerp(base, SkColors.Ink, 0.30f), vinylTones(base).shade)
+        assertEquals(lerp(base, SkColors.Ink, 0.36f), vinylTones(base).shade)
     }
 }

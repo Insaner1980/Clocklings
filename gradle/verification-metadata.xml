@@ -82,6 +82,7 @@
          </trusted-key>
          <trusted-key id="3690C240CE51B4670D30AD1C38EE757D69184620" group="org.tukaani" name="xz" version="1.9"/>
          <trusted-key id="41CD49B4EF5876F9E9F691DABAC30622339994C4" group="org.jspecify" name="jspecify" version="1.0.0"/>
+         <trusted-key id="41CD49B4EF5876F9E9F691DABAC30622339994C4" group="org.jspecify" name="jspecify" version="1.0.1"/>
          <trusted-key id="45B1912987CB9DFA6A0D9693067091F1549B293F" group="org.semver4j" name="semver4j" version="5.8.0"/>
          <trusted-key id="47504B76CF89C15C0512D9AFE16AB52D79FD224F" group="com.google.api.grpc" name="proto-google-common-protos"/>
          <trusted-key id="475F3B8E59E6E63AA78067482C7B12F2A511E325" group="org.slf4j"/>
@@ -188,9 +189,9 @@
       </trusted-keys>
    </configuration>
    <components>
-      <component group="com.google.guava" name="guava" version="33.6.0-jre">
-         <artifact name="guava-33.6.0-android.jar">
-            <sha256 value="9532ca9ba8aceb4cd2067171f981c799988b7f5844e3e274811a3bb757034bc4" origin="Verified against Maven Central"/>
+      <component group="com.google.guava" name="guava" version="33.7.2-jre">
+         <artifact name="guava-33.7.2-android.jar">
+            <sha256 value="b949fe975a32421c1a2633c07a4f1578b462f2f467668aa0a4023c5ff7c4a808" origin="Verified against Maven Central"/>
          </artifact>
       </component>
       <component group="androidx.arch.core" name="core-common" version="2.1.0">
@@ -487,6 +488,11 @@
       <component group="org.assertj" name="assertj-bom" version="3.27.6">
          <artifact name="assertj-bom-3.27.6.pom">
             <pgp value="BE685132AFD2740D9095F9040CC0B712FEE75827"/>
+         </artifact>
+      </component>
+      <component group="org.bouncycastle" name="bc-jdk18on-bom" version="1.80.2">
+         <artifact name="bc-jdk18on-bom-1.80.2.pom">
+            <sha256 value="5f59cc51b21d92ddc08cc93b488983ea43dd211fe8d950335ef31bcdd7b15b47" origin="Verified against Maven Central"/>
          </artifact>
       </component>
       <component group="org.jlleitschuh.gradle" name="ktlint-gradle" version="14.2.0">

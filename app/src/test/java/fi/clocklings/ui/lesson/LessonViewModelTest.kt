@@ -1,5 +1,6 @@
 package fi.clocklings.ui.lesson
 
+import fi.clocklings.audio.Sound
 import fi.clocklings.domain.AppLanguage
 import fi.clocklings.domain.Hand
 import fi.clocklings.domain.Mark
@@ -146,6 +147,7 @@ class LessonViewModelTest {
             assertFalse(vm.state.value.finished)
             vm.next()
             assertTrue(vm.state.value.finished)
+            assertEquals(2, services.sounds.count { it == Sound.LESSON_COMPLETE })
         }
 
     @Test

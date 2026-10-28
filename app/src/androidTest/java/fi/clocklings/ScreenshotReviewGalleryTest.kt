@@ -48,6 +48,7 @@ import fi.clocklings.domain.TaskType
 import fi.clocklings.domain.Text
 import fi.clocklings.ui.AppViewModel
 import fi.clocklings.ui.LocalAppViewModel
+import fi.clocklings.ui.appearance.AppearanceScreen
 import fi.clocklings.ui.appearance.LocalCompanionOutfit
 import fi.clocklings.ui.appearance.LocalPersonalization
 import fi.clocklings.ui.ask.AskScreen
@@ -189,6 +190,10 @@ class ScreenshotReviewGalleryTest {
                 WardrobeScreen(kind, progress, CompanionColor.ORIGINAL, {})
             }
 
+            "appearance" -> {
+                AppearanceScreen(settings.personalization, progress, {}, {})
+            }
+
             "settings" -> {
                 SettingsScreen(settings, true, {}, {})
             }
@@ -257,11 +262,26 @@ class ScreenshotReviewGalleryTest {
             }
         }
         if (requestedScreen != null && requestedScreen != "wardrobe") return
-        for (companion in listOf(CompanionKind.DOG, CompanionKind.ROBOT)) {
+        for (companion in listOf(
+            CompanionKind.DOG,
+            CompanionKind.ROBOT,
+            CompanionKind.BUNNY,
+            CompanionKind.UNICORN,
+            CompanionKind.CAR,
+        )) {
             selectScreen("wardrobe", companion)
             capture("${language.tag}-wardrobe-${companion.name}-top")
             scrollToEnd()
             capture("${language.tag}-wardrobe-${companion.name}-bottom")
+        }
+        // The new companions on Home and in the picker, where the picker shows every companion.
+        for (companion in listOf(CompanionKind.BUNNY, CompanionKind.UNICORN, CompanionKind.CAR)) {
+            selectScreen("home", companion)
+            capture("${language.tag}-home-${companion.name}")
+            selectScreen("appearance", companion)
+            capture("${language.tag}-appearance-${companion.name}-top")
+            scrollToEnd()
+            capture("${language.tag}-appearance-${companion.name}-bottom")
         }
     }
 
