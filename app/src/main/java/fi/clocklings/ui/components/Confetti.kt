@@ -129,6 +129,13 @@ class ConfettiState internal constructor(
         running++
     }
 
+    /** Removes every particle and flying star at once, for example when a new task starts. */
+    fun clear() {
+        particles.clear()
+        flights.clear()
+        frame++
+    }
+
     internal val isActive: Boolean get() = particles.isNotEmpty() || flights.isNotEmpty()
 
     private fun shapeScale(shape: ConfettiShape): Float = if (shape == ConfettiShape.RECT) 1f else SHAPE_SCALE
@@ -157,7 +164,10 @@ class ConfettiState internal constructor(
         private const val FLIGHT_FRAMES = FLIGHT_MS / 16.667f
         private const val GRAVITY = 0.38f
         private const val DRAG = 0.99f
-        private const val LIFE = 110
+        internal const val LIFE = 110
+
+        /** The last frames of a particle's life, during which it fades out. */
+        internal const val FADE_FRAMES = 30
         private const val SHAPE_SCALE = 1.5f
         private const val SPARKLE_COUNT = 24
         private const val SPARKLE_SPEED = 7f
@@ -201,9 +211,12 @@ fun ConfettiHost(
                 height[0] = size.height
                 state.frame // luetaan, jotta piirretään joka ruudulla
                 for (p in state.particles) {
+                    val fade = ConfettiMath.particleAlpha(p.life, ConfettiState.LIFE, ConfettiState.FADE_FRAMES)
                     translate(p.x, p.y) {
                         rotateRad(p.rotation, pivot = Offset.Zero) {
-                            scale(p.size, p.size, pivot = Offset.Zero) { drawConfettiShape(p.shape, p.color) }
+                            scale(p.size, p.size, pivot = Offset.Zero) {
+                                drawConfettiShape(p.shape, p.color.copy(alpha = p.color.alpha * fade))
+                            }
                         }
                     }
                 }

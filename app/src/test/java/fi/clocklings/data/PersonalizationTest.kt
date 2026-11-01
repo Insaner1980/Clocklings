@@ -74,6 +74,21 @@ class PersonalizationTest {
         }
 
     @Test
+    fun storedDragonPurpleReadsAsOriginal() =
+        runTest {
+            val store = InMemoryPreferencesStore()
+            val repository = ProgressRepository(store)
+            store.edit { it[stringPreferencesKey("companion_DRAGON_color")] = CompanionColor.PURPLE.name }
+            assertEquals(
+                CompanionStyle(),
+                repository.settings
+                    .first()
+                    .personalization
+                    .styleFor(CompanionKind.DRAGON),
+            )
+        }
+
+    @Test
     fun returningToCompanionRestoresItsOwnStyle() =
         runTest {
             val repository = ProgressRepository(InMemoryPreferencesStore())

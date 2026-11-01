@@ -3,7 +3,6 @@ package fi.clocklings.ui.freeclock
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -32,24 +31,18 @@ import fi.clocklings.ui.clock.ClockCommand
 import fi.clocklings.ui.clock.ClockFace
 import fi.clocklings.ui.components.ClockBox
 import fi.clocklings.ui.components.CompanionTip
-import fi.clocklings.ui.components.DigitalPill
 import fi.clocklings.ui.components.FlatPanel
 import fi.clocklings.ui.components.HelpTopBar
-import fi.clocklings.ui.components.RoundIconButton
 import fi.clocklings.ui.components.ScreenScaffold
 import fi.clocklings.ui.components.SkButton
 import fi.clocklings.ui.components.SkIcons
-import fi.clocklings.ui.digitalLabel
-import fi.clocklings.ui.locale.LocalAppLanguage
-import fi.clocklings.ui.resources
+import fi.clocklings.ui.components.TimeReadout
 import fi.clocklings.ui.sharedClocklingsElement
-import fi.clocklings.ui.spokenTime
 import fi.clocklings.ui.theme.Section
 import fi.clocklings.ui.theme.SkColors
 import fi.clocklings.ui.theme.SkDimens
 import fi.clocklings.ui.theme.SkShapes
 import fi.clocklings.ui.theme.SkType
-import fi.clocklings.ui.timeLabel
 import kotlin.random.Random
 
 /** Vapaa kello: raahattava kello, aika sanoina ja numeroina, Kuuntele ja Arvo aika. */
@@ -117,25 +110,8 @@ private fun ExplorePanel(
     onRandom: () -> Unit,
 ) {
     val app = LocalAppViewModel.current
-    val res = resources()
     FlatPanel {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM),
-        ) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(SkDimens.GapS)) {
-                Text(timeLabel(LocalAppLanguage.current, time, h24), style = SkType.Words)
-                DigitalPill(digitalLabel(res, time, h24))
-            }
-            if (speechAvailable) {
-                RoundIconButton(
-                    SkIcons.Listen,
-                    stringResource(R.string.listen),
-                    { app.speak(spokenTime(res, time, h24)) },
-                    large = true,
-                )
-            }
-        }
+        TimeReadout(time, h24, speechAvailable, app::speak)
         SkButton(stringResource(R.string.random_time), onRandom, Modifier.fillMaxWidth(), icon = SkIcons.Shuffle)
         HandLegend()
     }

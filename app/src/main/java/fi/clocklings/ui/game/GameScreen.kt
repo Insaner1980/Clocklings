@@ -35,9 +35,11 @@ import fi.clocklings.ui.components.ClockBox
 import fi.clocklings.ui.components.CompanionTip
 import fi.clocklings.ui.components.ConfettiState
 import fi.clocklings.ui.components.DigitalPill
+import fi.clocklings.ui.components.DotOutcome
 import fi.clocklings.ui.components.FeedbackKind
 import fi.clocklings.ui.components.FlatPanel
 import fi.clocklings.ui.components.HelpToggle
+import fi.clocklings.ui.components.LocalConfetti
 import fi.clocklings.ui.components.OptionButton
 import fi.clocklings.ui.components.OptionState
 import fi.clocklings.ui.components.ProgressDots
@@ -132,25 +134,29 @@ fun GameScreen(
         rememberCelebrationAnchors(state.celebrate, SUCCESS_CONFETTI, flyTo = { dots[state.taskIndex] }) {
             if (state.task.type == TaskType.READ) state.task.time else DONE_ANCHOR
         }
+    // Leftover confetti and sparkles must not carry over onto the next question.
+    val confetti = LocalConfetti.current
+    LaunchedEffect(state.taskIndex) { confetti?.clear() }
     ScreenScaffold(
         modifier,
-        clockHeightShare = SkDimens.PLAY_CLOCK_HEIGHT_SHARE,
+        clockHeightShare = SkDimens.GAME_CLOCK_HEIGHT_SHARE,
         section = Section.PLAY,
         topBar = {
             TopBar(
                 title = stringResource(levelName(state.level)),
-                backLabel = stringResource(R.string.back_levels),
                 onBack = onBack,
                 trailing = { HelpToggle(help, onToggleHelp) },
             )
         },
     ) { clockSize ->
+        val currentDone = state.feedback is GameFeedback.Praise
         ProgressDots(
             state.taskCount,
             state.taskIndex,
-            currentDone = state.feedback is GameFeedback.Praise,
+            currentDone = currentDone,
             fillDelayMs = ConfettiState.FLIGHT_MS,
             onDotCenter = { i, c -> dots[i] = c },
+            outcomes = dotOutcomes(state, currentDone),
         )
         GameClock(state, help, onClockChange, clockSize)
         FlatPanel {
@@ -169,8 +175,9 @@ fun GameScreen(
             }
             GameFeedbackMessage(state.feedback, state.h24)
             if (state.showNext) {
+                val label = if (state.feedback == GameFeedback.SaveFailed) R.string.settings_retry else R.string.next
                 SkButton(
-                    stringResource(R.string.next),
+                    stringResource(label),
                     onNext,
                     kind = ButtonKind.GREEN,
                     modifier = Modifier.fillMaxWidth(),
@@ -190,6 +197,21 @@ private fun timeText(
 private const val DONE_ANCHOR = -1
 private const val SUCCESS_CONFETTI = 45
 
+/**
+ * The recorded outcomes plus, during the success pause, the task just solved, so its dot pops in
+ * the colour it keeps. The ViewModel records that outcome only when it advances; after that (the
+ * last task while the result is saved) it is already in the list and is not added twice.
+ */
+internal fun dotOutcomes(
+    state: GameUiState,
+    currentDone: Boolean,
+): List<DotOutcome> =
+    if (currentDone && state.outcomes.size <= state.taskIndex) {
+        state.outcomes + outcomeOf(state.taskMistakes)
+    } else {
+        state.outcomes
+    }
+
 @Composable
 private fun GameFeedbackMessage(
     feedback: GameFeedback?,
@@ -199,6 +221,10 @@ private fun GameFeedbackMessage(
     feedback?.let { fb ->
         val (text, kind) =
             when (fb) {
+                GameFeedback.SaveFailed -> {
+                    stringResource(R.string.settings_save_error) to FeedbackKind.HINT
+                }
+
                 is GameFeedback.Praise -> {
                     val p = praise(res, fb.praiseIndex)
                     (

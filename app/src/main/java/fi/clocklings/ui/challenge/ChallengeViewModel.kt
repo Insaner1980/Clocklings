@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.IOException
 import kotlin.random.Random
 
 enum class ChallengePhase { START, RUN, END }
@@ -25,6 +26,8 @@ data class ChallengeUiState(
     val score: Int = 0,
     val best: Int = 0,
     val newRecord: Boolean = false,
+    val saveFailed: Boolean = false,
+    val savePending: Boolean = false,
     val question: Int = 0,
     val options: List<Int> = emptyList(),
     val optionStates: Map<Int, OptionState> = emptyMap(),
@@ -86,6 +89,7 @@ class ChallengeViewModel(
     }
 
     fun start() {
+        if (_state.value.savePending) return
         timer?.cancel()
         pending?.cancel()
         _state.update {
@@ -93,6 +97,7 @@ class ChallengeViewModel(
                 phase = ChallengePhase.RUN,
                 score = 0,
                 newRecord = false,
+                saveFailed = false,
                 runId = it.runId + 1,
                 deadlineNanos = nowNanos() + DURATION_MS * 1_000_000L,
             )
@@ -137,18 +142,33 @@ class ChallengeViewModel(
             }
     }
 
+    fun retrySave() {
+        if (!_state.value.saveFailed || _state.value.savePending) return
+        _state.update { it.copy(savePending = true) }
+        viewModelScope.launch { end() }
+    }
+
     private suspend fun end() {
         pending?.cancel()
+        _state.update { it.copy(busy = true, savePending = true) }
         val s = _state.value
         val record = s.score > s.best
-        if (record) services.repository.updateProgress { it.withChallengeScore(s.score) }
-        val newRecord = record && s.score > 0
+        val saved =
+            try {
+                if (record) services.repository.updateProgress { it.withChallengeScore(s.score) }
+                true
+            } catch (_: IOException) {
+                false
+            }
+        val newRecord = saved && record && s.score > 0
         services.play(if (newRecord) Sound.RECORD else Sound.WIN)
         _state.update {
             it.copy(
                 phase = ChallengePhase.END,
-                best = if (record) s.score else s.best,
+                best = if (saved && record) s.score else s.best,
                 newRecord = newRecord,
+                saveFailed = !saved,
+                savePending = false,
                 busy = true,
             )
         }

@@ -47,6 +47,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fi.clocklings.R
@@ -57,6 +58,7 @@ import fi.clocklings.domain.Item
 import fi.clocklings.domain.Outfit
 import fi.clocklings.domain.Progress
 import fi.clocklings.domain.Wardrobe
+import fi.clocklings.domain.colorOptions
 import fi.clocklings.domain.slots
 import fi.clocklings.ui.LocalAppViewModel
 import fi.clocklings.ui.appearance.companionColorName
@@ -119,35 +121,52 @@ fun WardrobeScreen(
         if (Wardrobe.lockedCount(kind, total) > 0) {
             Text(stringResource(R.string.doll_stars_explained), style = SkType.SmallSoft)
         }
-        if (kind != CompanionKind.HUMAN) {
-            SectionTitle(stringResource(R.string.companion_color))
-            CompanionColors(kind, color)
+        // Said once, above the first section for every companion. The doll's required clothes cannot be
+        // taken off, so its hint names only the optional ones.
+        if (kind.slots.isNotEmpty()) {
+            val hint =
+                if (kind.slots.all { it.optional }) R.string.doll_optional_hint else R.string.doll_optional_hint_partial
+            Text(stringResource(hint), style = SkType.SmallSoft)
         }
-        val firstOptional = kind.slots.firstOrNull { it.optional }
-        for (slot in kind.slots) {
-            SectionTitle(stringResource(slotName(slot)))
-            // Said once: every optional slot works the same way.
-            if (slot == firstOptional) {
-                Text(stringResource(R.string.doll_optional_hint), style = SkType.SmallSoft)
-            }
-            ItemGrid(Wardrobe.itemsFor(kind, slot)) { item, cell, nameStyle ->
-                if (item.star <= total) {
-                    ItemTile(item, outfit, color, cell, nameStyle = nameStyle, on = outfit.isOn(item), onClick = {
-                        app.play(if (outfit.isOn(item)) Sound.POP else Sound.EQUIP)
-                        app.toggleItem(kind, item)
-                    })
-                } else {
-                    LockedTile(item, outfit, color, total, cell, nameStyle)
+        if (kind != CompanionKind.HUMAN) {
+            WardrobeSection(stringResource(R.string.companion_color)) { CompanionColors(kind, color) }
+        }
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val (columns, nameStyle) = rememberItemGridLayout(Wardrobe.itemsFor(kind), maxWidth)
+            Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapScreen)) {
+                for (slot in kind.slots) {
+                    WardrobeSection(stringResource(slotName(slot))) {
+                        ItemGrid(Wardrobe.itemsFor(kind, slot), columns) { item, cell ->
+                            if (item.star <= total) {
+                                val on = outfit.isOn(item)
+                                ItemTile(item, outfit, color, cell, nameStyle = nameStyle, on = on, onClick = {
+                                    app.play(if (on) Sound.POP else Sound.EQUIP)
+                                    app.toggleItem(kind, item)
+                                })
+                            } else {
+                                LockedTile(item, outfit, color, total, cell, nameStyle)
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 }
 
-/** A section heading that shrinks rather than breaks a long word, such as Finnish "Muodonmuutokset". */
+/**
+ * A heading kept close to its own content and set further apart from the section above. The heading
+ * shrinks rather than breaks a long word, such as Finnish "Muodonmuutokset".
+ */
 @Composable
-private fun SectionTitle(text: String) {
-    WordSafeText(text, SkType.SectionTitle, Modifier.semantics { heading() }, textAlign = TextAlign.Start)
+private fun WardrobeSection(
+    title: String,
+    content: @Composable () -> Unit,
+) {
+    Column(Modifier.padding(top = SkDimens.GapS), verticalArrangement = Arrangement.spacedBy(SkDimens.GapS)) {
+        WordSafeText(title, SkType.SectionTitle, Modifier.semantics { heading() }, textAlign = TextAlign.Start)
+        content()
+    }
 }
 
 @Composable
@@ -207,13 +226,17 @@ private fun NameField(
         textStyle = SkType.NameField.copy(textAlign = TextAlign.Center),
         cursorBrush = SolidColor(SkColors.Hour),
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Done),
-        modifier = Modifier.widthIn(max = 280.dp).fillMaxWidth().semantics { contentDescription = label },
+        modifier =
+            Modifier
+                .widthIn(max = SkDimens.NameFieldMaxWidth)
+                .fillMaxWidth()
+                .semantics { contentDescription = label },
         decorationBox = { inner ->
             Row(
                 Modifier
                     .background(SkColors.Surface, SkShapes.Field)
                     .border(SkDimens.BorderThin, SkColors.Line, SkShapes.Field)
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                    .padding(horizontal = SkDimens.FieldPaddingHorizontal, vertical = SkDimens.FieldPaddingVertical),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(SkDimens.GapS),
             ) {
@@ -221,7 +244,7 @@ private fun NameField(
                     if (text.isEmpty()) {
                         Text(
                             stringResource(R.string.doll_name_placeholder),
-                            style = SkType.NameField.copy(color = SkColors.InkSoft, textAlign = TextAlign.Center),
+                            style = SkType.NameFieldPlaceholder.copy(textAlign = TextAlign.Center),
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
@@ -235,52 +258,57 @@ private fun NameField(
 }
 
 /**
- * [wideColumns] columns (three for items, one row of four for colors); two on narrow screens and
- * with large text, so long names such as "Firefighter helmet" never split mid-word. Empty places
- * in the last row stay empty.
+ * One column count and item name size for every grid of the wardrobe, so all its sections match.
+ * Three columns, two on narrow screens and with large text; a column is dropped only when the longest
+ * word of any name, such as "Firefighter", does not fit even at the minimum size, so a name never
+ * splits mid-word. The names then shrink as little as that column count needs.
  */
 @Composable
-private fun ItemGrid(
-    options: List<Item>,
-    modifier: Modifier = Modifier,
-    wideColumns: Int = GRID_COLUMNS,
-    tile: @Composable (Item, Modifier, TextStyle) -> Unit,
-) {
-    BoxWithConstraints(modifier.fillMaxWidth()) {
-        val narrow = maxWidth < NarrowGridWidth || LocalDensity.current.fontScale > SkDimens.MAX_ROW_FONT_SCALE
-        val density = LocalDensity.current
-        val measurer = rememberTextMeasurer()
-        val names = options.map { stringResource(itemName(it.id)) }
-        val words = names.flatMap { it.split(Regex("(?<=-)|\\s+")) }
+private fun rememberItemGridLayout(
+    items: List<Item>,
+    width: Dp,
+): Pair<Int, TextStyle> {
+    val density = LocalDensity.current
+    val measurer = rememberTextMeasurer()
+    val names = items.map { stringResource(itemName(it.id)) }
+    return remember(names, width, density) {
+        val words = names.flatMap { it.split(WordBreak) }
 
         fun longestWordWidth(fontSize: Float) =
-            words.maxOfOrNull {
-                measurer.measure(it, SkType.ItemName.copy(fontSize = fontSize.sp)).size.width
-            } ?: 0
-        var columns = if (narrow) NARROW_GRID_COLUMNS else wideColumns
+            words.maxOfOrNull { measurer.measure(it, SkType.ItemName.copy(fontSize = fontSize.sp)).size.width } ?: 0
 
         fun textWidth(count: Int) =
             with(density) {
-                (maxWidth.roundToPx() - SkDimens.GapM.roundToPx() * (count - 1)) / count -
-                    SkDimens.GapS.roundToPx() * 2
+                (width.roundToPx() - SkDimens.GapM.roundToPx() * (count - 1)) / count - SkDimens.GapS.roundToPx() * 2
             }
+        val narrow = width < NarrowGridWidth || density.fontScale > SkDimens.MAX_ROW_FONT_SCALE
         val minimumSize = SkType.ItemNameMinSize.value
-        // At large font scales a long word may need one column even at the minimum size.
-        if (longestWordWidth(minimumSize) > textWidth(columns)) columns = 1
+        val columns =
+            ((if (narrow) NARROW_GRID_COLUMNS else GRID_COLUMNS) downTo 1)
+                .firstOrNull { longestWordWidth(minimumSize) <= textWidth(it) } ?: 1
         var fontSize = SkType.ItemName.fontSize.value
         while (fontSize > minimumSize && longestWordWidth(fontSize) > textWidth(columns)) {
             fontSize = (fontSize - SkType.ItemNameStep.value).coerceAtLeast(minimumSize)
         }
-        val nameStyle = SkType.ItemName.copy(fontSize = fontSize.sp)
-        Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapM)) {
-            for (row in options.chunked(columns)) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM),
-                    modifier = Modifier.height(IntrinsicSize.Max),
-                ) {
-                    row.forEach { tile(it, Modifier.weight(1f).fillMaxHeight(), nameStyle) }
-                    repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
-                }
+        columns to SkType.ItemName.copy(fontSize = fontSize.sp)
+    }
+}
+
+/** Rows of [columns] equally wide and tall tiles. Empty places in the last row stay empty. */
+@Composable
+private fun ItemGrid(
+    options: List<Item>,
+    columns: Int,
+    tile: @Composable (Item, Modifier) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapM)) {
+        for (row in options.chunked(columns)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM),
+                modifier = Modifier.height(IntrinsicSize.Max),
+            ) {
+                row.forEach { tile(it, Modifier.weight(1f).fillMaxHeight()) }
+                repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
             }
         }
     }
@@ -309,11 +337,14 @@ fun ItemTile(
             modifier.semantics { selected = on },
             border = if (on) BorderStroke(SkDimens.Border, SkColors.ItemOnBorder) else null,
         ) {
-            Box(Modifier.padding(TilePadding)) { ItemTileContent(item, outfit, color, on, nameStyle) }
+            Box(Modifier.padding(TilePadding), contentAlignment = Alignment.TopCenter) {
+                ItemTileContent(item, outfit, color, on, nameStyle)
+            }
         }
     }
 }
 
+/** Centered like a locked tile; the check sits on the preview's corner, where a locked tile has its lock. */
 @Composable
 private fun ItemTileContent(
     item: Item,
@@ -322,20 +353,20 @@ private fun ItemTileContent(
     on: Boolean,
     nameStyle: TextStyle?,
 ) {
-    Box {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(SkDimens.GapS),
-        ) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(SkDimens.GapS),
+    ) {
+        Box {
             ItemArtWindow(item, outfit, color)
-            val name = stringResource(itemName(item.id))
-            if (nameStyle == null) {
-                WordSafeText(name, SkType.ItemName)
-            } else {
-                WordSafeText(name, nameStyle, minScale = 1f)
-            }
+            if (on) SelectionBadge(Modifier.align(Alignment.TopEnd))
         }
-        if (on) SelectionBadge(Modifier.align(Alignment.TopEnd))
+        val name = stringResource(itemName(item.id))
+        if (nameStyle == null) {
+            WordSafeText(name, SkType.ItemName)
+        } else {
+            WordSafeText(name, nameStyle, minScale = 1f)
+        }
     }
 }
 
@@ -359,7 +390,7 @@ private fun LockedTile(
             .semantics(mergeDescendants = true) { contentDescription = description }
             .padding(TilePadding),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(SkDimens.GapS),
     ) {
         Box {
             ItemArtWindow(item, outfit, color, Modifier.graphicsLayer { alpha = LOCKED_ALPHA }.grayscale())
@@ -371,7 +402,11 @@ private fun LockedTile(
                 contentAlignment = Alignment.Center,
             ) { SkIcon(SkIcons.Lock, SkDimens.StarSmall) }
         }
-        WordSafeText(stringResource(itemName(item.id)), nameStyle.copy(color = SkColors.InkSoft), minScale = 1f)
+        // The name takes the spare height, so the progress pills of one row stay level when a
+        // neighbouring name takes two lines.
+        Box(Modifier.weight(1f), contentAlignment = Alignment.TopCenter) {
+            WordSafeText(stringResource(itemName(item.id)), nameStyle.copy(color = SkColors.InkSoft), minScale = 1f)
+        }
         Pill(stringResource(R.string.home_star_total, total, item.star), kind = PillKind.MUTED, icon = SkIcons.StarOn)
     }
 }
@@ -380,6 +415,7 @@ private const val LOCKED_ALPHA = 0.55f
 
 private val TilePadding = PaddingValues(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 12.dp)
 private val NarrowGridWidth = 360.dp
+private val WordBreak = Regex("(?<=-)|\\s+")
 
 private const val MAX_NAME = 16
 private const val GRID_COLUMNS = 3
@@ -395,7 +431,7 @@ private fun CompanionColors(
         horizontalArrangement = Arrangement.spacedBy(SkDimens.GapS),
         verticalArrangement = Arrangement.spacedBy(SkDimens.GapS),
     ) {
-        CompanionColor.entries.forEach { option ->
+        kind.colorOptions().forEach { option ->
             SwatchTile(
                 PersonalizationColors.companion(kind, option),
                 stringResource(companionColorName(option)),

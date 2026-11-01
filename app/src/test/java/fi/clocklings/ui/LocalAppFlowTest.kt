@@ -21,13 +21,13 @@ import fi.clocklings.MainActivity
 import fi.clocklings.domain.ClockFrame
 import fi.clocklings.domain.ClockPalette
 import fi.clocklings.domain.ClockTheme
-import fi.clocklings.domain.CompanionColor
 import fi.clocklings.domain.CompanionKind
 import fi.clocklings.domain.CustomClock
 import fi.clocklings.domain.HandStyle
 import fi.clocklings.domain.NumeralStyle
 import fi.clocklings.domain.Progress
 import fi.clocklings.domain.Settings
+import fi.clocklings.domain.colorOptions
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -75,7 +75,7 @@ class LocalAppFlowTest {
         }
         waitSelected("choose_companion_CAT")
         click("Choose an outfit")
-        for (color in CompanionColor.entries) {
+        for (color in CompanionKind.CAT.colorOptions()) {
             tagClick("color_${color.name}")
             waitSaved {
                 runBlocking { repository.settings.first() }.personalization.styleFor(CompanionKind.CAT).color == color
@@ -91,6 +91,13 @@ class LocalAppFlowTest {
         val expectedProgress = runBlocking { repository.progress.first() }
         compose.activityRule.scenario.recreate()
         waitText("Make it yours")
+        waitSelected("choose_companion_CAT")
+        click("Choose an outfit")
+        waitSelected("color_${expectedSettings.personalization.styleFor(CompanionKind.CAT).color.name}")
+        val scarf =
+            hasText("Striped scarf", substring = true) or
+                hasContentDescription("Striped scarf", substring = true)
+        compose.onNode(scarf and isSelected()).assertIsSelected()
         assertEquals(expectedSettings, runBlocking { repository.settings.first() })
         assertEquals(expectedProgress, runBlocking { repository.progress.first() })
     }
@@ -127,6 +134,7 @@ class LocalAppFlowTest {
         val expected = runBlocking { repository.settings.first() }
         compose.activityRule.scenario.recreate()
         waitText("Make it yours")
+        waitSelected("choose_clock_CUSTOM")
         assertEquals(expected, runBlocking { repository.settings.first() })
         back()
         click("Explore")

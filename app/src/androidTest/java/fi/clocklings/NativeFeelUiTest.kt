@@ -23,6 +23,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import fi.clocklings.domain.AppLanguage
 import fi.clocklings.domain.Progress
 import fi.clocklings.domain.Settings
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -39,11 +41,25 @@ class NativeFeelUiTest {
     private var previousLocale = ""
     private val fixture =
         object : ExternalResource() {
+            private lateinit var originalProgress: Progress
+            private lateinit var originalSettings: Settings
+            private var originalLegacy: String? = null
+
             override fun before() {
+                runBlocking {
+                    originalProgress = environment.repository.progress.first()
+                    originalSettings = environment.repository.settings.first()
+                    originalLegacy = environment.repository.legacyLanguage.first()
+                }
                 previousLocale = environment.prepare(Progress(introShown = setOf("0")), Settings())
             }
 
             override fun after() {
+                runBlocking {
+                    environment.repository.updateProgress { originalProgress }
+                    environment.repository.updateSettings { originalSettings }
+                    environment.repository.setLegacyLanguage(originalLegacy)
+                }
                 environment.setPlatformLanguage(previousLocale)
             }
         }

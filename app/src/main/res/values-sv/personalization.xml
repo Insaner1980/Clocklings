@@ -3,7 +3,7 @@
     <string name="appearance_title">Gör den till din</string>
     <string name="companions_title">Kompisar</string>
     <string name="clock_styles_title">Klockstilar</string>
-    <string name="companion_human">Människa</string>
+    <string name="companion_human">Docka</string>
     <string name="companion_cat">Katt</string>
     <string name="companion_dog">Hund</string>
     <string name="companion_robot">Robot</string>
@@ -19,6 +19,7 @@
     <string name="color_blue">Blå</string>
     <string name="color_green">Grön</string>
     <string name="color_purple">Lila</string>
+    <string name="color_orange">Orange</string>
     <string name="color_coral">Korall</string>
     <string name="theme_classic">Klassisk</string>
     <string name="theme_rainbow">Regnbåge</string>

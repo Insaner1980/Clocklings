@@ -47,6 +47,16 @@ internal object DinosaurRig : AnimalRig(
     // under the jaw; the neck crop starts below the mouth.
     headCrop = Rect(34f, 0f, 226f, 146f),
     neckCrop = Rect(66f, 138f, 192f, 230f),
+    // Accessory crops: the item's drawing bounds plus 12 units on every side, squared to the thumbnail window.
+    itemCrops =
+        mapOf(
+            "dinosaur-extra-backpack" to Rect(12f, 129f, 135f, 252f),
+            "dinosaur-extra-bucket" to Rect(120f, 177f, 240f, 297f),
+            "dinosaur-extra-balloon" to Rect(24f, 0f, 240f, 216f),
+            "dinosaur-extra-umbrella" to Rect(2f, 0f, 240f, 238f),
+            "dinosaur-extra-kite" to Rect(0f, 0f, 218f, 218f),
+            "dinosaur-extra-skateboard" to Rect(10f, 80f, 230f, 300f),
+        ),
 ) {
     /** Hide brushes for every companion color, built once and indexed by the color's ordinal. */
     private val hides = CompanionColor.entries.map { DinosaurHide(it) }

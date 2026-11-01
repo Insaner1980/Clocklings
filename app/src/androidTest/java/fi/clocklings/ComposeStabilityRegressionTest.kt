@@ -72,7 +72,7 @@ class ComposeStabilityRegressionTest {
                 assertEquals((bounds.top.value + bounds.bottom.value) / 2f * density, particle.y, 1f)
             }
         }
-        compose.onNodeWithText("Levels").scrollToIfScrollable().assertIsDisplayed()
+        compose.onNodeWithText("Back").scrollToIfScrollable().assertIsDisplayed()
         compose.runOnIdle { assertEquals(120, confetti.particles.size) }
         restoration.emulateSavedInstanceStateRestore()
         compose.runOnIdle { assertEquals(120, confetti.particles.size) }

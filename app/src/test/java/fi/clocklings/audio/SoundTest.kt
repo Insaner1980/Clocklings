@@ -17,12 +17,11 @@ class SoundTest {
     }
 
     @Test
-    fun `every companion with a recording has its own voice`() {
-        val silent = setOf(CompanionKind.NONE, CompanionKind.BUNNY, CompanionKind.UNICORN, CompanionKind.CAR)
-        val companions = CompanionKind.entries - silent
+    fun `every companion has its own voice`() {
+        val companions = CompanionKind.entries - CompanionKind.NONE
         val voices = companions.map { companionVoice(it) }
         for (voice in voices) assertTrue("$voice", voice?.voice == true)
         assertEquals(companions.size, voices.toSet().size)
-        for (kind in silent) assertNull("$kind", companionVoice(kind))
+        assertNull(companionVoice(CompanionKind.NONE))
     }
 }

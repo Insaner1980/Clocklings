@@ -133,7 +133,7 @@ File: `ui/lesson/LessonCatalog.kt`, lesson id `viisi`, page 1 (starts at time 18
 Today the demo glows numbers 1 to 12 and says "Numero n tarkoittaa n*5 minuuttia" (`say_number_minutes`) while the minute hand stays at 12.
 
 Steps:
-1. In the page 1 demo loop, before `say(...)` for number n, add `move(180 + n * 5, 600, exact = true)` so the minute hand walks to the number it is talking about, then keep the existing glow, bubble and pause. Shorten the per-step `pause(800)` to keep the total page duration roughly the same (the move takes 600 ms; use `pause(500)`).
+1. In the page 1 demo loop, before `say(...)` for number n, add `move(180 + n * 5, 600, exact = true)` so the minute hand walks to the number it is talking about, wait with `pause(600)` for the hand to arrive, then keep the glow, bubble and `pause(500)` for reading. `DemoStep.Move` starts an animation without suspending the demo; only explicit pauses consume demo time. The implemented step therefore takes 1,100 ms, intentionally longer than the old 800 ms pause, rather than preserving that old budget.
 2. After the loop the clock shows 4:00. That is acceptable (the hour hand has moved one hour, which is correct clock behaviour). If the replay button (`Näytä uudelleen`) restarts the page, confirm it resets to 180; `LessonPage.time` should already handle this. Verify on device.
 3. Check page 2 of the same lesson, which already moves the hand; make sure the two pages do not now feel identical. If they do, leave page 2 unchanged anyway; the owner can review.
 
@@ -221,7 +221,7 @@ Steps:
 Files: string resources in all three languages.
 
 Steps:
-1. In every string where a number placeholder or a numeral is followed by a unit word (minuuttia/minuutin/minutes/minuter/tähteä/stars/stjärnor/tunti/hour/timme), replace the space between number and unit with a non-breaking space `\u00A0`. Known keys: `say_number_minutes`, `l_vartti_p*` ("15 minuuttia"), `l_puoli_p1b` ("30 minuuttia"), the plurals used for "2 minuuttia" captions in the `minutit` lesson. Grep `%1$d `, `%2$d ` and digits followed by a space in `values*/strings.xml`.
+1. In every string where a number placeholder or a numeral is followed by a unit word (minuuttia/minuutin/minutes/minuter/tähteä/stars/stjärnor/tunti/hour/timme), replace the space between number and unit with a non-breaking space `\u00A0`. Known keys: `say_number_minutes`, `l_vartti_p*` ("15 minuuttia"), `l_puoli_p1b` ("30 minuuttia"), the plurals used for "2 minuuttia" captions in the `minutit` lesson. Grep `%1$d`, `%2$d` and digits, checking for a following ordinary space in `values*/strings.xml`.
 2. Do not use non-breaking spaces anywhere else.
 
 #### B9. Empty space on home, challenge and Ask screens [25, 26]

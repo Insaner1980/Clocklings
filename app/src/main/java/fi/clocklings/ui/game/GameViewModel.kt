@@ -14,6 +14,7 @@ import fi.clocklings.domain.Levels
 import fi.clocklings.domain.Task
 import fi.clocklings.domain.TaskType
 import fi.clocklings.ui.clock.ClockCommand
+import fi.clocklings.ui.components.DotOutcome
 import fi.clocklings.ui.components.OptionState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -23,11 +24,24 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.IOException
 import kotlin.random.Random
+
+private const val MAX_TRIES = 2
+
+/** Maps the wrong answers given to one task onto its progress dot. */
+internal fun outcomeOf(taskMistakes: Int): DotOutcome =
+    when {
+        taskMistakes >= MAX_TRIES -> DotOutcome.SHOWN
+        taskMistakes > 0 -> DotOutcome.WITH_HINT
+        else -> DotOutcome.FIRST_TRY
+    }
 
 /** Palaute paneelin alla. Tekstit muodostetaan UI:ssa strings.xml:stä. */
 @Immutable
 sealed interface GameFeedback {
+    data object SaveFailed : GameFeedback
+
     /** Kehu; Mitä kello on? -tehtävässä mukana oikea aika ([time]). */
     data class Praise(
         val praiseIndex: Int,
@@ -63,6 +77,8 @@ data class GameUiState(
     val busy: Boolean = false,
     val mistakes: Int = 0,
     val taskMistakes: Int = 0,
+    /** One entry per finished task, in order: how that task went (drives the progress dots). */
+    val outcomes: List<DotOutcome> = emptyList(),
     val feedback: GameFeedback? = null,
     /** Kasvaa jokaisella onnistumisella: UI ampuu konfetit. */
     val celebrate: Int = 0,
@@ -107,6 +123,7 @@ class GameViewModel(
                 clock = ClockCommand(task.time, READ_MOVE_MS),
                 step = lv.step,
                 mistakes = mistakes,
+                outcomes = from?.outcomes.orEmpty(),
                 celebrate = celebrate,
             )
         return if (task.type == TaskType.READ) {
@@ -216,10 +233,18 @@ class GameViewModel(
 
     private fun advance() {
         advanceJob?.cancel()
-        val s = _state.value
-        if (s.finished != null) return
+        val current = _state.value
+        if (current.finished != null) return
+        // A failed save is retried through this same path: record the outcome only once per task.
+        val s =
+            if (current.outcomes.size > current.taskIndex) {
+                current
+            } else {
+                current.copy(outcomes = current.outcomes + outcomeOf(current.taskMistakes))
+            }
         val nextIndex = s.taskIndex + 1
         if (nextIndex >= tasks.size) {
+            _state.value = s
             finish(s)
         } else {
             _state.value = taskState(nextIndex, s.mistakes, s.celebrate, s)
@@ -227,28 +252,31 @@ class GameViewModel(
     }
 
     private fun finish(s: GameUiState) {
-        _state.update { it.copy(busy = true) }
+        _state.update { it.copy(busy = true, showNext = false) }
         viewModelScope.launch {
-            val stars = Levels.stars(s.mistakes)
-            val before = services.repository.progress.first()
-            services.repository.updateProgress { it.withLevelResult(level, stars) }
-            services.play(Sound.WIN)
-            _state.update {
-                it.copy(
-                    finished =
-                        Screen.Result(
-                            level = level,
-                            stars = stars,
-                            previousBest = before.stars[level],
-                            starsBefore = before.totalStars,
-                        ),
-                )
+            try {
+                val stars = Levels.stars(s.mistakes)
+                val before = services.repository.progress.first()
+                services.repository.updateProgress { it.withLevelResult(level, stars) }
+                services.play(Sound.WIN)
+                _state.update {
+                    it.copy(
+                        finished =
+                            Screen.Result(
+                                level = level,
+                                stars = stars,
+                                previousBest = before.stars[level],
+                                starsBefore = before.totalStars,
+                            ),
+                    )
+                }
+            } catch (_: IOException) {
+                _state.update { it.copy(feedback = GameFeedback.SaveFailed, showNext = true) }
             }
         }
     }
 
     private companion object {
-        const val MAX_TRIES = 2
         const val PRAISE_COUNT = 7
         const val READ_MOVE_MS = 700
         const val SET_MOVE_MS = 500

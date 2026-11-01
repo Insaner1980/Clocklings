@@ -40,6 +40,16 @@ internal object BunnyRig : AnimalRig(
     // crop the locket and the cape clasp.
     headCrop = Rect(20f, 0f, 220f, 176f),
     neckCrop = Rect(60f, 160f, 180f, 240f),
+    // Accessory crops: the item's drawing bounds plus 12 units on every side, squared to the thumbnail window.
+    itemCrops =
+        mapOf(
+            "bunny-extra-carrot" to Rect(59f, 170f, 179f, 290f),
+            "bunny-extra-basket" to Rect(120f, 180f, 240f, 300f),
+            "bunny-extra-watering-can" to Rect(81f, 167f, 201f, 287f),
+            "bunny-extra-bubbles" to Rect(110f, 163f, 240f, 293f),
+            "bunny-extra-bouquet" to Rect(60f, 162f, 180f, 282f),
+            "bunny-extra-wings" to Rect(0f, 50f, 240f, 290f),
+        ),
 ) {
     /** Fur brushes for every companion color, built once and indexed by the color's ordinal. */
     private val furs = CompanionColor.entries.map { BunnyFur(it) }

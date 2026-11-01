@@ -86,7 +86,7 @@ class LintRegressionTest {
         compose.mainClock.advanceTimeBy(1_000)
         saveResult()
         compose.onNodeWithText("Next level").scrollToIfScrollable().assertIsDisplayed()
-        compose.onNodeWithText("Levels").scrollToIfScrollable().assertIsDisplayed()
+        compose.onNodeWithText("Back").scrollToIfScrollable().assertIsDisplayed()
         compose
             .onNodeWithText("Play again")
             .scrollToIfScrollable()

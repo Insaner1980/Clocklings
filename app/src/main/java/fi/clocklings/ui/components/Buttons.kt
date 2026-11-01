@@ -10,9 +10,15 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -20,7 +26,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -30,10 +38,13 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -47,7 +58,10 @@ import fi.clocklings.ui.theme.SkType
 
 /**
  * "3D-nappi": täytetty pinta, jonka alla on tummempi kiinteä varjo. Painettaessa pinta
- * painuu alas varjon päälle.
+ * painuu alas varjon päälle. While pressed it also shrinks to [pressScale]; 1f keeps the size, for a
+ * surface whose content must stay where it stands. With [decorativeContent] the content's semantics are
+ * dropped: the surface node itself then carries the label, role and state set in [modifier], instead of
+ * leaving the label and role on generated child nodes of the accessibility tree.
  */
 @Composable
 fun DepthSurface(
@@ -62,13 +76,15 @@ fun DepthSurface(
     enabled: Boolean = true,
     dimWhenDisabled: Boolean = true,
     role: Role = Role.Button,
+    pressScale: Float = SkMotion.PRESS_SCALE,
+    decorativeContent: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val reduced = rememberReduceMotion()
     val scale by animateFloatAsState(
-        if (pressed && enabled && !reduced) SkMotion.PRESS_SCALE else 1f,
+        if (pressed && enabled && !reduced) pressScale else 1f,
         animationSpec = if (reduced) snap() else SkMotion.PressSpring,
         label = "press",
     )
@@ -85,7 +101,9 @@ fun DepthSurface(
                 translate(0f, (depth - shift).toPx()) { drawOutline(outline, shadow) }
             }.background(fill, shape)
             .then(if (border != null) Modifier.border(border, shape) else Modifier)
-            .clickable(interaction, indication = null, enabled = enabled, role = role, onClick = onClick),
+            .clickable(interaction, indication = null, enabled = enabled, role = role, onClick = onClick)
+            // Inside the click semantics, so it clears only the content's and keeps the click, role and label.
+            .then(if (decorativeContent) Modifier.clearAndSetSemantics { } else Modifier),
         propagateMinConstraints = true,
     ) { content() }
 }
@@ -121,6 +139,45 @@ fun SkButton(
         ) {
             icon?.let { SkIcon(it, SkDimens.ActionIcon) }
             WordSafeText(text, if (small) SkType.ButtonSmall else SkType.Button, Modifier.weight(1f, fill = false))
+        }
+    }
+}
+
+/**
+ * Two actions of a bottom bar: side by side when each label fits its half on one line at the current width and
+ * font scale, otherwise stacked full width. [start] comes first in both arrangements. Without [endLabel] the
+ * row keeps its end half empty, so [start] stays where it is when [end] appears.
+ */
+@Composable
+fun ActionPair(
+    startLabel: String,
+    endLabel: String?,
+    start: @Composable (Modifier) -> Unit,
+    modifier: Modifier = Modifier,
+    end: @Composable (Modifier) -> Unit,
+) {
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val currentStart by rememberUpdatedState(start)
+    val currentEnd by rememberUpdatedState(end)
+    val startContent = remember { movableContentOf<Modifier> { currentStart(it) } }
+    val endContent = remember { movableContentOf<Modifier> { currentEnd(it) } }
+    BoxWithConstraints(modifier.fillMaxWidth()) {
+        val halfWidth = (maxWidth - SkDimens.GapM) / 2
+        // An SkButton pads its label by a gutter on each side.
+        val labelWidth = with(density) { (halfWidth - SkDimens.Gutter * 2).toPx() }
+        val labels = listOfNotNull(startLabel, endLabel)
+        val stack = labels.any { measurer.measure(it, SkType.Button).size.width > labelWidth }
+        if (stack) {
+            Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapM)) {
+                startContent(Modifier.fillMaxWidth())
+                if (endLabel != null) endContent(Modifier.fillMaxWidth())
+            }
+        } else {
+            Row(Modifier.height(IntrinsicSize.Max), horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM)) {
+                startContent(Modifier.weight(1f).fillMaxHeight())
+                if (endLabel != null) endContent(Modifier.weight(1f).fillMaxHeight()) else Spacer(Modifier.weight(1f))
+            }
         }
     }
 }

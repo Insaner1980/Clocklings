@@ -3,14 +3,12 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name" translatable="false">Clocklings</string>
     <string name="back_description">Back</string>
-    <string name="back_levels">Levels</string>
     <string name="help_on">Help on</string>
     <string name="help_off">Help off</string>
     <string name="listen">Listen</string>
     <string name="random_time">Random time</string>
     <string name="next">Next</string>
     <string name="done">Done</string>
-    <string name="levels_short">Levels</string>
     <string name="question_read">What time is it?</string>
     <string name="digital_24">%1$s</string>
     <string name="speak_time">It is %1$s</string>
@@ -117,9 +115,9 @@
     <string name="challenge_no_best">No score yet</string>
     <string name="challenge_go">Start!</string>
     <string name="challenge_over">Time is up!</string>
+    <string name="challenge_new_best">New best!</string>
     <string name="challenge_new_record" tools:ignore="PluralsCandidate">New best! You answered %1$d correctly.</string>
     <string name="challenge_result" tools:ignore="PluralsCandidate">You answered %1$d correctly. Your best is %2$d.</string>
-    <string name="challenge_again">Play again</string>
 
     <!-- Together uses neutral player numbers, no names or scored answers.
          Player numbers are identifiers, not quantities; both labels use singular wording. -->
@@ -141,7 +139,8 @@
         <item quantity="other">You have %1$d\u00A0stars. Each new star unlocks an outfit item. Tap an item to wear it.</item>
     </plurals>
     <string name="doll_all_open">All outfit items are available. Try any combination!</string>
-    <string name="doll_optional_hint">Tap again to take it off.</string>
+    <string name="doll_optional_hint">Tap an item to put it on. Tap it again to take it off.</string>
+    <string name="doll_optional_hint_partial">Tap an item to put it on. Hats and extras come off when you tap them again.</string>
     <plurals name="doll_item_locked">
         <item quantity="one">Locked. Opens at %1$d\u00A0star. You have %2$d.</item>
         <item quantity="other">Locked. Opens at %1$d\u00A0stars. You have %2$d.</item>
@@ -178,12 +177,14 @@
     <!-- Lesson order and clock demonstrations reuse the working original. -->
     <string name="koulu_title">Learn</string>
     <string name="lesson_done">Completed</string>
+    <string name="path_current">Up next</string>
     <string name="lesson_skip">Skip and play</string>
     <string name="lesson_replay">Show again</string>
     <string name="lesson_prev">Previous</string>
     <string name="lesson_try">Try it</string>
     <string name="lesson_next_lesson">Next lesson</string>
     <string name="lesson_start_game">Start playing!</string>
+    <string name="lesson_practise">Practise</string>
     <string name="lesson_learned">%1$s You completed %2$s.</string>
     <!-- Full sentences end with punctuation; bare labels do not. Measurements use digits.
          Counting phrases may spell out counts. Keep numbers and units together. -->

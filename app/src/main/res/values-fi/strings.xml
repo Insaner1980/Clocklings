@@ -1,14 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="back_description">Takaisin</string>
-    <string name="back_levels">Tasot</string>
     <string name="help_on">Apu päällä</string>
     <string name="help_off">Apu pois</string>
     <string name="listen">Kuuntele</string>
     <string name="random_time">Satunnainen aika</string>
     <string name="next">Seuraava</string>
     <string name="done">Valmis</string>
-    <string name="levels_short">Tasot</string>
     <string name="question_read">Mitä kello on?</string>
     <string name="digital_24">%1$s</string>
     <string name="speak_time">Kello on %1$s</string>
@@ -127,9 +125,9 @@
     <string name="challenge_no_best">Ei vielä tulosta</string>
     <string name="challenge_go">Aloita!</string>
     <string name="challenge_over">Aika loppui!</string>
+    <string name="challenge_new_best">Uusi ennätys!</string>
     <string name="challenge_new_record" tools:ignore="PluralsCandidate">Uusi ennätys! Vastasit oikein %1$d kertaa.</string>
     <string name="challenge_result" tools:ignore="PluralsCandidate">Vastasit oikein %1$d kertaa. Paras tuloksesi on %2$d.</string>
-    <string name="challenge_again">Pelaa uudelleen</string>
     <string name="ask_title">Pelaa yhdessä</string>
     <string name="ask_big_eyebrow" tools:ignore="PluralsCandidate">Pelaaja %1$d asettaa ajan</string>
     <string name="ask_big_question">Valitse aika</string>
@@ -147,7 +145,8 @@
         <item quantity="other">Sinulla on %1$d\u00A0tähteä. Jokainen uusi tähti avaa asusteen. Napauta asustetta pukeaksesi sen.</item>
     </plurals>
     <string name="doll_all_open">Kaikki asusteet ovat käytettävissä. Kokeile erilaisia yhdistelmiä!</string>
-    <string name="doll_optional_hint">Riisu napauttamalla uudelleen.</string>
+    <string name="doll_optional_hint">Pue asuste napauttamalla. Riisu napauttamalla uudelleen.</string>
+    <string name="doll_optional_hint_partial">Pue asuste napauttamalla. Päähineen ja lisävarusteen voi riisua napauttamalla uudelleen.</string>
     <plurals name="doll_item_locked">
         <item quantity="one">Lukittu. Avautuu, kun tähtiä on %1$d. Sinulla on %2$d.</item>
         <item quantity="other">Lukittu. Avautuu, kun tähtiä on %1$d. Sinulla on %2$d.</item>
@@ -182,12 +181,14 @@
     <string name="item_dress_sateenkaari">Sateenkaarimekko</string>
     <string name="koulu_title">Opi</string>
     <string name="lesson_done">Suoritettu</string>
+    <string name="path_current">Vuorossa</string>
     <string name="lesson_skip">Ohita ja pelaa</string>
     <string name="lesson_replay">Näytä uudelleen</string>
     <string name="lesson_prev">Edellinen</string>
     <string name="lesson_try">Kokeile</string>
     <string name="lesson_next_lesson">Seuraava oppitunti</string>
     <string name="lesson_start_game">Aloita pelaaminen!</string>
+    <string name="lesson_practise">Harjoittele</string>
     <string name="lesson_learned">%1$s Oppitunti %2$s on suoritettu.</string>
     <!-- Full sentences end with punctuation; bare labels do not. Measurements use digits.
          Counting phrases may spell out counts. Keep numbers and units together. -->

@@ -5,16 +5,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -27,16 +21,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -51,6 +41,7 @@ import fi.clocklings.domain.Progress
 import fi.clocklings.ui.AppViewModel
 import fi.clocklings.ui.LocalAppViewModel
 import fi.clocklings.ui.clock.ClockFace
+import fi.clocklings.ui.components.ActionPair
 import fi.clocklings.ui.components.ButtonKind
 import fi.clocklings.ui.components.ClockBox
 import fi.clocklings.ui.components.CompanionTip
@@ -103,39 +94,39 @@ fun LessonListScreen(
         val ids = Lessons.levelLessons.flatten() + if (h24) listOf(Lessons.DAY_LESSON) else emptyList()
         val current = ids.firstOrNull { it !in progress.lessonsDone }
         for ((level, chapter) in ids.groupBy(Lessons::levelOf)) {
-            val chapterTitle =
-                if (level == null) {
-                    LessonCatalog.lesson(Lessons.DAY_LESSON, language).title.resolve()
-                } else {
-                    stringResource(levelName(level))
-                }
-            Text(chapterTitle, style = SkType.SectionTitle, modifier = Modifier.semantics { heading() })
             val color = level?.let { SkColors.LevelCards[it] } ?: SkColors.ChallengeCard
+            val chapterTitle = level?.let { stringResource(levelName(it)) }
             chapter.forEachIndexed { position, id ->
                 val lesson = LessonCatalog.lesson(id, language)
                 val title = lesson.title.resolve()
                 val completed = id in progress.lessonsDone
                 val completion = if (completed) stringResource(R.string.lesson_done) else ""
+                // With no visible chapter headers, the chapter's first stop is its screen reader heading
+                // and is announced with the chapter title first.
+                val isHeading = position == 0
+                val chapterPrefix = chapterTitle?.takeIf { isHeading && it != title }?.let { "$it. " }.orEmpty()
                 PathNode(
                     ids.indexOf(id),
                     title,
-                    "$title. ${lesson.description.resolve()}. $completion",
+                    "$chapterPrefix$title. ${lesson.description.resolve()}. $completion",
                     { onOpen(id) },
                     color = color,
                     completed = completed,
                     current = id == current,
                     first = position == 0,
                     last = level == null,
+                    isHeading = isHeading,
                 )
             }
             if (level != null) {
                 val stars = progress.stars[level]
                 val starDescription = pluralStringResource(R.plurals.stars_count, stars, stars)
-                val action = stringResource(R.string.lesson_start_game)
+                val practise = stringResource(R.string.lesson_practise)
+                val action = stringResource(if (stars > 0) R.string.play_again else R.string.lesson_start_game)
                 PathNode(
                     ids.indexOf(chapter.last()) + 1,
-                    chapterTitle,
-                    "$chapterTitle. $action. $starDescription",
+                    practise,
+                    "$chapterTitle. $practise. $action. $starDescription",
                     { onPlayLevel(level) },
                     color = color,
                     completed = stars == 3,
@@ -301,18 +292,26 @@ private fun ColumnScope.LessonQuiz(
             )
         }
     }
-    if (state.quizDone) {
-        CompanionTip(
-            stringResource(R.string.lesson_learned, praise(res, state.praiseIndex), state.lesson.title.resolve()),
-            kind = FeedbackKind.OK,
-            celebrate = true,
-        )
-    } else if (state.showHint) {
-        CompanionTip(
-            state.lesson.quiz.hint
-                .resolve(),
-            kind = FeedbackKind.HINT,
-        )
+    when {
+        state.saveFailed -> {
+            CompanionTip(stringResource(R.string.settings_save_error), kind = FeedbackKind.HINT)
+        }
+
+        state.quizDone -> {
+            CompanionTip(
+                stringResource(R.string.lesson_learned, praise(res, state.praiseIndex), state.lesson.title.resolve()),
+                kind = FeedbackKind.OK,
+                celebrate = true,
+            )
+        }
+
+        state.showHint -> {
+            CompanionTip(
+                state.lesson.quiz.hint
+                    .resolve(),
+                kind = FeedbackKind.HINT,
+            )
+        }
     }
 }
 
@@ -346,30 +345,11 @@ private fun LessonNavigation(
 ) {
     val previous = stringResource(R.string.lesson_prev)
     val next = stringResource(nextLabel(state.nextAction))
-    val showNext = !state.isQuiz || state.quizDone
-    val measurer = rememberTextMeasurer()
-    val density = LocalDensity.current
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val halfWidth = (maxWidth - SkDimens.GapM) / 2
-        val labelWidth = with(density) { (halfWidth - SkDimens.Gutter * 2).toPx() }
-        val stack =
-            showNext && listOf(previous, next).any { measurer.measure(it, SkType.Button).size.width > labelWidth }
-        val prevButton: @Composable (Modifier) -> Unit = {
-            SkButton(previous, onPrevious, it, enabled = state.page > 0)
-        }
-        val nextButton: @Composable (Modifier) -> Unit = {
-            SkButton(next, onNext, it, kind = ButtonKind.PRIMARY)
-        }
-        if (stack) {
-            Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapM)) {
-                prevButton(Modifier.fillMaxWidth())
-                nextButton(Modifier.fillMaxWidth())
-            }
-        } else {
-            Row(Modifier.height(IntrinsicSize.Max), horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM)) {
-                prevButton(Modifier.weight(1f).fillMaxHeight())
-                if (showNext) nextButton(Modifier.weight(1f).fillMaxHeight()) else Spacer(Modifier.weight(1f))
-            }
-        }
-    }
+    val showNext = !state.savePending && (!state.isQuiz || state.quizDone)
+    ActionPair(
+        previous,
+        next.takeIf { showNext },
+        start = { SkButton(previous, onPrevious, it, enabled = state.page > 0 && !state.savePending) },
+        end = { SkButton(next, onNext, it, kind = ButtonKind.PRIMARY) },
+    )
 }

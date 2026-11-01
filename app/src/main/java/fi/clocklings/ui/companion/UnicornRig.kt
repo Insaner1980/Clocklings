@@ -40,6 +40,15 @@ internal object UnicornRig : AnimalRig(
     // the neck crop the pendants and the cape clasp.
     headCrop = Rect(28f, 0f, 212f, 172f),
     neckCrop = Rect(64f, 160f, 176f, 244f),
+    // Accessory crops: the item's drawing bounds plus 12 units on every side, squared to the thumbnail window.
+    itemCrops =
+        mapOf(
+            "unicorn-extra-cloud" to Rect(41f, 142f, 199f, 300f),
+            "unicorn-extra-balloon" to Rect(0f, 116f, 158f, 274f),
+            "unicorn-extra-boots" to Rect(60f, 180f, 180f, 300f),
+            "unicorn-extra-rainbow" to Rect(3f, 66f, 237f, 300f),
+            "unicorn-extra-wings" to Rect(0f, 52f, 240f, 292f),
+        ),
 ) {
     /** Coat brushes for every companion color, built once and indexed by the color's ordinal. */
     private val coats = CompanionColor.entries.map { UnicornCoat(it) }

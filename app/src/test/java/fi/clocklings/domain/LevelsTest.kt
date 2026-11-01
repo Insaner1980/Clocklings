@@ -148,4 +148,18 @@ class LevelsTest {
             previous = q.time
         }
     }
+
+    @Test
+    fun `challenge times hold every challenge question and answer`() {
+        for (h24 in listOf(false, true)) {
+            val times = Levels.challengeTimes(h24).toSet()
+            assertEquals(ClockTime.period(h24) / 5, times.size)
+            val random = Random(7)
+            repeat(500) {
+                val q = Levels.challengeQuestion(h24, previous = null, random = random)
+                val options = Levels.optionsFor(q.time, q.level, h24, random)
+                assertTrue("$h24 $options", q.time in times && times.containsAll(options))
+            }
+        }
+    }
 }

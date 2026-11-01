@@ -29,7 +29,9 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -43,6 +45,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -142,13 +145,15 @@ fun ClockFace(
         }) {
             val reveal = paintRingFrom?.let { S.ringReveal(state.raw, it, state.period) } ?: ClockTime.FULL_TURN
             drawClockRim(appearance, reveal)
-            if (help && !mini) drawHelp(textMeasurer, styles, is24, zoneLabels, state.raw)
+            val showHelp = help && !mini
+            if (showHelp) drawHelp(textMeasurer, styles, is24, zoneLabels, state.raw)
             drawClockDepth(mini)
             under.forEach { drawMark(it, textMeasurer, styles) }
             drawTicks()
             drawNumbers(textMeasurer, styles)
             if (is24) drawDayPart(dayPart, textMeasurer, styles)
             drawHands(state.raw, highlight, pulse, interactive && !mini, appearance.handsAt(mini))
+            drawCoveredNumerals(textMeasurer, styles, state.raw, showHelp, under)
             drawCircle(SkColors.Ink, S.PIN_RADIUS, Offset(S.CENTER, S.CENTER))
             drawCircle(SkColors.Face, S.PIN_DOT, Offset(S.CENTER, S.CENTER))
             over.forEach { drawMark(it, textMeasurer, styles) }
@@ -241,6 +246,9 @@ internal class ClockTextStyles(
     ) = TextStyle(fontFamily = family, fontWeight = weight, fontSize = with(density) { size.toSp() }, color = color)
 
     val number = style(if (plainNumbers) Nunito else Fredoka, FontWeight.SemiBold, S.NUMBER_FONT, SkColors.Ink)
+
+    /** Outline of a numeral redrawn over the minute hand; the colour is set per draw call. */
+    val numberHalo = number.copy(drawStyle = Stroke(width = S.NUMERAL_HALO, join = StrokeJoin.Round))
     val minute = style(Nunito, FontWeight.ExtraBold, S.MINUTE_FONT, SkColors.InkSoft)
     val zone = style(Fredoka, FontWeight.SemiBold, S.ZONE_FONT, SkColors.InkSoft)
     val inner24 = style(Nunito, FontWeight.ExtraBold, S.INNER_24_FONT, SkColors.Hour24)
@@ -248,7 +256,8 @@ internal class ClockTextStyles(
     val bubble = minute.copy(fontSize = with(density) { S.BUBBLE_FONT.toSp() })
 }
 
-private val MoonPath: Path = PathParser().parsePathString("M203 220A12 12 0 0 0 203 244A7 12 0 0 1 203 220Z").toPath()
+/** A crescent around the origin, drawn at the sun's centre ([S.CENTER], [S.SUN_CY]). */
+private val MoonPath: Path = PathParser().parsePathString("M3 -12A12 12 0 0 0 3 12A7 12 0 0 1 3 -12Z").toPath()
 
 /** Teksti keskitettynä pisteeseen (SVG: text-anchor middle, dominant-baseline central). */
 private fun DrawScope.drawCentered(
@@ -258,7 +267,7 @@ private fun DrawScope.drawCentered(
     at: Offset,
 ) {
     val layout = measurer.measure(text, style)
-    drawText(layout, topLeft = Offset(at.x - layout.size.width / 2f, at.y - layout.size.height / 2f))
+    drawLaidOut(layout, Offset(at.x - layout.size.width / 2f, at.y - layout.size.height / 2f))
 }
 
 /** Teksti peruslinjalle [baselineY] (SVG:n oletus). */
@@ -270,8 +279,17 @@ private fun DrawScope.drawOnBaseline(
     baselineY: Float,
 ) {
     val layout = measurer.measure(text, style)
-    drawText(layout, topLeft = Offset(x - layout.size.width / 2f, baselineY - layout.firstBaseline))
+    drawLaidOut(layout, Offset(x - layout.size.width / 2f, baselineY - layout.firstBaseline))
 }
+
+/**
+ * Styles that differ only in paint (the numeral and its halo outline) share one cached paragraph, and a
+ * null draw style leaves that paragraph's last Stroke in place, so a filled style passes Fill explicitly.
+ */
+private fun DrawScope.drawLaidOut(
+    layout: TextLayoutResult,
+    topLeft: Offset,
+) = drawText(layout, topLeft = topLeft, drawStyle = layout.layoutInput.style.drawStyle ?: Fill)
 
 /** Sateenkaarirengas; [revealDeg] alle täyden kierroksen piirtää maalaamattoman osan vaaleana. */
 private fun DrawScope.drawRing(revealDeg: Float) {
@@ -312,8 +330,10 @@ private fun DrawScope.drawHelp(
     drawArc(SkColors.Yli, -QUARTER_TURN, ClockTime.HALF_TURN, useCenter = true, topLeft = topLeft, size = size)
     drawArc(SkColors.Vaille, QUARTER_TURN, ClockTime.HALF_TURN, useCenter = true, topLeft = topLeft, size = size)
     zoneLabels?.let { (past, to) ->
-        drawZoneLabel(measurer, past, styles.zone, S.ZONE_LABEL_ANGLE, raw)
-        drawZoneLabel(measurer, to, styles.zone, -S.ZONE_LABEL_ANGLE, raw)
+        val angle = S.zoneLabelAngle(is24)
+        val radius = S.zoneLabelRadius(is24)
+        drawZoneLabel(measurer, past, styles.zone, S.point(radius, angle), zoneLabelAlpha(angle, raw))
+        drawZoneLabel(measurer, to, styles.zone, S.point(radius, -angle), zoneLabelAlpha(-angle, raw))
     }
     for (i in 0 until ClockTime.HOURS_PER_HALF_DAY) {
         drawCentered(
@@ -322,7 +342,7 @@ private fun DrawScope.drawHelp(
             styles.minute,
             S.point(
                 S.MINUTE_LABEL_RADIUS,
-                i * DEGREES_PER_HOUR,
+                i * S.DEGREES_PER_HOUR,
             ),
         )
     }
@@ -334,30 +354,36 @@ private fun DrawScope.drawHelp(
                 styles.inner24,
                 S.point(
                     S.INNER_24_RADIUS,
-                    n * DEGREES_PER_HOUR,
+                    n * S.DEGREES_PER_HOUR,
                 ),
             )
         }
     }
 }
 
-/** A half-face label below the pin that fades out while a hand lies over it, so no clipped word peeks out. */
+/** A half-face label that fades out while a hand lies over it, so no clipped word peeks out. */
 private fun DrawScope.drawZoneLabel(
     measurer: TextMeasurer,
     text: String,
     style: TextStyle,
+    center: Offset,
+    alpha: Float,
+) {
+    if (alpha > 0f) {
+        drawCentered(measurer, text, style.copy(color = style.color.copy(alpha = alpha)), center)
+    }
+}
+
+private fun zoneLabelAlpha(
     angle: Float,
     raw: Float,
-) {
+): Float {
     val nearest =
         minOf(
             ClockTime.angleDiff(angle, ClockTime.hourAngle(raw)),
             ClockTime.angleDiff(angle, ClockTime.minuteAngle(raw)),
         )
-    val alpha = ((nearest - S.ZONE_HIDE_ANGLE) / (S.ZONE_FADE_ANGLE - S.ZONE_HIDE_ANGLE)).coerceIn(0f, 1f)
-    if (alpha > 0f) {
-        drawCentered(measurer, text, style.copy(color = style.color.copy(alpha = alpha)), S.point(S.ZONE_RADIUS, angle))
-    }
+    return ((nearest - S.ZONE_HIDE_ANGLE) / (S.ZONE_FADE_ANGLE - S.ZONE_HIDE_ANGLE)).coerceIn(0f, 1f)
 }
 
 private fun DrawScope.drawTicks() {
@@ -377,17 +403,60 @@ private fun DrawScope.drawNumbers(
     measurer: TextMeasurer,
     styles: ClockTextStyles,
 ) {
-    for (n in 1..ClockTime.HOURS_PER_HALF_DAY) {
-        drawCentered(
-            measurer,
-            n.toString(),
-            styles.number,
-            S.point(
-                S.NUMBER_RADIUS,
-                n * DEGREES_PER_HOUR,
-            ),
-        )
+    for (n in 1..ClockTime.HOURS_PER_HALF_DAY) drawNumeral(measurer, n, styles.number)
+}
+
+private fun DrawScope.drawNumeral(
+    measurer: TextMeasurer,
+    n: Int,
+    style: TextStyle,
+) = drawCentered(measurer, n.toString(), style, S.point(S.NUMBER_RADIUS, n * S.DEGREES_PER_HOUR))
+
+/**
+ * The minute hand has to reach the minute ticks, so its shaft always crosses the numeral it points at.
+ * Redrawing that numeral on top, outlined in the colour behind it, makes the hand pass beneath it.
+ */
+private fun DrawScope.drawCoveredNumerals(
+    measurer: TextMeasurer,
+    styles: ClockTextStyles,
+    raw: Float,
+    help: Boolean,
+    under: List<Mark>,
+) {
+    for (n in S.numeralsUnder(ClockTime.minuteAngle(raw))) {
+        val halo = S.numeralHalo(n, help, under)
+        if (halo.before == halo.after) {
+            drawNumeral(measurer, n, styles.numberHalo.copy(color = halo.before))
+        } else {
+            // The numeral sits on a colour boundary, so each side of its radial line gets its own halo.
+            drawNumeralSide(n, after = false) { drawNumeral(measurer, n, styles.numberHalo.copy(color = halo.before)) }
+            drawNumeralSide(n, after = true) { drawNumeral(measurer, n, styles.numberHalo.copy(color = halo.after)) }
+        }
+        drawNumeral(measurer, n, styles.number)
     }
+}
+
+/** Runs [block] clipped to the half of the face on one side of the radial line through numeral [n]. */
+private fun DrawScope.drawNumeralSide(
+    n: Int,
+    after: Boolean,
+    block: DrawScope.() -> Unit,
+) {
+    val angle = n * S.DEGREES_PER_HOUR
+    val along = S.point(S.FACE_RADIUS, angle) - Offset(S.CENTER, S.CENTER)
+    // Clockwise of the line is the "after" side; the perpendicular of a clockwise unit step is (cos, sin).
+    val across = S.point(S.FACE_RADIUS, angle + QUARTER_TURN) - Offset(S.CENTER, S.CENTER)
+    val side = if (after) across else -across
+    val centre = Offset(S.CENTER, S.CENTER)
+    val half =
+        Path().apply {
+            moveTo((centre - along).x, (centre - along).y)
+            lineTo((centre + along).x, (centre + along).y)
+            lineTo((centre + along + side).x, (centre + along + side).y)
+            lineTo((centre - along + side).x, (centre - along + side).y)
+            close()
+        }
+    clipPath(half, block = block)
 }
 
 private fun DrawScope.drawDayPart(
@@ -404,7 +473,7 @@ private fun DrawScope.drawDayPart(
             drawLine(SkColors.SunRay, from, to, S.SUN_RAY_WIDTH, StrokeCap.Round)
         }
     } else {
-        drawPath(MoonPath, SkColors.Moon)
+        withTransform({ translate(S.CENTER, S.SUN_CY) }) { drawPath(MoonPath, SkColors.Moon) }
     }
     drawOnBaseline(measurer, part.name, styles.day, S.CENTER, S.DAY_TEXT_Y)
 }
@@ -559,18 +628,13 @@ private fun DrawScope.drawMark(
         }
 
         is Mark.NumberGlow -> {
-            drawCircle(SkColors.MarkNumber, S.GLOW_NUMBER_RADIUS, S.point(S.NUMBER_RADIUS, mark.n * DEGREES_PER_HOUR))
+            drawCircle(SkColors.MarkNumber, S.GLOW_NUMBER_RADIUS, S.point(S.NUMBER_RADIUS, mark.n * S.DEGREES_PER_HOUR))
         }
 
         is Mark.TickGlow -> {
-            drawCircle(
-                SkColors.MarkTick,
-                S.GLOW_TICK_RADIUS,
-                S.point(
-                    S.GLOW_TICK_AT,
-                    mark.minute * ClockTime.DEGREES_PER_MINUTE,
-                ),
-            )
+            val at = S.point(S.GLOW_TICK_AT, mark.minute * ClockTime.DEGREES_PER_MINUTE)
+            drawCircle(SkColors.MarkTick, S.GLOW_TICK_RADIUS, at)
+            drawCircle(SkColors.Hour, S.GLOW_TICK_RADIUS, at, style = Stroke(S.BUBBLE_STROKE))
         }
 
         is Mark.Bubble -> {
@@ -583,7 +647,6 @@ private fun DrawScope.drawMark(
 }
 
 private const val QUARTER_TURN = 90f
-private const val DEGREES_PER_HOUR = 30f
 private const val SUN_RAY_COUNT = 8
 private const val SUN_RAY_ANGLE = 45f
 

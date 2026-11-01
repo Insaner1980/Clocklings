@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.IOException
 import kotlin.random.Random
 
 /** Mitä Seuraava-nappi tekee ja mikä sen teksti on. */
@@ -42,6 +43,8 @@ data class LessonUiState(
     val choiceStates: Map<Int, OptionState> = emptyMap(),
     val showHint: Boolean = false,
     val quizDone: Boolean = false,
+    val savePending: Boolean = false,
+    val saveFailed: Boolean = false,
     val praiseIndex: Int = 0,
     val celebrate: Int = 0,
     val nextAction: NextAction = NextAction.NEXT_PAGE,
@@ -160,7 +163,8 @@ class LessonViewModel(
 
     fun next() {
         val s = _state.value
-        if (s.finished || (s.isQuiz && !s.quizDone)) return
+        val awaitingAnswer = s.isQuiz && !s.quizDone
+        if (s.finished || s.savePending || awaitingAnswer) return
         if (!s.isQuiz) {
             services.play(Sound.POP)
             show(s.queueIndex, s.page + 1)
@@ -177,7 +181,7 @@ class LessonViewModel(
 
     fun previous() {
         val s = _state.value
-        if (s.page == 0) return
+        if (s.page == 0 || s.savePending) return
         services.play(Sound.POP)
         show(s.queueIndex, s.page - 1)
     }
@@ -202,6 +206,8 @@ class LessonViewModel(
             s.copy(
                 choiceStates = s.choiceStates + (index to OptionState.CORRECT),
                 quizDone = true,
+                savePending = true,
+                saveFailed = false,
                 showHint = false,
                 praiseIndex = random.nextInt(PRAISE_COUNT),
                 celebrate = s.celebrate + 1,
@@ -212,7 +218,21 @@ class LessonViewModel(
                         else -> NextAction.FINISH
                     },
             )
-        viewModelScope.launch { services.repository.updateProgress { it.withLessonDone(s.lesson.id) } }
+        viewModelScope.launch {
+            try {
+                services.repository.updateProgress { it.withLessonDone(s.lesson.id) }
+                _state.update { it.copy(savePending = false) }
+            } catch (_: IOException) {
+                _state.update {
+                    it.copy(
+                        quizDone = false,
+                        choiceStates = s.choiceStates,
+                        savePending = false,
+                        saveFailed = true,
+                    )
+                }
+            }
+        }
     }
 
     private companion object {

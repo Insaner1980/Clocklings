@@ -39,6 +39,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.max
 import fi.clocklings.R
@@ -159,11 +160,20 @@ private fun CompanionChoices(
 private fun ClockChoices(appearance: Personalization) {
     val app = LocalAppViewModel.current
     Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapL)) {
-        ClockFace(
-            ClockCommand(PREVIEW_TIME),
-            Modifier.fillMaxWidth().testTag("selected_clock"),
-            appearance = appearance.clock,
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapS)) {
+            ClockFace(
+                ClockCommand(PREVIEW_TIME),
+                Modifier.fillMaxWidth().testTag("selected_clock"),
+                appearance = appearance.clock,
+            )
+            // The preview's state description already names the style, so TalkBack skips this caption.
+            Text(
+                stringResource(clockThemeName(appearance.clock.theme)),
+                style = SkType.SectionTitle,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().clearAndSetSemantics { },
+            )
+        }
         ChoiceGrid(ClockTheme.entries) { theme, cell ->
             ChoiceCard(
                 stringResource(clockThemeName(theme)),
@@ -294,15 +304,18 @@ private fun ChoiceCard(
         border = if (on) BorderStroke(SkDimens.Border, SkColors.ItemOnBorder) else null,
         role = Role.RadioButton,
     ) {
-        Box(Modifier.padding(SkDimens.GapM)) {
+        // Centered in a wide grid cell; the check sits on the preview's corner, as on wardrobe tiles.
+        Box(Modifier.padding(SkDimens.GapM), contentAlignment = Alignment.TopCenter) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(SkDimens.GapS),
             ) {
-                Box(Modifier.clearAndSetSemantics { }) { art() }
+                Box(Modifier.clearAndSetSemantics { }) {
+                    art()
+                    if (on) SelectionBadge(Modifier.align(Alignment.TopEnd))
+                }
                 if (showLabel) WordSafeText(title, SkType.ItemName)
             }
-            if (on) SelectionBadge(Modifier.align(Alignment.TopEnd))
         }
     }
 }

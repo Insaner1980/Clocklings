@@ -85,6 +85,37 @@ class WardrobeTest {
     }
 
     @Test
+    fun `preview keeps required clothes and only the previewed item`() {
+        val outfit =
+            Outfit(
+                mapOf(
+                    Slot.HAIR to "hair-letit",
+                    Slot.DRESS to "dress-perus",
+                    Slot.SHOES to "shoes-tossut",
+                    Slot.HEAD to "head-rusetti",
+                ),
+            )
+        val item = Wardrobe.item("extra-laukku")
+        val preview = outfit.previewFor(item)
+        assertEquals(setOf(Slot.HAIR, Slot.DRESS, Slot.SHOES, Slot.EXTRA), preview.items.keys)
+        assertEquals("extra-laukku", preview[Slot.EXTRA])
+    }
+
+    @Test
+    fun `animal preview contains only the item`() {
+        val item = Wardrobe.item("cat-neck-scarf")
+        val preview = Outfit(mapOf(Slot.EXTRA to "cat-extra-yarn")).previewFor(item)
+        assertEquals(mapOf(Slot.NECK to "cat-neck-scarf"), preview.items)
+    }
+
+    @Test
+    fun `preview replaces a required slot with the previewed item`() {
+        val preview = Outfit.Default.previewFor(Wardrobe.item("dress-tahti"))
+        assertEquals("dress-tahti", preview[Slot.DRESS])
+        assertEquals(setOf(Slot.HAIR, Slot.DRESS, Slot.SHOES), preview.items.keys)
+    }
+
+    @Test
     fun `items by slot keep the web order`() {
         assertEquals(
             listOf("hair-letit", "hair-pitkat", "hair-kiharat", "hair-sateenkaari"),

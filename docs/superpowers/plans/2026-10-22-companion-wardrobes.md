@@ -180,6 +180,7 @@ The slot is the second id segment.
 - [ ] **Step 1: Write the failing tests**
 
 `CompanionItemsTest`:
+
 ```kotlin
 private val animals = listOf(CAT, DOG, ROBOT, DRAGON, DINOSAUR)
 @Test fun `every animal has one free item and one item per star`() = animals.forEach { kind ->
@@ -210,6 +211,7 @@ private val animals = listOf(CAT, DOG, ROBOT, DRAGON, DINOSAUR)
 `WardrobeTest`: keep every current test, adapted to `Wardrobe.itemsFor(HUMAN)`, `newlyUnlocked(HUMAN, …)`, `lockedCount(HUMAN, …)` and `o[Slot.HAIR]`. Change `only head and extra are optional` to `setOf(HEAD, NECK, EXTRA)`.
 
 `ProgressTest` (Review Focus 5):
+
 ```kotlin
 @Test fun `names and outfits are kept per companion`() {
     val p = Progress().withName(HUMAN, "Ruusa").withName(CAT, "Miuku")
@@ -253,7 +255,7 @@ Expected: BUILD SUCCESSFUL. `ProgressRepositoryTest` may still fail until Task 4
   - Animal name: `companion_name_<kind lowercase>`.
   - Legacy, read only: boolean `companion_<KIND>_accessory` (uppercase kind, as written today).
 - Reading an animal outfit: if none of the kind's outfit keys exist and the legacy flag is true, wear `Wardrobe.freeItems(kind).single()`. Otherwise, for each slot, keep the id only if `itemOrNull(id)?.let { it.companion == kind && it.slot == slot }`. Otherwise the slot is empty.
-- `writePersonalization` stops writing the accessory key. `readPersonalization` stops reading it.
+- `writePersonalization` stops writing the accessory key, and `readPersonalization` stops reading that key while retaining the other appearance settings. `ProgressRepository.readAnimalOutfit` retains the read-only legacy accessory fallback described above, only when no outfit keys exist.
 
 - [ ] **Step 1: Write the failing tests** (add to `ProgressRepositoryTest`; update `progress round trips` to use `outfits` and `names`)
 
@@ -327,6 +329,7 @@ Expected: BUILD SUCCESSFUL, all tests pass.
     assertEquals(Wardrobe.items.size, ids.toSet().size)
 }
 ```
+
 (It already exists. It fails now because `getValue` throws for the new ids.)
 
 - [ ] **Step 2: Run the test and confirm it fails**
@@ -400,6 +403,7 @@ Expected: BUILD SUCCESSFUL, and every AppFlowTest test passes.
     onAllNodesWithText("Bandana").assertCountEquals(0)                       // no stray chip
 }
 ```
+
 Use the test file's existing helpers for seeding and clicking; add `assertWearing` and `assertNotWearing` helpers that look for the "Wearing" pill in the item's tile.
 
 - [ ] **Step 2: Run it and confirm it fails**
@@ -476,6 +480,7 @@ class VisibleUnlocksTest {
     }
 }
 ```
+
 Add `everyDogItemHasArtwork` to `CompanionArtCoverageTest`.
 
 - [ ] **Step 2: Run and confirm they fail.**
@@ -528,7 +533,7 @@ Add `everyDogItemHasArtwork` to `CompanionArtCoverageTest`.
 - [ ] **Step 2: Implement, then delete the legacy files and grep for leftovers.**
 
 Run: `rg -n "CompanionArt\b|LegacyAnimalRig|accessory" app/src`
-Expected: no matches in main sources.
+Expected: no `CompanionArt` or `LegacyAnimalRig` references in main sources. The documented read-only `companion_<KIND>_accessory` compatibility key and its regression tests remain valid matches; do not remove that fallback.
 
 - [ ] **Step 3: Run unit tests, the build, the coverage test and the gallery.** Expected: all pass.
 - [ ] **Step 4: Checkpoint.** Do not commit.
@@ -554,7 +559,7 @@ Expected: no matches in main sources.
 ### Task 14: Final validation and documentation
 
 **Files:**
-- Modify: `docs/implementation/STATUS.md`, `C:\Users\EmmaH\.claude\projects\C--Dev-Clocklings\memory\MEMORY.md` (and its memory file)
+- Modify: `docs/implementation/STATUS.md` only; keep the durable architecture record inside this repository
 
 - [ ] **Step 1: Run the full suites**
 
@@ -563,7 +568,7 @@ Expected: BUILD SUCCESSFUL, every test passes.
 
 - [ ] **Step 2: Capture device screenshots.** Capture Home, the picker, every companion's wardrobe, and a result with an unlock, each at default size, 320 dp, 200% font and both together, under `reports/companions/`. Inspect each one for clipping, word splitting and overlap. Restore the emulator's density and font scale afterwards, and stop the processes this task started.
 
-- [ ] **Step 3: Update STATUS.md.** Add a "Companion wardrobes and vinyl artwork — 22 October 2026" section with the owner decisions, the new structure (`ui/art`, `ui/companion`, per-companion outfits and names), the checks actually run, screenshot paths and remaining gaps (Finnish and Swedish names, owner-run `lc`/`sc`). Update the memory index with the new architecture.
+- [ ] **Step 3: Update STATUS.md.** Add a "Companion wardrobes and vinyl artwork — 22 October 2026" section with the owner decisions, the new structure (`ui/art`, `ui/companion`, per-companion outfits and names), the checks actually run, screenshot paths and remaining gaps (Finnish and Swedish names, owner-run `lc`/`sc`). Record the new architecture in the same repository document; external personal memory updates are not part of this plan.
 
 - [ ] **Step 4: Final report to the owner** in Finnish: what was implemented, which checks were run, and any unresolved points. Do not commit.
 

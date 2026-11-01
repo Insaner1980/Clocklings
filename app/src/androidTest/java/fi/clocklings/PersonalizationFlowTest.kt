@@ -20,8 +20,11 @@ import androidx.compose.ui.test.performCustomAccessibilityActionWithLabel
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import fi.clocklings.domain.CompanionKind
+import fi.clocklings.domain.Progress
 import fi.clocklings.domain.Settings
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -33,14 +36,31 @@ import java.io.File
 @OptIn(ExperimentalTestApi::class)
 class PersonalizationFlowTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+    private lateinit var originalProgress: Progress
+    private lateinit var originalSettings: Settings
 
     @Before
     fun resetSyntheticData() =
         runBlocking {
             val context = InstrumentationRegistry.getInstrumentation().targetContext
             val app = context.applicationContext as ClocklingsApplication
+            originalProgress =
+                app.container.repository.progress
+                    .first()
+            originalSettings =
+                app.container.repository.settings
+                    .first()
             app.container.repository.resetProgress()
             app.container.repository.updateSettings { Settings(sound = false) }
+        }
+
+    @After
+    fun restoreSyntheticData() =
+        runBlocking {
+            val context = InstrumentationRegistry.getInstrumentation().targetContext
+            val app = context.applicationContext as ClocklingsApplication
+            app.container.repository.updateProgress { originalProgress }
+            app.container.repository.updateSettings { originalSettings }
         }
 
     @Test

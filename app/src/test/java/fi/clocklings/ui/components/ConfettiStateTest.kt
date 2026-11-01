@@ -55,4 +55,28 @@ class ConfettiStateTest {
         state.step(100f)
         assertFalse(state.isActive)
     }
+
+    @Test
+    fun `clear removes particles and flights`() {
+        val state = ConfettiState(1f, enabled = true)
+        state.burst(Offset(50f, 100f), count = 20)
+        state.flyStar(Offset(10f, 20f), Offset(200f, 300f))
+        assertTrue(state.isActive)
+        val framesBefore = state.frame
+        state.clear()
+        assertFalse(state.isActive)
+        assertTrue(state.particles.isEmpty())
+        assertTrue(state.flights.isEmpty())
+        assertTrue(state.frame > framesBefore)
+    }
+
+    @Test
+    fun `cleared flight does not sparkle at its destination later`() {
+        val state = ConfettiState(1f, enabled = true)
+        state.flyStar(Offset(10f, 20f), Offset(200f, 300f))
+        repeat(20) { state.step(2_000f) }
+        state.clear()
+        repeat(50) { state.step(2_000f) }
+        assertFalse(state.isActive)
+    }
 }

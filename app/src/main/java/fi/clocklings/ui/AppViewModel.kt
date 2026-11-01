@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.IOException
 
@@ -77,11 +78,25 @@ class AppViewModel(
         updateSettings { it.copy(personalization = transform(it.personalization)) }
 
     private fun updateSettings(transform: (Settings) -> Settings) {
-        viewModelScope.launch { services.repository.updateSettings(transform) }
+        viewModelScope.launch {
+            try {
+                services.repository.updateSettings(transform)
+                mutableSettingsAction.update { it.copy(failed = false) }
+            } catch (_: IOException) {
+                mutableSettingsAction.update { it.copy(failed = true) }
+            }
+        }
     }
 
     fun updateProgress(transform: (Progress) -> Progress) {
-        viewModelScope.launch { services.repository.updateProgress(transform) }
+        viewModelScope.launch {
+            try {
+                services.repository.updateProgress(transform)
+                mutableSettingsAction.update { it.copy(failed = false) }
+            } catch (_: IOException) {
+                mutableSettingsAction.update { it.copy(failed = true) }
+            }
+        }
     }
 
     fun resetProgress(onSuccess: () -> Unit = {}) {

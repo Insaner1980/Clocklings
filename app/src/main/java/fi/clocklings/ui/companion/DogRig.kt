@@ -38,6 +38,15 @@ internal object DogRig : AnimalRig(
     // The crops keep every item of the slot whole while leaving out the tail and the mouth and tongue.
     headCrop = Rect(20f, 0f, 220f, 174f),
     neckCrop = Rect(66f, 158f, 174f, 238f),
+    // Accessory crops: the item's drawing bounds plus 12 units on every side, squared to the thumbnail window.
+    itemCrops =
+        mapOf(
+            "dog-extra-ball" to Rect(60f, 180f, 180f, 300f),
+            "dog-extra-frisbee" to Rect(60f, 84f, 180f, 204f),
+            "dog-extra-boots" to Rect(57f, 174f, 183f, 300f),
+            "dog-extra-backpack" to Rect(14f, 116f, 185f, 287f),
+            "dog-extra-raincoat" to Rect(40f, 128f, 200f, 288f),
+        ),
 ) {
     /** Fur brushes for every companion color, built once and indexed by the color's ordinal. */
     private val furs = CompanionColor.entries.map { DogFur(it) }

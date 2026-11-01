@@ -304,6 +304,7 @@ Argument notation is `position:type`, repeated per occurrence; plural branches a
 | color_blue | string: none | AppearanceNames.kt, AppearanceScreen.kt | no |
 | color_green | string: none | AppearanceNames.kt, AppearanceScreen.kt | no |
 | color_purple | string: none | AppearanceNames.kt, AppearanceScreen.kt | no |
+| color_orange | string: none | AppearanceNames.kt | no |
 | color_coral | string: none | AppearanceScreen.kt | no |
 | clock_choice_hint | string: none | AppearanceScreen.kt | yes |
 | theme_classic | string: none | AppearanceNames.kt | no |
@@ -334,7 +335,6 @@ Argument notation is `position:type`, repeated per occurrence; plural branches a
 | --- | --- | --- | --- |
 | app_name | string: none | HomeScreen.kt, IntroScreen.kt | no |
 | back | string: none | AppearanceScreen.kt, LessonScreens.kt, LevelsScreen.kt, Panels.kt, WardrobeScreen.kt | no |
-| back_levels | string: none | ChallengeScreen.kt, GameScreen.kt | no |
 | help_on | string: none | Panels.kt | no |
 | help_off | string: none | Panels.kt | no |
 | listen | string: none | AskScreen.kt, FreeClockScreen.kt, LessonScreens.kt | no |
@@ -342,7 +342,6 @@ Argument notation is `position:type`, repeated per occurrence; plural branches a
 | next | string: none | GameScreen.kt, LessonScreens.kt | no |
 | done | string: none | GameScreen.kt, LessonScreens.kt | no |
 | play | string: none | LevelsScreen.kt | no |
-| levels_short | string: none | ChallengeScreen.kt, ResultScreen.kt | no |
 | clock_is | string: none | FreeClockScreen.kt | yes |
 | question_read | string: none | AskScreen.kt, ChallengeScreen.kt, GameScreen.kt | yes |
 | digital_24 | string: 1:s | Texts.kt | yes |
@@ -443,9 +442,9 @@ Argument notation is `position:type`, repeated per occurrence; plural branches a
 | challenge_no_best | string: none | ChallengeScreen.kt | no |
 | challenge_go | string: none | ChallengeScreen.kt | no |
 | challenge_over | string: none | ChallengeScreen.kt | no |
+| challenge_new_best | string: none; New best! / Uusi ennätys! / Nytt rekord! | ChallengeScreen.kt, visible record headline above the score | no |
 | challenge_new_record | string: 1:d | ChallengeScreen.kt | no |
 | challenge_result | string: 1:d,2:d | ChallengeScreen.kt | no |
-| challenge_again | string: none | ChallengeScreen.kt | no |
 | ask_title | string: none | AskScreen.kt | no |
 | ask_big_eyebrow | string: 1:d | AskScreen.kt | no |
 | ask_big_question | string: none | AskScreen.kt | no |
@@ -461,6 +460,7 @@ Argument notation is `position:type`, repeated per occurrence; plural branches a
 | doll_info | plurals; one: 1:d; other: 1:d | WardrobeScreen.kt | no |
 | doll_all_open | string: none | WardrobeScreen.kt | no |
 | doll_optional_hint | string: none | WardrobeScreen.kt | no |
+| doll_optional_hint_partial | string: none | WardrobeScreen.kt | no |
 | doll_item_on | string: none | WardrobeScreen.kt | no |
 | doll_item_locked | string: 1:d | WardrobeScreen.kt | no |
 | slot_hair | string: none | Texts.kt | no |
@@ -490,12 +490,14 @@ Argument notation is `position:type`, repeated per occurrence; plural branches a
 | koulu_title | string: none | LessonScreens.kt | no |
 | koulu_intro | string: none | LessonScreens.kt | no |
 | lesson_done | string: none | LessonScreens.kt | no |
+| path_current | string: none; screen reader state of the current stop on the Learn and Play paths (en "Up next", fi "Vuorossa", sv "På tur"; added in screenshot review 6, round 3) | PathNode.kt | no |
 | lesson_skip | string: none | LessonScreens.kt | no |
 | lesson_replay | string: none | LessonScreens.kt | no |
 | lesson_prev | string: none | LessonScreens.kt | no |
 | lesson_try | string: none | LessonScreens.kt | no |
 | lesson_next_lesson | string: none | LessonScreens.kt | no |
 | lesson_start_game | string: none | LessonScreens.kt | no |
+| lesson_practise | string: none | LessonScreens.kt | no |
 | lesson_learned | string: 1:s,2:s | LessonScreens.kt | no |
 | say_quarter | string: 1:d | LessonCatalog.kt | yes |
 | say_number_minutes | string: 1:d,2:d | LessonCatalog.kt | yes |

@@ -131,9 +131,15 @@ internal fun itemPolkaDotBowTie(
     }
 }
 
+/** Five petals of [radius] arranged on a circle of radius [ring]. */
+internal class FlowerPetals(
+    val ring: Float,
+    val radius: Float,
+)
+
 /**
- * A flower lei along the neckline curve [at] (0 to 1): [flowers] evenly spaced flowers of five petals
- * ([petalRing], [petalR]) cycling through [petalTones] with gold centers, each turned [stepDeg] more
+ * A flower lei along the neckline curve [at] (0 to 1): [flowers] evenly spaced flowers with [petals]
+ * cycling through [petalTones] with gold centers, each turned [stepDeg] more
  * than the last, on leaves hanging [leafDrop] below the curve between them. It follows [part].
  */
 @Suppress("LongParameterList")
@@ -141,8 +147,7 @@ internal fun itemFlowerLei(
     at: (Float) -> Offset,
     flowers: Int,
     leafDrop: Float,
-    petalRing: Float,
-    petalR: Float,
+    petals: FlowerPetals,
     stepDeg: Float,
     petalTones: List<VinylTones> = LeiPetalTones,
     part: ArtPart = ArtPart.BODY,
@@ -161,8 +166,8 @@ internal fun itemFlowerLei(
         (0..gaps).map { i ->
             val c = at(i / gaps.toFloat())
             val tones = petalTones[i % petalTones.size]
-            val petals = VinylShape(itemPetals(c.x, c.y, petalRing, petalR, i * stepDeg), tones)
-            petals to itemCircle(c.x, c.y, FLOWER_CENTER_R, ArtTones.Gold)
+            val shape = VinylShape(itemPetals(c.x, c.y, petals.ring, petals.radius, i * stepDeg), tones)
+            shape to itemCircle(c.x, c.y, FLOWER_CENTER_R, ArtTones.Gold)
         }
     return ItemArt(part, ItemLayer.FRONT) {
         vinylShape(leaves)

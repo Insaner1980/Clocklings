@@ -11,7 +11,7 @@ The owner supplied eight ChatGPT character images (bunny, car, elephant, monster
 - **Unicorn**: the pastel fantasy fan base. The dragon is a different kind of fantasy.
 - **Car**: vehicles. No current companion covers them.
 
-The others (penguin, octopus, elephant, alien, train) are left for possible later content updates.
+The others (penguin, octopus, elephant, monster, train) are left for possible later content updates.
 
 Other decisions:
 
@@ -31,7 +31,7 @@ Other decisions:
 
 Section names: Roof, Front, Wheels, Transformations (fi: Katolle, Keulaan, Pyörät, Muodonmuutokset; sv: På taket, Fram, Hjul, Förvandlingar).
 
-Items of different slots must never cover each other badly, because any combination can be worn. So car transformations keep the roof top, the wheels and the bumper free.
+Items of different slots must never cover each other badly, because any combination can be worn. So car transformations keep the roof top, the wheels and the bumper free. The approved pilot keeps the low rear race-car spoiler. Draw the rear spoiler and its supports, fire-engine ladder and rocket fins behind the cabin through `ItemArt.back`; roof items remain on the cabin top. The lip spoiler is a separate lower-front part: `CarItems.raceCar` draws it at x=96–210, y=266–274 on `ArtPart.BODY` / `ItemLayer.FRONT`, after the body and wheels. Put door markings below the handle and above the rear tire, and draw hubcaps after the wheels. Foreground transformation details may cover body paint but must keep the other slots readable. These are placement and draw-order constraints, not permission to redesign the owner-approved artwork.
 
 Persistence needs no new rules: keys are `outfit_<kind>_<slot>` and `companion_name_<kind>`, written for every kind that has slots. Kinds are stored by name, so new enum entries do not disturb saved data.
 
@@ -65,7 +65,7 @@ The owner asked for vehicle-themed items instead of flowers, stars and bows.
 2. Roof rack with a suitcase (roof)
 3. Sunglasses (front)
 4. Off-road tires (wheels)
-5. Race car (transformation): rear wing above the roof, hood stripes, a number on the door and a lip spoiler
+5. Race car (transformation): low rear spoiler behind the cabin, hood stripes, a number on the door and a separate lower-front lip spoiler
 6. Surfboard (roof)
 7. Bull bar with fog lights (front)
 8. Flame hubcaps (wheels)
@@ -75,7 +75,7 @@ The owner asked for vehicle-themed items instead of flowers, stars and bows.
 12. Taxi sign (roof)
 13. Gold rims (wheels)
 14. Rally lights (roof)
-15. Rocket car (transformation): a side booster with fins and a flame
+15. Rocket car (transformation): rear fins, a nozzle and a flame
 
 ### Unicorn (free: flower garland, neck)
 

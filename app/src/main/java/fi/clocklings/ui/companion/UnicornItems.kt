@@ -53,7 +53,7 @@ private fun DrawScope.vinylShapes(shapes: List<VinylShape>) {
 
 /** A garland of flowers around the neck. */
 private fun lei(): ItemArt =
-    itemFlowerLei({ t -> itemQuad(82f, 176f, 120f, 202f, 158f, 176f, t) }, 7, 5f, 6f, 5.5f, 25f)
+    itemFlowerLei({ t -> itemQuad(82f, 176f, 120f, 202f, 158f, 176f, t) }, 7, 5f, FlowerPetals(6f, 5.5f), 25f)
 
 /** Pastel rings around the horn: pink, blue and pink again toward the tip. */
 private fun hornRings(): ItemArt {
@@ -104,7 +104,14 @@ private fun starNecklace(): ItemArt {
 
 /** A crown of flowers across the forehead, around the base of the horn. */
 private fun flowerCrown(): ItemArt =
-    itemFlowerLei({ t -> itemQuad(62f, 96f, 120f, 40f, 178f, 96f, t) }, 7, 5f, 6f, 5.5f, 30f, part = ArtPart.HEAD)
+    itemFlowerLei(
+        { t -> itemQuad(62f, 96f, 120f, 40f, 178f, 96f, t) },
+        7,
+        5f,
+        FlowerPetals(6f, 5.5f),
+        30f,
+        part = ArtPart.HEAD,
+    )
 
 /** A gold star balloon tied to the left front hoof. */
 private fun starBalloon(): ItemArt {

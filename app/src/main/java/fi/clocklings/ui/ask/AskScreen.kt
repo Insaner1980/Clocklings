@@ -1,16 +1,12 @@
 package fi.clocklings.ui.ask
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -19,12 +15,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.IntSize
 import fi.clocklings.R
 import fi.clocklings.audio.Sound
 import fi.clocklings.domain.ClockTime
@@ -35,24 +34,17 @@ import fi.clocklings.ui.clock.ClockFace
 import fi.clocklings.ui.components.ButtonKind
 import fi.clocklings.ui.components.ClockBox
 import fi.clocklings.ui.components.CompanionTip
-import fi.clocklings.ui.components.DigitalPill
 import fi.clocklings.ui.components.FlatPanel
 import fi.clocklings.ui.components.HelpTopBar
 import fi.clocklings.ui.components.LocalConfetti
-import fi.clocklings.ui.components.RoundIconButton
 import fi.clocklings.ui.components.ScreenScaffold
 import fi.clocklings.ui.components.SkButton
 import fi.clocklings.ui.components.SkIcons
-import fi.clocklings.ui.components.adaptiveGridColumns
+import fi.clocklings.ui.components.TimeReadout
 import fi.clocklings.ui.components.confettiAnchor
-import fi.clocklings.ui.digitalLabel
-import fi.clocklings.ui.locale.LocalAppLanguage
-import fi.clocklings.ui.resources
-import fi.clocklings.ui.spokenTime
 import fi.clocklings.ui.theme.Section
 import fi.clocklings.ui.theme.SkDimens
 import fi.clocklings.ui.theme.SkType
-import fi.clocklings.ui.timeLabel
 import kotlin.random.Random
 
 private enum class AskPhase { SET, ASK, REVEALED }
@@ -77,6 +69,20 @@ fun AskScreen(
         clockHeightShare = SkDimens.PLAY_CLOCK_HEIGHT_SHARE,
         section = Section.TOGETHER,
         topBar = { HelpTopBar(stringResource(R.string.ask_title), help, onBack, app::toggleHelp) },
+        bottomBar = {
+            AskActions(
+                phase,
+                onAsk = {
+                    app.play(Sound.POP)
+                    phase = AskPhase.ASK
+                },
+                onReveal = { phase = AskPhase.REVEALED },
+                onSwap = {
+                    setter = PLAYER_NUMBER_SUM - setter
+                    phase = AskPhase.SET
+                },
+            )
+        },
     ) { clockSize ->
         ClockBox(clockSize) {
             ClockFace(
@@ -92,27 +98,13 @@ fun AskScreen(
         val role = askRoleDescription(phase, setter)
         FlatPanel(Modifier.semantics { contentDescription = role }) {
             if (phase == AskPhase.SET) {
-                AskSetup(
-                    onRandom = {
-                        time = Levels.randomClockTime(ClockTime.period(h24), time, Random.Default)
-                        command = ClockCommand(time, RANDOM_MOVE_MS)
-                        app.play(Sound.POP)
-                    },
-                    onAsk = {
-                        app.play(Sound.POP)
-                        phase = AskPhase.ASK
-                    },
-                )
+                AskSetup {
+                    time = Levels.randomClockTime(ClockTime.period(h24), time, Random.Default)
+                    command = ClockCommand(time, RANDOM_MOVE_MS)
+                    app.play(Sound.POP)
+                }
             } else {
-                AskQuestion(
-                    revealed = phase == AskPhase.REVEALED,
-                    answer = { AskAnswer(time, h24, speechAvailable) },
-                    onReveal = { phase = AskPhase.REVEALED },
-                    onSwap = {
-                        setter = PLAYER_NUMBER_SUM - setter
-                        phase = AskPhase.SET
-                    },
-                )
+                AskQuestion(phase == AskPhase.REVEALED, time, h24, speechAvailable)
             }
         }
     }
@@ -124,70 +116,95 @@ private const val REVEAL_CONFETTI = 40
 private const val PLAYER_NUMBER_SUM = 3
 
 @Composable
-private fun ColumnScope.AskSetup(
-    onRandom: () -> Unit,
-    onAsk: () -> Unit,
-) {
+private fun ColumnScope.AskSetup(onRandom: () -> Unit) {
     Text(stringResource(R.string.ask_big_question), style = SkType.Question)
     CompanionTip(stringResource(R.string.ask_big_text))
     SkButton(stringResource(R.string.random_time), onRandom, Modifier.fillMaxWidth(), icon = SkIcons.Shuffle)
-    SkButton(
-        stringResource(R.string.ask_go),
-        onAsk,
-        Modifier.fillMaxWidth(),
-        kind = ButtonKind.PRIMARY,
-        icon = SkIcons.Pass,
-    )
 }
 
-/** The partner answers; revealing celebrates, then the players can swap roles. */
+/**
+ * The partner answers; the revealed answer is laid out like the Explore readout. The reveal button sits
+ * in the bottom bar, so the answer scrolls itself into view when it may appear below the fold.
+ */
 @Composable
 private fun ColumnScope.AskQuestion(
     revealed: Boolean,
-    answer: @Composable () -> Unit,
+    time: Int,
+    h24: Boolean,
+    speechAvailable: Boolean,
+) {
+    val app = LocalAppViewModel.current
+    val answer = remember { BringIntoViewRequester() }
+    var answerSize by remember { mutableStateOf(IntSize.Zero) }
+    val fadePx = with(LocalDensity.current) { SkDimens.ScrollFade.toPx() }
+    Text(stringResource(R.string.question_read), style = SkType.Question)
+    CompanionTip(stringResource(R.string.ask_small_text))
+    if (revealed) {
+        TimeReadout(
+            time,
+            h24,
+            speechAvailable,
+            app::speak,
+            Modifier.bringIntoViewRequester(answer).onSizeChanged { answerSize = it },
+        )
+    }
+    LaunchedEffect(revealed, answerSize) {
+        // One fade taller than the readout, so its bottom clears the scaffold's bottom scroll fade.
+        if (revealed && answerSize != IntSize.Zero) {
+            answer.bringIntoView(Rect(0f, 0f, answerSize.width.toFloat(), answerSize.height + fadePx))
+        }
+    }
+}
+
+/** The single action of the current phase, always reachable in the bottom bar; revealing celebrates. */
+@Composable
+private fun AskActions(
+    phase: AskPhase,
+    onAsk: () -> Unit,
     onReveal: () -> Unit,
     onSwap: () -> Unit,
 ) {
     val app = LocalAppViewModel.current
     val confetti = LocalConfetti.current
     val haptic = LocalHapticFeedback.current
-    val wordsAnchor = remember { mutableStateOf(Offset.Zero) }
-    Text(stringResource(R.string.question_read), style = SkType.Question)
-    CompanionTip(stringResource(R.string.ask_small_text))
-    if (!revealed) {
-        SkButton(stringResource(R.string.ask_reveal), {
-            onReveal()
-            haptic.performHapticFeedback(HapticFeedbackType.Confirm)
-            app.play(Sound.OK)
-            confetti?.burst(wordsAnchor.value, REVEAL_CONFETTI)
-        }, kind = ButtonKind.PRIMARY, modifier = Modifier.confettiAnchor { wordsAnchor.value = it })
-    } else {
-        answer()
-        SkButton(stringResource(R.string.ask_new), {
-            app.stopSpeech()
-            app.play(Sound.POP)
-            onSwap()
-        }, kind = ButtonKind.GREEN)
-    }
-}
+    val revealAnchor = remember { mutableStateOf(Offset.Zero) }
+    when (phase) {
+        AskPhase.SET -> {
+            SkButton(
+                stringResource(R.string.ask_go),
+                onAsk,
+                Modifier.fillMaxWidth(),
+                kind = ButtonKind.PRIMARY,
+                icon = SkIcons.Pass,
+            )
+        }
 
-@Composable
-private fun AskAnswer(
-    time: Int,
-    h24: Boolean,
-    speechAvailable: Boolean,
-) {
-    val app = LocalAppViewModel.current
-    val res = resources()
-    Text(timeLabel(LocalAppLanguage.current, time, h24), style = SkType.Words)
-    DigitalPill(digitalLabel(res, time, h24))
-    if (speechAvailable) {
-        RoundIconButton(
-            SkIcons.Listen,
-            stringResource(R.string.listen),
-            { app.speak(spokenTime(res, time, h24)) },
-            large = true,
-        )
+        AskPhase.ASK -> {
+            SkButton(
+                stringResource(R.string.ask_reveal),
+                {
+                    onReveal()
+                    haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+                    app.play(Sound.OK)
+                    confetti?.burst(revealAnchor.value, REVEAL_CONFETTI)
+                },
+                Modifier.fillMaxWidth().confettiAnchor { revealAnchor.value = it },
+                kind = ButtonKind.PRIMARY,
+            )
+        }
+
+        AskPhase.REVEALED -> {
+            SkButton(
+                stringResource(R.string.ask_new),
+                {
+                    app.stopSpeech()
+                    app.play(Sound.POP)
+                    onSwap()
+                },
+                Modifier.fillMaxWidth(),
+                kind = ButtonKind.GREEN,
+            )
+        }
     }
 }
 

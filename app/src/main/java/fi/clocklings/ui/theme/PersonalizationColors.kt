@@ -26,11 +26,10 @@ object PersonalizationColors {
     val Blue = Color(0xFF86BDED)
     val Green = Color(0xFF94C9A1)
     val Purple = Color(0xFFC5A1DD)
+    val Orange = Color(0xFFF4B26A)
 
     // Per-kind color options where a generic option would look like the kind's own Original color.
     val RobotBlue = Color(0xFF5B95DA)
-    val DragonPurple = Color(0xFF8D68C8)
-    val DinosaurGreen = Color(0xFF4E9C86)
     val Cheek = Color(0xFFF3A1AB)
     val Scarf = Color(0xFFD4586C)
     val Metal = Color(0xFF385B71)
@@ -100,11 +99,15 @@ object PersonalizationColors {
             }
 
             CompanionColor.GREEN -> {
-                if (kind == CompanionKind.DINOSAUR) DinosaurGreen else Green
+                Green
             }
 
             CompanionColor.PURPLE -> {
-                if (kind == CompanionKind.DRAGON) DragonPurple else Purple
+                Purple
+            }
+
+            CompanionColor.ORANGE -> {
+                Orange
             }
 
             CompanionColor.ORIGINAL -> {

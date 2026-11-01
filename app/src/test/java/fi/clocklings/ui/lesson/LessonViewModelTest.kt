@@ -134,6 +134,7 @@ class LessonViewModelTest {
                     .indexOfFirst { it.correct },
             )
             assertEquals(NextAction.NEXT_LESSON, vm.state.value.nextAction)
+            runCurrent()
             vm.next()
             runCurrent()
             assertEquals("vrk", vm.state.value.lesson.id)
@@ -145,6 +146,7 @@ class LessonViewModelTest {
             )
             assertEquals(NextAction.START_GAME, vm.state.value.nextAction)
             assertFalse(vm.state.value.finished)
+            runCurrent()
             vm.next()
             assertTrue(vm.state.value.finished)
             assertEquals(2, services.sounds.count { it == Sound.LESSON_COMPLETE })

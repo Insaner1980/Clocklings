@@ -220,8 +220,10 @@ class ScreenshotReviewUiTest {
         names.forEachIndexed { level, name ->
             assertWholeWords("Aloita pelaaminen!", level)
             compose
-                .onNode(hasContentDescription("$name. Aloita pelaaminen!", substring = true) and hasClickAction())
-                .performScrollTo()
+                .onNode(
+                    hasContentDescription("$name. Harjoittele. Aloita pelaaminen!", substring = true) and
+                        hasClickAction(),
+                ).performScrollTo()
                 .assertIsDisplayed()
                 .performClick()
             assertEquals(level, opened)

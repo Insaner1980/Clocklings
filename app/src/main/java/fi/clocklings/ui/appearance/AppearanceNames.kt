@@ -25,6 +25,7 @@ internal fun companionColorName(color: CompanionColor): Int =
         CompanionColor.BLUE -> R.string.color_blue
         CompanionColor.GREEN -> R.string.color_green
         CompanionColor.PURPLE -> R.string.color_purple
+        CompanionColor.ORANGE -> R.string.color_orange
     }
 
 internal fun clockThemeName(theme: ClockTheme): Int =

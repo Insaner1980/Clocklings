@@ -3,6 +3,7 @@ package fi.clocklings.ui.clock
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import fi.clocklings.domain.ClockTime
+import fi.clocklings.domain.Mark
 import fi.clocklings.domain.MarkColor
 import fi.clocklings.ui.theme.SkColors
 import kotlin.math.cos
@@ -35,6 +36,21 @@ internal object ClockSpec {
     const val TICK_BIG_WIDTH = 4f
     const val TICK_SMALL_WIDTH = 2f
     const val NUMBER_RADIUS = 110f
+    const val DEGREES_PER_HOUR = 30f
+
+    private const val NUMERAL_HALO_SIDE_MINUTES = 0.5f
+
+    /**
+     * How close (in degrees) the minute hand must point to an hour numeral for the numeral to be
+     * redrawn over the hand. Half the width of "12" is about 22 units at [NUMBER_RADIUS], about 11
+     * degrees; half the resting hand width plus its halo ([MINUTE_WIDTH] / 2 + [HAND_HALO], 8 units) adds
+     * about 4 degrees, so 16 degrees covers every digit the resting shaft can touch. The pulsing hand
+     * ([MINUTE_WIDTH_PULSE]) is about 2 degrees wider at its widest, which only grazes the digit's outer edge.
+     */
+    const val NUMERAL_COVER_ANGLE = 16f
+
+    /** Width of the outline drawn around a numeral that is redrawn over the minute hand. */
+    const val NUMERAL_HALO = 6f
 
     const val HOUR_TAIL = 16f
     const val HOUR_LENGTH = 86f
@@ -67,16 +83,31 @@ internal object ClockSpec {
     const val PIN_RADIUS = 14f
     const val PIN_DOT = 5f
 
-    const val SUN_CY = 232f
-    const val SUN_RADIUS = 9f
-    const val SUN_RAY_FROM = 13f
-    const val SUN_RAY_TO = 18f
+    /**
+     * 24 h day part below the pin: the sun (or the moon, centred on [SUN_CY]) between the pin and the word,
+     * the word high enough that the widest one ("eftermiddag") clears the inner 17 and 19.
+     */
+    const val SUN_CY = 229f
+    const val SUN_RADIUS = 8f
+    const val SUN_RAY_FROM = 11.5f
+    const val SUN_RAY_TO = 14.5f
     const val SUN_RAY_WIDTH = 3f
-    const val DAY_TEXT_Y = 266f
+    const val DAY_TEXT_Y = 260f
 
-    /** "past" sits at 5 o'clock and "to" at 7 o'clock, below the pin, where hands cover them less often. */
+    /** 12 h: "past" sits at 5 o'clock and "to" at 7 o'clock, below the pin, where hands cover them less often. */
     const val ZONE_LABEL_ANGLE = 148f
     const val ZONE_RADIUS = 70f
+
+    /**
+     * With 24 h numbering the day part fills the space below the pin, so the labels sit above it instead,
+     * either side of the inner 0, between the hand tails and the inner 13 and 23.
+     */
+    const val ZONE_LABEL_ANGLE_24 = 32f
+    const val ZONE_RADIUS_24 = 60f
+
+    fun zoneLabelAngle(is24: Boolean): Float = if (is24) ZONE_LABEL_ANGLE_24 else ZONE_LABEL_ANGLE
+
+    fun zoneLabelRadius(is24: Boolean): Float = if (is24) ZONE_RADIUS_24 else ZONE_RADIUS
 
     /** A label is hidden when a hand is within [ZONE_HIDE_ANGLE] and fully shown beyond [ZONE_FADE_ANGLE]. */
     const val ZONE_HIDE_ANGLE = 10f
@@ -85,7 +116,7 @@ internal object ClockSpec {
     // Opetuksen merkinnät
     const val GLOW_NUMBER_RADIUS = 27f
     const val GLOW_TICK_AT = 157f
-    const val GLOW_TICK_RADIUS = 7f
+    const val GLOW_TICK_RADIUS = 10f
     const val BUBBLE_RADIUS = 18f
     const val BUBBLE_STROKE = 3f
 
@@ -140,6 +171,60 @@ internal object ClockSpec {
     ): Offset {
         val a = Math.toRadians(degrees.toDouble())
         return Offset(CENTER + radius * sin(a).toFloat(), CENTER - radius * cos(a).toFloat())
+    }
+
+    /** Hour numerals (1 to 12, ascending) that the minute hand at [handAngle] degrees passes over. */
+    fun numeralsUnder(handAngle: Float): List<Int> =
+        (1..ClockTime.HOURS_PER_HALF_DAY).filter {
+            ClockTime.angleDiff(it * DEGREES_PER_HOUR, handAngle) <= NUMERAL_COVER_ANGLE
+        }
+
+    /**
+     * The colour at [minute] (0 to 60, wrapping) on the face, first match wins: the topmost sector
+     * covering it, the help halves (Yli on the right, Vaille on the left), the plain face.
+     * Number glows are not position based and are handled by [numeralHalo].
+     */
+    internal fun backgroundAt(
+        minute: Float,
+        help: Boolean,
+        under: List<Mark>,
+    ): Color {
+        val m = ClockTime.mod(minute, ClockTime.MINUTES_PER_HOUR.toFloat())
+        val sector =
+            under.filterIsInstance<Mark.Sector>().lastOrNull {
+                m in it.fromMin.toFloat()..it.toMin.toFloat() ||
+                    m + ClockTime.MINUTES_PER_HOUR in it.fromMin.toFloat()..it.toMin.toFloat()
+            }
+        return when {
+            sector != null -> markColor(sector.color)
+            help && m > 0f && m < ClockTime.MINUTES_PER_HALF_HOUR -> SkColors.Yli
+            help && m > ClockTime.MINUTES_PER_HALF_HOUR && m < ClockTime.MINUTES_PER_HOUR -> SkColors.Vaille
+            else -> SkColors.Face
+        }
+    }
+
+    /** The colours on either side of the radial line through a numeral, [before] counter-clockwise of it. */
+    internal data class NumeralHalo(
+        val before: Color,
+        val after: Color,
+    )
+
+    /**
+     * Halo colours for numeral [n]. Every colour boundary on the face (sector edges, the help split)
+     * runs through the centre of a numeral along its radial line, so the colour half a minute to each side
+     * of the numeral is the colour on that side. A number glow surrounds the numeral on both sides.
+     */
+    internal fun numeralHalo(
+        n: Int,
+        help: Boolean,
+        under: List<Mark>,
+    ): NumeralHalo {
+        if (under.contains(Mark.NumberGlow(n))) return NumeralHalo(SkColors.MarkNumber, SkColors.MarkNumber)
+        val minute = (n * ClockTime.MINUTES_PER_NUMBER).toFloat()
+        return NumeralHalo(
+            before = backgroundAt(minute - NUMERAL_HALO_SIDE_MINUTES, help, under),
+            after = backgroundAt(minute + NUMERAL_HALO_SIDE_MINUTES, help, under),
+        )
     }
 
     fun markColor(color: MarkColor): Color =
