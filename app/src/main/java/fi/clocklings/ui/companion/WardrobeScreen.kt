@@ -2,7 +2,6 @@ package fi.clocklings.ui.companion
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -19,19 +18,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -43,13 +39,12 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import fi.clocklings.R
 import fi.clocklings.audio.Sound
 import fi.clocklings.domain.CompanionColor
@@ -68,6 +63,7 @@ import fi.clocklings.ui.components.Pill
 import fi.clocklings.ui.components.PillKind
 import fi.clocklings.ui.components.ScreenScaffold
 import fi.clocklings.ui.components.SelectionBadge
+import fi.clocklings.ui.components.SkButton
 import fi.clocklings.ui.components.SkIcon
 import fi.clocklings.ui.components.SkIcons
 import fi.clocklings.ui.components.SwatchTile
@@ -96,12 +92,30 @@ fun WardrobeScreen(
     modifier: Modifier = Modifier,
 ) {
     val app = LocalAppViewModel.current
+    val action by app.settingsAction.collectAsStateWithLifecycle()
+    var name by rememberSaveable(kind) { mutableStateOf(progress.nameFor(kind)) }
+    var nameSaveFailed by rememberSaveable(kind) { mutableStateOf(false) }
     val total = progress.totalStars
     val outfit = progress.outfitFor(kind)
     ScreenScaffold(
         modifier,
         section = Section.COMPANION,
         topBar = { TopBar(stringResource(R.string.doll_title), onBack) },
+        bottomBar =
+            if (action.failed || nameSaveFailed) {
+                {
+                    Text(stringResource(R.string.settings_save_error), style = SkType.Body)
+                    if (nameSaveFailed) {
+                        SkButton(
+                            stringResource(R.string.settings_retry),
+                            { app.setName(kind, name.trim()) { nameSaveFailed = !it } },
+                            Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+            } else {
+                null
+            },
     ) {
         val starInfo =
             if (Wardrobe.lockedCount(kind, total) > 0) {
@@ -113,10 +127,13 @@ fun WardrobeScreen(
             kind,
             outfit,
             color,
-            progress.nameFor(kind),
+            name,
             stars = stringResource(R.string.home_star_total, total, Wardrobe.MAX_STARS),
             starInfo = starInfo,
-            onNameChange = { app.setName(kind, it.trim()) },
+            onNameChange = {
+                name = it
+                app.setName(kind, it.trim()) { saved -> nameSaveFailed = !saved }
+            },
         )
         if (Wardrobe.lockedCount(kind, total) > 0) {
             Text(stringResource(R.string.doll_stars_explained), style = SkType.SmallSoft)
@@ -131,21 +148,32 @@ fun WardrobeScreen(
         if (kind != CompanionKind.HUMAN) {
             WardrobeSection(stringResource(R.string.companion_color)) { CompanionColors(kind, color) }
         }
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val (columns, nameStyle) = rememberItemGridLayout(Wardrobe.itemsFor(kind), maxWidth)
-            Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapScreen)) {
-                for (slot in kind.slots) {
-                    WardrobeSection(stringResource(slotName(slot))) {
-                        ItemGrid(Wardrobe.itemsFor(kind, slot), columns) { item, cell ->
-                            if (item.star <= total) {
-                                val on = outfit.isOn(item)
-                                ItemTile(item, outfit, color, cell, nameStyle = nameStyle, on = on, onClick = {
-                                    app.play(if (on) Sound.POP else Sound.EQUIP)
-                                    app.toggleItem(kind, item)
-                                })
-                            } else {
-                                LockedTile(item, outfit, color, total, cell, nameStyle)
-                            }
+        WardrobeItems(kind, total, outfit, color)
+    }
+}
+
+@Composable
+private fun WardrobeItems(
+    kind: CompanionKind,
+    total: Int,
+    outfit: Outfit,
+    color: CompanionColor,
+) {
+    val app = LocalAppViewModel.current
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val (columns, nameStyle) = rememberItemGridLayout(Wardrobe.itemsFor(kind), maxWidth)
+        Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapScreen)) {
+            for (slot in kind.slots) {
+                WardrobeSection(stringResource(slotName(slot))) {
+                    ItemGrid(Wardrobe.itemsFor(kind, slot), columns) { item, cell ->
+                        if (item.star <= total) {
+                            val on = outfit.isOn(item)
+                            ItemTile(item, outfit, color, cell, nameStyle = nameStyle, on = on, onClick = {
+                                app.play(if (on) Sound.POP else Sound.EQUIP)
+                                app.toggleItem(kind, item)
+                            })
+                        } else {
+                            LockedTile(item, outfit, color, total, cell, nameStyle)
                         }
                     }
                 }
@@ -196,7 +224,7 @@ private fun WardrobeStage(
                 Modifier.width(SkDimens.DollBigMax).aspectRatio(companionAspectRatio(kind)),
                 color = color,
             )
-            NameField(kind, name, onNameChange)
+            NameField(name, onNameChange)
         }
         Pill(
             stars,
@@ -205,56 +233,6 @@ private fun WardrobeStage(
             large = true,
         )
     }
-}
-
-/** Name field: saved while typing, at most 16 characters. Each companion keeps its own name. */
-@Composable
-private fun NameField(
-    kind: CompanionKind,
-    saved: String,
-    onChange: (String) -> Unit,
-) {
-    var text by remember(kind) { mutableStateOf(saved) }
-    val label = stringResource(R.string.doll_name_label)
-    BasicTextField(
-        value = text,
-        onValueChange = {
-            text = it.take(MAX_NAME)
-            onChange(text)
-        },
-        singleLine = true,
-        textStyle = SkType.NameField.copy(textAlign = TextAlign.Center),
-        cursorBrush = SolidColor(SkColors.Hour),
-        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Done),
-        modifier =
-            Modifier
-                .widthIn(max = SkDimens.NameFieldMaxWidth)
-                .fillMaxWidth()
-                .semantics { contentDescription = label },
-        decorationBox = { inner ->
-            Row(
-                Modifier
-                    .background(SkColors.Surface, SkShapes.Field)
-                    .border(SkDimens.BorderThin, SkColors.Line, SkShapes.Field)
-                    .padding(horizontal = SkDimens.FieldPaddingHorizontal, vertical = SkDimens.FieldPaddingVertical),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(SkDimens.GapS),
-            ) {
-                Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    if (text.isEmpty()) {
-                        Text(
-                            stringResource(R.string.doll_name_placeholder),
-                            style = SkType.NameFieldPlaceholder.copy(textAlign = TextAlign.Center),
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                    inner()
-                }
-                // Shows that the name can be typed in; the field itself carries the label.
-                SkIcon(SkIcons.Pencil, SkDimens.ActionIcon, Modifier.clearAndSetSemantics { })
-            }
-        },
-    )
 }
 
 /**
@@ -417,7 +395,6 @@ private val TilePadding = PaddingValues(start = 8.dp, end = 8.dp, top = 10.dp, b
 private val NarrowGridWidth = 360.dp
 private val WordBreak = Regex("(?<=-)|\\s+")
 
-private const val MAX_NAME = 16
 private const val GRID_COLUMNS = 3
 private const val NARROW_GRID_COLUMNS = 2
 

@@ -88,13 +88,18 @@ class AppViewModel(
         }
     }
 
-    fun updateProgress(transform: (Progress) -> Progress) {
+    fun updateProgress(
+        onResult: (Boolean) -> Unit = {},
+        transform: (Progress) -> Progress,
+    ) {
         viewModelScope.launch {
             try {
                 services.repository.updateProgress(transform)
                 mutableSettingsAction.update { it.copy(failed = false) }
+                onResult(true)
             } catch (_: IOException) {
                 mutableSettingsAction.update { it.copy(failed = true) }
+                onResult(false)
             }
         }
     }
@@ -133,7 +138,8 @@ class AppViewModel(
     fun setName(
         kind: CompanionKind,
         name: String,
-    ) = updateProgress { it.withName(kind, name) }
+        onResult: (Boolean) -> Unit = {},
+    ) = updateProgress(onResult) { it.withName(kind, name) }
 
     fun setColor(
         kind: CompanionKind,

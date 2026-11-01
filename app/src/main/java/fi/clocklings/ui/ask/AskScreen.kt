@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -64,8 +65,13 @@ fun AskScreen(
     // Not 12:00, where both hands lie on top of each other.
     var time by rememberSaveable { mutableIntStateOf(ClockTime.start(h24)) }
     var command by remember { mutableStateOf(ClockCommand(time)) }
+    val scrollState = rememberScrollState()
+    LaunchedEffect(phase) {
+        if (phase == AskPhase.SET) scrollState.scrollTo(0)
+    }
     ScreenScaffold(
         modifier,
+        scrollState = scrollState,
         clockHeightShare = SkDimens.PLAY_CLOCK_HEIGHT_SHARE,
         section = Section.TOGETHER,
         topBar = { HelpTopBar(stringResource(R.string.ask_title), help, onBack, app::toggleHelp) },

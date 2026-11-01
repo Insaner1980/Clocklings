@@ -25,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -42,6 +43,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.max
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import fi.clocklings.R
 import fi.clocklings.audio.companionVoice
 import fi.clocklings.domain.ClockFrame
@@ -92,11 +94,27 @@ fun AppearanceScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val app = LocalAppViewModel.current
+    val action by app.settingsAction.collectAsStateWithLifecycle()
+    var retry by remember { mutableStateOf<(() -> Unit)?>(null) }
+    val onChange: ((Personalization) -> Personalization) -> Unit = { transform ->
+        retry = { app.personalize(transform) }
+        app.personalize(transform)
+    }
     var clocks by rememberSaveable { mutableStateOf(false) }
     ScreenScaffold(
         modifier,
         section = Section.COMPANION,
         topBar = { TopBar(stringResource(R.string.appearance_title), onBack) },
+        bottomBar =
+            if (action.failed) {
+                {
+                    Text(stringResource(R.string.settings_save_error), style = SkType.Body)
+                    retry?.let { SkButton(stringResource(R.string.settings_retry), it, Modifier.fillMaxWidth()) }
+                }
+            } else {
+                null
+            },
     ) { clockSize ->
         SegmentedControl(
             "",
@@ -106,7 +124,7 @@ fun AppearanceScreen(
             Modifier.fillMaxWidth(),
         )
         if (clocks) {
-            ClockChoices(appearance)
+            ClockChoices(appearance, onChange)
         } else {
             // The preview grows with the screen so the page uses its height instead of leaving it empty.
             CompanionChoices(
@@ -114,6 +132,7 @@ fun AppearanceScreen(
                 progress,
                 max(SkDimens.CompanionPreview, clockSize * PREVIEW_GROWTH),
                 onOutfits,
+                onChange,
             )
         }
     }
@@ -125,14 +144,16 @@ private fun CompanionChoices(
     progress: Progress,
     previewHeight: Dp,
     onOutfits: () -> Unit,
+    onChange: ((Personalization) -> Personalization) -> Unit,
 ) {
     val app = LocalAppViewModel.current
     val kind = appearance.companion
+    val currentOnChange by rememberUpdatedState(onChange)
     val pager = rememberPagerState(initialPage = kind.ordinal) { CompanionKind.entries.size }
     LaunchedEffect(pager) {
         snapshotFlow { pager.settledPage }.drop(1).collect { page ->
             val chosen = CompanionKind.entries[page]
-            app.personalize { it.copy(companion = chosen) }
+            currentOnChange { it.copy(companion = chosen) }
             companionVoice(chosen)?.let(app::play)
         }
     }
@@ -157,8 +178,10 @@ private fun CompanionChoices(
 }
 
 @Composable
-private fun ClockChoices(appearance: Personalization) {
-    val app = LocalAppViewModel.current
+private fun ClockChoices(
+    appearance: Personalization,
+    onChange: ((Personalization) -> Personalization) -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapL)) {
         Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapS)) {
             ClockFace(
@@ -178,7 +201,7 @@ private fun ClockChoices(appearance: Personalization) {
             ChoiceCard(
                 stringResource(clockThemeName(theme)),
                 appearance.clock.theme == theme,
-                { app.personalize { it.copy(clock = it.clock.copy(theme = theme)) } },
+                { onChange { it.copy(clock = it.clock.copy(theme = theme)) } },
                 cell.testTag("choose_clock_${theme.name}"),
             ) {
                 ClockFace(
@@ -191,7 +214,7 @@ private fun ClockChoices(appearance: Personalization) {
         }
         if (appearance.clock.theme == ClockTheme.CUSTOM) {
             CustomClockControls(appearance.clock.custom) { transform ->
-                app.personalize { it.copy(clock = it.clock.copy(custom = transform(it.clock.custom))) }
+                onChange { it.copy(clock = it.clock.copy(custom = transform(it.clock.custom))) }
             }
         }
     }

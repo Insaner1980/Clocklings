@@ -195,7 +195,7 @@ class ScreenInteractionTest {
         for (companion in listOf(CompanionKind.CAT, CompanionKind.NONE)) {
             compose.runOnIdle { kind.value = companion }
             val viewport = compose.onNode(hasScrollAction()).fetchSemanticsNode()
-            assertEquals(0f, viewport.config[SemanticsProperties.VerticalScrollAxisRange].value())
+            assertEquals(0f, viewport.config[SemanticsProperties.VerticalScrollAxisRange].maxValue(), 1f)
             for (title in listOf("Learn", "Explore", "Play", "Play Together")) {
                 val tile = compose.onNode(hasText(title) and hasClickAction()).assertIsDisplayed().fetchSemanticsNode()
                 val ledge = with(compose.density) { SkDimens.BigButtonDepth.toPx() }
@@ -338,7 +338,17 @@ class ScreenInteractionTest {
         assertTrue("${pill.bottom} vs ${viewportBox.bottom}", pill.bottom <= viewportBox.bottom - fade)
         assertActionVisible("Swap turns")
         compose.onNodeWithText("Swap turns").performClick()
+        var scroll = compose.onNode(hasScrollAction()).fetchSemanticsNode()
+        assertEquals(0f, scroll.config[SemanticsProperties.VerticalScrollAxisRange].value())
         assertActionVisible("Pass to partner")
+        for (cell in cells) {
+            compose.runOnIdle { viewport.value = cell }
+            compose.onNodeWithText("Pass to partner").performClick()
+            compose.onNodeWithText("Show the answer").performClick()
+            compose.onNodeWithText("Swap turns").performClick()
+            scroll = compose.onNode(hasScrollAction()).fetchSemanticsNode()
+            assertEquals("$cell", 0f, scroll.config[SemanticsProperties.VerticalScrollAxisRange].value(), 0f)
+        }
     }
 
     @Test

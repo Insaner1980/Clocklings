@@ -45,11 +45,12 @@ private fun fi.clocklings.ui.appearance.ChoiceGrid(options: kotlin.collections.L
     - content: STABLE (composable function type)
 
 @Composable
-private fun fi.clocklings.ui.appearance.ClockChoices(appearance: fi.clocklings.domain.Personalization): kotlin.Unit
+private fun fi.clocklings.ui.appearance.ClockChoices(appearance: fi.clocklings.domain.Personalization, onChange: kotlin.Function1<kotlin.Function1<fi.clocklings.domain.Personalization, fi.clocklings.domain.Personalization>, kotlin.Unit>): kotlin.Unit
   skippable: true
   restartable: true
   params:
     - appearance: STABLE (stability configuration file type)
+    - onChange: STABLE (function type)
 
 @Composable
 private fun fi.clocklings.ui.appearance.ClockColors(custom: fi.clocklings.domain.CustomClock, onChange: kotlin.Function1<kotlin.Function1<fi.clocklings.domain.CustomClock, fi.clocklings.domain.CustomClock>, kotlin.Unit>): kotlin.Unit
@@ -72,7 +73,7 @@ private fun fi.clocklings.ui.appearance.ClockOptions(title: kotlin.Int, options:
     - preview: STABLE (function type)
 
 @Composable
-private fun fi.clocklings.ui.appearance.CompanionChoices(appearance: fi.clocklings.domain.Personalization, progress: fi.clocklings.domain.Progress, previewHeight: androidx.compose.ui.unit.Dp, onOutfits: kotlin.Function0<kotlin.Unit>): kotlin.Unit
+private fun fi.clocklings.ui.appearance.CompanionChoices(appearance: fi.clocklings.domain.Personalization, progress: fi.clocklings.domain.Progress, previewHeight: androidx.compose.ui.unit.Dp, onOutfits: kotlin.Function0<kotlin.Unit>, onChange: kotlin.Function1<kotlin.Function1<fi.clocklings.domain.Personalization, fi.clocklings.domain.Personalization>, kotlin.Unit>): kotlin.Unit
   skippable: true
   restartable: true
   params:
@@ -80,6 +81,7 @@ private fun fi.clocklings.ui.appearance.CompanionChoices(appearance: fi.clocklin
     - progress: STABLE (stability configuration file type)
     - previewHeight: STABLE (marked @Stable or @Immutable)
     - onOutfits: STABLE (function type)
+    - onChange: STABLE (function type)
 
 @Composable
 private fun fi.clocklings.ui.appearance.CompanionPager(pager: androidx.compose.foundation.pager.PagerState, progress: fi.clocklings.domain.Progress, previewHeight: androidx.compose.ui.unit.Dp): kotlin.Unit
@@ -410,13 +412,23 @@ private fun fi.clocklings.ui.companion.LockedTile(item: fi.clocklings.domain.Ite
     - nameStyle: STABLE (marked @Stable or @Immutable)
 
 @Composable
-private fun fi.clocklings.ui.companion.NameField(kind: fi.clocklings.domain.CompanionKind, saved: kotlin.String, onChange: kotlin.Function1<kotlin.String, kotlin.Unit>): kotlin.Unit
+internal fun fi.clocklings.ui.companion.NameField(text: kotlin.String, onChange: kotlin.Function1<kotlin.String, kotlin.Unit>, modifier: androidx.compose.ui.Modifier): kotlin.Unit
+  skippable: true
+  restartable: true
+  params:
+    - text: STABLE (String is immutable)
+    - onChange: STABLE (function type)
+    - modifier: STABLE (marked @Stable or @Immutable)
+
+@Composable
+private fun fi.clocklings.ui.companion.WardrobeItems(kind: fi.clocklings.domain.CompanionKind, total: kotlin.Int, outfit: fi.clocklings.domain.Outfit, color: fi.clocklings.domain.CompanionColor): kotlin.Unit
   skippable: true
   restartable: true
   params:
     - kind: STABLE (stability configuration file type)
-    - saved: STABLE (String is immutable)
-    - onChange: STABLE (function type)
+    - total: STABLE (primitive type)
+    - outfit: STABLE (stability configuration file type)
+    - color: STABLE (stability configuration file type)
 
 @Composable
 public fun fi.clocklings.ui.companion.WardrobeScreen(kind: fi.clocklings.domain.CompanionKind, progress: fi.clocklings.domain.Progress, color: fi.clocklings.domain.CompanionColor, onBack: kotlin.Function0<kotlin.Unit>, modifier: androidx.compose.ui.Modifier): kotlin.Unit

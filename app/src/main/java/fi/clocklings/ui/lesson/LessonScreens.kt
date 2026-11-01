@@ -293,7 +293,7 @@ private fun ColumnScope.LessonQuiz(
         }
     }
     when {
-        state.saveFailed -> {
+        state.saveFailed && !state.showHint -> {
             CompanionTip(stringResource(R.string.settings_save_error), kind = FeedbackKind.HINT)
         }
 
