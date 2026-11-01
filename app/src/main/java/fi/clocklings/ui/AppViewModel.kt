@@ -74,16 +74,23 @@ class AppViewModel(
 
     fun setH24(h24: Boolean) = settingsWrite { services.repository.updateSettings { it.copy(h24 = h24) } }
 
-    fun personalize(transform: (Personalization) -> Personalization) =
-        updateSettings { it.copy(personalization = transform(it.personalization)) }
+    fun personalize(
+        onResult: (Boolean) -> Unit = {},
+        transform: (Personalization) -> Personalization,
+    ) = updateSettings(onResult) { it.copy(personalization = transform(it.personalization)) }
 
-    private fun updateSettings(transform: (Settings) -> Settings) {
+    private fun updateSettings(
+        onResult: (Boolean) -> Unit = {},
+        transform: (Settings) -> Settings,
+    ) {
         viewModelScope.launch {
             try {
                 services.repository.updateSettings(transform)
                 mutableSettingsAction.update { it.copy(failed = false) }
+                onResult(true)
             } catch (_: IOException) {
                 mutableSettingsAction.update { it.copy(failed = true) }
+                onResult(false)
             }
         }
     }
@@ -133,7 +140,8 @@ class AppViewModel(
     fun toggleItem(
         kind: CompanionKind,
         item: Item,
-    ) = updateProgress { it.withOutfit(kind, Wardrobe.toggle(it.outfitFor(kind), item)) }
+        onResult: (Boolean) -> Unit = {},
+    ) = updateProgress(onResult) { it.withOutfit(kind, Wardrobe.toggle(it.outfitFor(kind), item)) }
 
     fun setName(
         kind: CompanionKind,
@@ -144,7 +152,8 @@ class AppViewModel(
     fun setColor(
         kind: CompanionKind,
         color: CompanionColor,
-    ) = personalize { it.withStyle(kind, it.styleFor(kind).copy(color = color)) }
+        onResult: (Boolean) -> Unit = {},
+    ) = personalize(onResult) { it.withStyle(kind, it.styleFor(kind).copy(color = color)) }
 
     /** Pelaa-napin painallus: palauttaa ennen tasoa näytettävät oppitunnit ja merkitsee ne näytetyiksi. */
     fun startLevel(level: Int): List<String> {

@@ -43,7 +43,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.max
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import fi.clocklings.R
 import fi.clocklings.audio.companionVoice
 import fi.clocklings.domain.ClockFrame
@@ -56,6 +55,7 @@ import fi.clocklings.domain.NumeralStyle
 import fi.clocklings.domain.Personalization
 import fi.clocklings.domain.Progress
 import fi.clocklings.ui.LocalAppViewModel
+import fi.clocklings.ui.RetryableSave
 import fi.clocklings.ui.clock.ClockCommand
 import fi.clocklings.ui.clock.ClockFace
 import fi.clocklings.ui.companion.CompanionCelebration
@@ -95,11 +95,9 @@ fun AppearanceScreen(
     modifier: Modifier = Modifier,
 ) {
     val app = LocalAppViewModel.current
-    val action by app.settingsAction.collectAsStateWithLifecycle()
-    var retry by remember { mutableStateOf<(() -> Unit)?>(null) }
+    val save = remember(app) { RetryableSave() }
     val onChange: ((Personalization) -> Personalization) -> Unit = { transform ->
-        retry = { app.personalize(transform) }
-        app.personalize(transform)
+        save.run { app.personalize(it, transform) }
     }
     var clocks by rememberSaveable { mutableStateOf(false) }
     ScreenScaffold(
@@ -107,13 +105,11 @@ fun AppearanceScreen(
         section = Section.COMPANION,
         topBar = { TopBar(stringResource(R.string.appearance_title), onBack) },
         bottomBar =
-            if (action.failed) {
+            save.retry?.let { retry ->
                 {
                     Text(stringResource(R.string.settings_save_error), style = SkType.Body)
-                    retry?.let { SkButton(stringResource(R.string.settings_retry), it, Modifier.fillMaxWidth()) }
+                    SkButton(stringResource(R.string.settings_retry), retry, Modifier.fillMaxWidth())
                 }
-            } else {
-                null
             },
     ) { clockSize ->
         SegmentedControl(

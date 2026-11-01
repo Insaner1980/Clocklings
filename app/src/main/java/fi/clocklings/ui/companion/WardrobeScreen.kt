@@ -44,7 +44,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import fi.clocklings.R
 import fi.clocklings.audio.Sound
 import fi.clocklings.domain.CompanionColor
@@ -56,6 +55,7 @@ import fi.clocklings.domain.Wardrobe
 import fi.clocklings.domain.colorOptions
 import fi.clocklings.domain.slots
 import fi.clocklings.ui.LocalAppViewModel
+import fi.clocklings.ui.RetryableSave
 import fi.clocklings.ui.appearance.companionColorName
 import fi.clocklings.ui.components.DepthSurface
 import fi.clocklings.ui.components.FlatPanel
@@ -92,9 +92,10 @@ fun WardrobeScreen(
     modifier: Modifier = Modifier,
 ) {
     val app = LocalAppViewModel.current
-    val action by app.settingsAction.collectAsStateWithLifecycle()
     var name by rememberSaveable(kind) { mutableStateOf(progress.nameFor(kind)) }
-    var nameSaveFailed by rememberSaveable(kind) { mutableStateOf(false) }
+    val nameSave = remember(app, kind) { RetryableSave() }
+    val colorSave = remember(app, kind) { RetryableSave() }
+    val itemSave = remember(app, kind) { RetryableSave() }
     val total = progress.totalStars
     val outfit = progress.outfitFor(kind)
     ScreenScaffold(
@@ -102,19 +103,11 @@ fun WardrobeScreen(
         section = Section.COMPANION,
         topBar = { TopBar(stringResource(R.string.doll_title), onBack) },
         bottomBar =
-            if (action.failed || nameSaveFailed) {
+            (nameSave.retry ?: colorSave.retry ?: itemSave.retry)?.let { retry ->
                 {
                     Text(stringResource(R.string.settings_save_error), style = SkType.Body)
-                    if (nameSaveFailed) {
-                        SkButton(
-                            stringResource(R.string.settings_retry),
-                            { app.setName(kind, name.trim()) { nameSaveFailed = !it } },
-                            Modifier.fillMaxWidth(),
-                        )
-                    }
+                    SkButton(stringResource(R.string.settings_retry), retry, Modifier.fillMaxWidth())
                 }
-            } else {
-                null
             },
     ) {
         val starInfo =
@@ -132,7 +125,8 @@ fun WardrobeScreen(
             starInfo = starInfo,
             onNameChange = {
                 name = it
-                app.setName(kind, it.trim()) { saved -> nameSaveFailed = !saved }
+                val requestedName = it.trim()
+                nameSave.run { result -> app.setName(kind, requestedName, result) }
             },
         )
         if (Wardrobe.lockedCount(kind, total) > 0) {
@@ -146,9 +140,11 @@ fun WardrobeScreen(
             Text(stringResource(hint), style = SkType.SmallSoft)
         }
         if (kind != CompanionKind.HUMAN) {
-            WardrobeSection(stringResource(R.string.companion_color)) { CompanionColors(kind, color) }
+            WardrobeSection(stringResource(R.string.companion_color)) {
+                CompanionColors(kind, color) { chosen -> colorSave.run { app.setColor(kind, chosen, it) } }
+            }
         }
-        WardrobeItems(kind, total, outfit, color)
+        WardrobeItems(kind, total, outfit, color) { item -> itemSave.run { app.toggleItem(kind, item, it) } }
     }
 }
 
@@ -158,6 +154,7 @@ private fun WardrobeItems(
     total: Int,
     outfit: Outfit,
     color: CompanionColor,
+    onItemClick: (Item) -> Unit,
 ) {
     val app = LocalAppViewModel.current
     BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -170,7 +167,7 @@ private fun WardrobeItems(
                             val on = outfit.isOn(item)
                             ItemTile(item, outfit, color, cell, nameStyle = nameStyle, on = on, onClick = {
                                 app.play(if (on) Sound.POP else Sound.EQUIP)
-                                app.toggleItem(kind, item)
+                                onItemClick(item)
                             })
                         } else {
                             LockedTile(item, outfit, color, total, cell, nameStyle)
@@ -402,6 +399,7 @@ private const val NARROW_GRID_COLUMNS = 2
 private fun CompanionColors(
     kind: CompanionKind,
     color: CompanionColor,
+    onColorChange: (CompanionColor) -> Unit,
 ) {
     val app = LocalAppViewModel.current
     FlowRow(
@@ -414,7 +412,7 @@ private fun CompanionColors(
                 stringResource(companionColorName(option)),
                 option == color,
                 {
-                    app.setColor(kind, option)
+                    onColorChange(option)
                     app.play(Sound.POP)
                 },
                 Modifier.testTag("color_${option.name}"),

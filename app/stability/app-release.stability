@@ -336,12 +336,13 @@ private fun fi.clocklings.ui.clock.rememberClockState(command: fi.clocklings.ui.
     - onSettle: STABLE (function type)
 
 @Composable
-private fun fi.clocklings.ui.companion.CompanionColors(kind: fi.clocklings.domain.CompanionKind, color: fi.clocklings.domain.CompanionColor): kotlin.Unit
+private fun fi.clocklings.ui.companion.CompanionColors(kind: fi.clocklings.domain.CompanionKind, color: fi.clocklings.domain.CompanionColor, onColorChange: kotlin.Function1<fi.clocklings.domain.CompanionColor, kotlin.Unit>): kotlin.Unit
   skippable: true
   restartable: true
   params:
     - kind: STABLE (stability configuration file type)
     - color: STABLE (stability configuration file type)
+    - onColorChange: STABLE (function type)
 
 @Composable
 public fun fi.clocklings.ui.companion.CompanionView(kind: fi.clocklings.domain.CompanionKind, outfit: fi.clocklings.domain.Outfit, modifier: androidx.compose.ui.Modifier, color: fi.clocklings.domain.CompanionColor, celebration: fi.clocklings.ui.companion.CompanionCelebration?, animated: kotlin.Boolean, cropItem: fi.clocklings.domain.Item?): kotlin.Unit
@@ -421,7 +422,7 @@ internal fun fi.clocklings.ui.companion.NameField(text: kotlin.String, onChange:
     - modifier: STABLE (marked @Stable or @Immutable)
 
 @Composable
-private fun fi.clocklings.ui.companion.WardrobeItems(kind: fi.clocklings.domain.CompanionKind, total: kotlin.Int, outfit: fi.clocklings.domain.Outfit, color: fi.clocklings.domain.CompanionColor): kotlin.Unit
+private fun fi.clocklings.ui.companion.WardrobeItems(kind: fi.clocklings.domain.CompanionKind, total: kotlin.Int, outfit: fi.clocklings.domain.Outfit, color: fi.clocklings.domain.CompanionColor, onItemClick: kotlin.Function1<fi.clocklings.domain.Item, kotlin.Unit>): kotlin.Unit
   skippable: true
   restartable: true
   params:
@@ -429,6 +430,7 @@ private fun fi.clocklings.ui.companion.WardrobeItems(kind: fi.clocklings.domain.
     - total: STABLE (primitive type)
     - outfit: STABLE (stability configuration file type)
     - color: STABLE (stability configuration file type)
+    - onItemClick: STABLE (function type)
 
 @Composable
 public fun fi.clocklings.ui.companion.WardrobeScreen(kind: fi.clocklings.domain.CompanionKind, progress: fi.clocklings.domain.Progress, color: fi.clocklings.domain.CompanionColor, onBack: kotlin.Function0<kotlin.Unit>, modifier: androidx.compose.ui.Modifier): kotlin.Unit

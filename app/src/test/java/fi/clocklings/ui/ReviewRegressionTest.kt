@@ -32,6 +32,7 @@ import fi.clocklings.domain.CompanionColor
 import fi.clocklings.domain.CompanionKind
 import fi.clocklings.domain.Progress
 import fi.clocklings.domain.Settings
+import fi.clocklings.domain.Wardrobe
 import fi.clocklings.ui.appearance.AppearanceScreen
 import fi.clocklings.ui.companion.WardrobeScreen
 import fi.clocklings.ui.lesson.LessonCatalog
@@ -68,6 +69,8 @@ class ReviewRegressionTest {
             }
         }
         store.fail = true
+        compose.runOnIdle { model.startLevel(0) }
+        compose.onNodeWithText(errorText()).assertDoesNotExist()
         compose.onNodeWithContentDescription("Companion name").scrollIfNeeded().performTextReplacement("Mia")
         compose.onNodeWithText(errorText()).assertIsDisplayed()
         compose.runOnIdle { assertEquals("", model.progress.value!!.nameFor(CompanionKind.CAT)) }
@@ -93,8 +96,12 @@ class ReviewRegressionTest {
             }
         }
         store.fail = true
+        compose.runOnIdle { model.startLevel(0) }
+        compose.onNodeWithText(errorText()).assertDoesNotExist()
         compose.onNodeWithText("Clock styles").performClick()
         compose.onNodeWithTag("choose_clock_CUSTOM").scrollIfNeeded().performClick()
+        store.fail = false
+        compose.runOnIdle { model.setName(CompanionKind.CAT, "Mia") }
         forEachCell {
             compose.onNodeWithText(errorText()).assertIsDisplayed()
             compose.onNodeWithText(retryText()).assertIsDisplayed()
@@ -106,6 +113,52 @@ class ReviewRegressionTest {
             val theme = requireNotNull(model.settings.value).personalization.clock.theme
             assertEquals(ClockTheme.CUSTOM, theme)
         }
+        store.fail = true
+        compose.runOnIdle { model.startLevel(0) }
+        compose.onNodeWithText(errorText()).assertDoesNotExist()
+        compose.onNodeWithText(retryText()).assertDoesNotExist()
+    }
+
+    @Test
+    fun wardrobeColorAndItemFailuresKeepTheirOwnRetries() {
+        val item = Wardrobe.itemsFor(CompanionKind.CAT).first { it.star == 0 }
+        compose.setContent {
+            Viewport {
+                val progress by model.progress.collectAsStateWithLifecycle()
+                val settings by model.settings.collectAsStateWithLifecycle()
+                WardrobeScreen(
+                    CompanionKind.CAT,
+                    progress ?: Progress(),
+                    (settings ?: Settings()).personalization.styleFor(CompanionKind.CAT).color,
+                    {},
+                )
+            }
+        }
+        store.fail = true
+        compose.onNodeWithTag("color_BLUE").scrollIfNeeded().performClick()
+        val itemText = localizedContext(language.value).getString(itemName(item.id))
+        compose.onNodeWithText(itemText).scrollIfNeeded().performClick()
+        store.fail = false
+        compose.onNodeWithContentDescription("Companion name").scrollIfNeeded().performTextReplacement("Mia")
+        forEachCell {
+            compose.onNodeWithText(errorText()).assertIsDisplayed()
+            compose.onNodeWithText(retryText()).assertIsDisplayed()
+        }
+        compose.onNodeWithText(retryText()).performClick()
+        compose.runOnIdle {
+            val color = requireNotNull(model.settings.value).personalization.styleFor(CompanionKind.CAT).color
+            assertEquals(CompanionColor.BLUE, color)
+            assertEquals(false, requireNotNull(model.progress.value).outfitFor(CompanionKind.CAT).isOn(item))
+        }
+        compose.onNodeWithText(errorText()).assertIsDisplayed()
+        compose.onNodeWithText(retryText()).performClick()
+        compose.runOnIdle {
+            assertEquals(true, requireNotNull(model.progress.value).outfitFor(CompanionKind.CAT).isOn(item))
+        }
+        compose.onNodeWithText(errorText()).assertDoesNotExist()
+        store.fail = true
+        compose.runOnIdle { model.startLevel(0) }
+        compose.onNodeWithText(errorText()).assertDoesNotExist()
     }
 
     @Test
