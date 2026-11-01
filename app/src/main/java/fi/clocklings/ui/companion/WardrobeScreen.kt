@@ -95,7 +95,8 @@ fun WardrobeScreen(
     var name by rememberSaveable(kind) { mutableStateOf(progress.nameFor(kind)) }
     val nameSave = remember(app, kind) { RetryableSave() }
     val colorSave = remember(app, kind) { RetryableSave() }
-    val itemSave = remember(app, kind) { RetryableSave() }
+    val itemSaves = remember(app, kind) { kind.slots.associateWith { RetryableSave() } }
+    val retry = nameSave.retry ?: colorSave.retry ?: itemSaves.values.firstNotNullOfOrNull { it.retry }
     val total = progress.totalStars
     val outfit = progress.outfitFor(kind)
     ScreenScaffold(
@@ -103,10 +104,10 @@ fun WardrobeScreen(
         section = Section.COMPANION,
         topBar = { TopBar(stringResource(R.string.doll_title), onBack) },
         bottomBar =
-            (nameSave.retry ?: colorSave.retry ?: itemSave.retry)?.let { retry ->
+            retry?.let { retrySave ->
                 {
                     Text(stringResource(R.string.settings_save_error), style = SkType.Body)
-                    SkButton(stringResource(R.string.settings_retry), retry, Modifier.fillMaxWidth())
+                    SkButton(stringResource(R.string.settings_retry), retrySave, Modifier.fillMaxWidth())
                 }
             },
     ) {
@@ -144,7 +145,9 @@ fun WardrobeScreen(
                 CompanionColors(kind, color) { chosen -> colorSave.run { app.setColor(kind, chosen, it) } }
             }
         }
-        WardrobeItems(kind, total, outfit, color) { item -> itemSave.run { app.toggleItem(kind, item, it) } }
+        WardrobeItems(kind, total, outfit, color) { item ->
+            itemSaves.getValue(item.slot).run { app.toggleItem(kind, item, it) }
+        }
     }
 }
 

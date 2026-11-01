@@ -122,6 +122,7 @@ class ReviewRegressionTest {
     @Test
     fun wardrobeColorAndItemFailuresKeepTheirOwnRetries() {
         val item = Wardrobe.itemsFor(CompanionKind.CAT).first { it.star == 0 }
+        val headItem = Wardrobe.itemsFor(CompanionKind.CAT).first { it.star == 1 }
         compose.setContent {
             Viewport {
                 val progress by model.progress.collectAsStateWithLifecycle()
@@ -134,10 +135,13 @@ class ReviewRegressionTest {
                 )
             }
         }
+        compose.runOnIdle { model.updateProgress { it.withLevelResult(0, 3) } }
         store.fail = true
         compose.onNodeWithTag("color_BLUE").scrollIfNeeded().performClick()
         val itemText = localizedContext(language.value).getString(itemName(item.id))
         compose.onNodeWithText(itemText).scrollIfNeeded().performClick()
+        val headText = localizedContext(language.value).getString(itemName(headItem.id))
+        compose.onNodeWithText(headText).scrollIfNeeded().performClick()
         store.fail = false
         compose.onNodeWithContentDescription("Companion name").scrollIfNeeded().performTextReplacement("Mia")
         forEachCell {
@@ -149,6 +153,13 @@ class ReviewRegressionTest {
             val color = requireNotNull(model.settings.value).personalization.styleFor(CompanionKind.CAT).color
             assertEquals(CompanionColor.BLUE, color)
             assertEquals(false, requireNotNull(model.progress.value).outfitFor(CompanionKind.CAT).isOn(item))
+        }
+        compose.onNodeWithText(errorText()).assertIsDisplayed()
+        compose.onNodeWithText(retryText()).performClick()
+        compose.runOnIdle {
+            val outfit = requireNotNull(model.progress.value).outfitFor(CompanionKind.CAT)
+            assertEquals(true, outfit.isOn(headItem))
+            assertEquals(false, outfit.isOn(item))
         }
         compose.onNodeWithText(errorText()).assertIsDisplayed()
         compose.onNodeWithText(retryText()).performClick()
