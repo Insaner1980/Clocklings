@@ -24,6 +24,9 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import fi.clocklings.domain.Progress
+import fi.clocklings.domain.Settings
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -31,7 +34,6 @@ import org.junit.Test
 import org.junit.rules.ExternalResource
 import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
-import java.io.File
 
 /**
  * Full app paths on the dedicated emulator. Read exercises use visible choices and feedback;
@@ -40,11 +42,30 @@ import java.io.File
 @OptIn(ExperimentalTestApi::class)
 @RunWith(AndroidJUnit4::class)
 class AppFlowTest {
+    private val environment = LocaleTestEnvironment()
     private val freshData =
         object : ExternalResource() {
+            private lateinit var originalProgress: Progress
+            private lateinit var originalSettings: Settings
+            private var originalLegacy: String? = null
+            private var originalPlatform = ""
+
             override fun before() {
-                val context = InstrumentationRegistry.getInstrumentation().targetContext
-                File(context.filesDir, "datastore").deleteRecursively()
+                runBlocking {
+                    originalProgress = environment.repository.progress.first()
+                    originalSettings = environment.repository.settings.first()
+                    originalLegacy = environment.repository.legacyLanguage.first()
+                }
+                originalPlatform = environment.prepare(Progress(), Settings())
+            }
+
+            override fun after() {
+                runBlocking {
+                    environment.repository.updateProgress { originalProgress }
+                    environment.repository.updateSettings { originalSettings }
+                    environment.repository.setLegacyLanguage(originalLegacy)
+                }
+                environment.setPlatformLanguage(originalPlatform)
             }
         }
     private val compose = createAndroidComposeRule<MainActivity>()
@@ -317,7 +338,7 @@ class AppFlowTest {
         waitForText("What time is it?")
         compose.onAllNodes(hasContentDescription("Clock face:", substring = true)).assertCountEquals(0)
         click("Show the answer")
-        compose.onNodeWithText("Swap turns").scrollToIfScrollable().assertIsDisplayed()
+        compose.onNodeWithText("Swap turns").assertIsDisplayed()
         assertTrue(clockWords().isNotBlank())
         click("Swap turns")
         waitForText("Choose a time")

@@ -59,6 +59,12 @@ data class Outfit(
 
     fun isOn(item: Item): Boolean = this[item.slot] == item.id
 
+    /**
+     * The outfit a wardrobe thumbnail of [item] shows: the required clothes (the doll cannot be bare)
+     * plus the item itself, and no other optional item.
+     */
+    fun previewFor(item: Item): Outfit = Outfit(items.filterKeys { !it.optional } + (item.slot to item.id))
+
     companion object {
         val Default =
             Outfit(mapOf(Slot.HAIR to "hair-letit", Slot.DRESS to "dress-perus", Slot.SHOES to "shoes-tossut"))

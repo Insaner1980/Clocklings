@@ -214,7 +214,7 @@ Human clothing has 18 items: three free required defaults and fifteen star unloc
 
 The wardrobe displays locked items with lock/required-star descriptions and no click action. Clicking an equipped optional item removes it; required human items remain equipped. Names are entered with `BasicTextField`, word capitalization and an IME Done action. The UI takes sixteen string characters and trims before persistence; there is no separate Save button. This is not a grapheme-aware name policy or repository-level length guarantee.
 
-Art is generated in Compose Canvas, not downloaded, stored as 3D models or played as video. `CompanionView` fits a species rig into the requested canvas or slot crop. Human art uses a 200×340 design grid; the shared animal frame uses 240×300. `CompanionRig`, `ItemArt`, `ArtPart` and `ItemLayer` attach clothing to animated body/head/wing/hand/antenna transforms. Layering supports behind/front/over-ear/screen art, including ear clipping. Full-character views and cropped wardrobe previews deliberately have different clipping needs.
+Art is generated in Compose Canvas, not downloaded, stored as 3D models or played as video. `CompanionView` fits a species rig into the requested canvas or item crop. Human art uses a 200×340 design grid; the shared animal frame uses 240×300. `CompanionRig`, `ItemArt`, `ArtPart` and `ItemLayer` attach clothing to animated body/head/wing/hand/antenna transforms. Layering supports behind/front/over-ear/screen art, including ear clipping. Full-character views and cropped wardrobe previews deliberately have different clipping needs.
 
 `CompanionPose`/`CompanionMotion` drive blink, breath, sway, head tilt and species motion. Celebration uses a spin then hop sequence, while reduced motion uses static/immediate state. Shared vinyl rendering supplies upper-left lighting, highlight/shade tones, shadows and cached brushes. Source-derived appearance is pastel, rounded and shaded; no new visual screenshot review was performed for this document.
 
@@ -469,7 +469,7 @@ Versions below are declared in the repository, not assertions that they are the 
 | Gradle wrapper | 9.8.2, distribution SHA-256 pinned |
 | Android Gradle Plugin | 9.4.1 |
 | Kotlin; Compose compiler/serialization plugins | 2.4.21 |
-| Java | Source/target 17; CI Temurin 17 |
+| Java | Source/target 17; CI Temurin 21 |
 | Android | minSdk 26, compileSdk/targetSdk 37 |
 | Compose BOM | 2026.09.00; UI, graphics, text, foundation, animation, Material 3, tooling and UI tests follow BOM |
 | Activity Compose | 1.13.0 |
@@ -629,7 +629,7 @@ For a scoped change, run the relevant existing pure/ViewModel tests first; add m
 
 ### Local prerequisites and commands
 
-Run Gradle from this repository only and use `--no-daemon`. Use JDK 17 and an installed Android SDK with API 37. `local.properties`/SDK installation paths are machine-local and intentionally not documented as transferable settings. The wrapper pins Gradle; do not substitute a global Gradle installation. Android Studio is usable, but no specific locally installed IDE version was verified.
+Run Gradle from this repository only and use `--no-daemon`. Use JDK 21 for the API 37 Robolectric tests (application bytecode still targets Java 17) and an installed Android SDK with API 37. `local.properties`/SDK installation paths are machine-local and intentionally not documented as transferable settings. The wrapper pins Gradle; do not substitute a global Gradle installation. Android Studio is usable, but no specific locally installed IDE version was verified.
 
 The following commands are supported by the inspected project configuration. They are instructions, not a record that they ran during this task:
 
@@ -665,7 +665,7 @@ Restore the prior `ANDROID_SERIAL` value after task-local use. Narrow-width/font
 
 ### CI and common check wrappers
 
-[`android-checks.yml`](.github/workflows/android-checks.yml) runs on pushes, pull requests and manual dispatch. It grants read-only contents access, cancels superseded runs by workflow/event/ref, uses SHA-pinned setup actions and disables persisted checkout credentials. Its Android SDK setup requests `platform-tools` and `platforms;android-37.0`; the Gradle step executes the combined task set above with Temurin 17.
+[`android-checks.yml`](.github/workflows/android-checks.yml) runs on pushes, pull requests and manual dispatch. It grants read-only contents access, cancels superseded runs by workflow/event/ref, uses SHA-pinned setup actions and disables persisted checkout credentials. Its Android SDK setup requests `platform-tools` and `platforms;android-37.0`; the Gradle step executes the combined task set above with Temurin 21.
 
 The workflow does not run instrumentation, localization parity, Compose stability, external security suites, Sonar, or signed release publication. Those are separate checks, not implied by a green workflow. [`dependabot.yml`](.github/dependabot.yml) configures weekly Gradle updates with a seven-day cooldown; its Compose Detekt rule ignore reflects the existing Detekt 1.x compatibility policy.
 
@@ -692,9 +692,9 @@ Most short PowerShell scripts are delegates to external `C:\Dev\Android-check\to
 
 ### Sonar workflow
 
-The root Gradle `sonar` configuration reads [`sonar-project.properties`](sonar-project.properties), depends on debug assembly and both unit/connected coverage reports, and uses module-specific XML coverage paths. Consequently, invoking it can require instrumentation, not merely static source upload.
+The root Gradle `sonar` configuration reads [`sonar-project.properties`](sonar-project.properties), depends on debug assembly and JVM unit-test coverage, and imports `app/build/reports/coverage/test/debug/report.xml` through the app module. It does not require instrumentation or a connected device.
 
-[`tools/sonar.ps1`](tools/sonar.ps1) is the repository's controlled entry point. It supports `-PlanOnly` and requires `-AllowExternalUpload` for the real upload. It checks credential presence (`SONAR_TOKEN` or `systemProp.sonar.token`) without printing the credential. It identifies the dedicated AVD by adb-reported name, rejects a physical `ANDROID_SERIAL`, reuses an existing matching AVD or starts one through the external Android CLI helper, and stops only the emulator it started.
+[`tools/sonar.ps1`](tools/sonar.ps1) is the repository's controlled entry point. It supports `-PlanOnly` and requires `-AllowExternalUpload` for the real upload. It checks credential presence (`SONAR_TOKEN` or `systemProp.sonar.token`) without printing the credential. It neither starts nor manages an emulator; connected-device coverage remains a separate workflow.
 
 The wrapper runs Gradle with `--no-daemon`, plain console output and quality-gate waiting. It streams logs, emits periodic heartbeat, applies a configurable timeout (default 3,600 seconds), handles its process tree, restores environment state and checks a fresh matching `build/sonar/report-task.txt` receipt. It must not be invoked for a source upload without the corresponding user authorization.
 

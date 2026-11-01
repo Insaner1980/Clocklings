@@ -61,7 +61,7 @@ class ChallengeScreenTest {
         }
         compose.onNodeWithText("You answered 2 correctly. Your best is 5.").scrollToIfScrollable().assertIsDisplayed()
         compose.onNodeWithText("Play again").scrollToIfScrollable().performClick()
-        compose.onNodeWithText("Levels").scrollToIfScrollable().performClick()
+        compose.onNodeWithText("Back").scrollToIfScrollable().performClick()
         compose.runOnIdle {
             assertEquals(2, starts)
             assertEquals(1, backs)

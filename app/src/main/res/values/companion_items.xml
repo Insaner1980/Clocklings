@@ -75,7 +75,7 @@
 
     <!-- Dinosaur -->
     <string name="item_dinosaur_extra_backpack">Backpack</string>
-    <string name="item_dinosaur_head_flower">Flower behind the ear</string>
+    <string name="item_dinosaur_head_flower">Head flower</string>
     <string name="item_dinosaur_extra_bucket">Sand bucket</string>
     <string name="item_dinosaur_neck_scarf">Scarf</string>
     <string name="item_dinosaur_head_cap">Cap</string>

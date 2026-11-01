@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import fi.clocklings.domain.CompanionColor
 import fi.clocklings.domain.CompanionKind
+import fi.clocklings.domain.Item
 import fi.clocklings.domain.Outfit
 import fi.clocklings.domain.Slot
 import fi.clocklings.domain.Wardrobe
@@ -63,6 +64,9 @@ internal interface CompanionRig {
     /** The design-grid area that shows the [slot] in a wardrobe thumbnail. */
     fun crop(slot: Slot): Rect
 
+    /** The design-grid area that shows [item] in a wardrobe thumbnail: its own crop, else its slot's. */
+    fun crop(item: Item): Rect = crop(item.slot)
+
     /** The whole design grid. */
     fun full(): Rect
 
@@ -75,12 +79,15 @@ internal interface CompanionRig {
 
 /**
  * The frame shared by the animal companions and the car: the 240 x 300 design grid, the wardrobe
- * thumbnail [crops] by slot, and the whole grid for every other slot.
+ * thumbnail [crops] by slot, the [itemCrops] that zoom an item's thumbnail further by item id, and the
+ * whole grid for every other slot.
  */
 internal abstract class AnimalRig(
     private val crops: Map<Slot, Rect>,
+    private val itemCrops: Map<String, Rect> = emptyMap(),
 ) : CompanionRig {
-    constructor(headCrop: Rect, neckCrop: Rect) : this(mapOf(Slot.HEAD to headCrop, Slot.NECK to neckCrop))
+    constructor(headCrop: Rect, neckCrop: Rect, itemCrops: Map<String, Rect> = emptyMap()) :
+        this(mapOf(Slot.HEAD to headCrop, Slot.NECK to neckCrop), itemCrops)
 
     final override val width = ANIMAL_GRID_WIDTH
     final override val height = ANIMAL_GRID_HEIGHT
@@ -88,6 +95,8 @@ internal abstract class AnimalRig(
     private val grid = Rect(0f, 0f, width, height)
 
     final override fun crop(slot: Slot): Rect = crops[slot] ?: grid
+
+    final override fun crop(item: Item): Rect = itemCrops[item.id] ?: crop(item.slot)
 
     final override fun full(): Rect = grid
 }

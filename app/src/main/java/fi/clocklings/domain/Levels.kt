@@ -170,6 +170,10 @@ object Levels {
         val t = generateSequence { randomTime(level, h24, random) }.first { it != previous }
         return ChallengeQuestion(t, level)
     }
+
+    /** Every time a minute challenge can show as a question or an answer: whole steps of its finest level. */
+    fun challengeTimes(h24: Boolean): IntProgression =
+        0 until ClockTime.period(h24) step all.take(CHALLENGE_LEVELS).minOf { it.step }
 }
 
 private const val TASK_DRAW_LIMIT = 500

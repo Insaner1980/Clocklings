@@ -2,12 +2,10 @@ package fi.clocklings.ui.components
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.keyframes
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,25 +22,29 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import fi.clocklings.R
+import fi.clocklings.ui.digitalLabel
 import fi.clocklings.ui.locale.LocalAppLanguage
 import fi.clocklings.ui.rememberReduceMotion
+import fi.clocklings.ui.resources
+import fi.clocklings.ui.spokenTime
 import fi.clocklings.ui.theme.SkColors
 import fi.clocklings.ui.theme.SkDimens
 import fi.clocklings.ui.theme.SkShapes
 import fi.clocklings.ui.theme.SkType
-import fi.clocklings.ui.theme.ledgeColor
+import fi.clocklings.ui.timeLabel
 import kotlinx.coroutines.delay
 import java.util.Locale
 
 enum class PillKind { GOLD, MUTED, OK }
+
+enum class OptionState { NORMAL, CORRECT, WRONG }
 
 /** Pieni pilleri (web: .pill, .pill.muted, .pill.ok). */
 @Composable
@@ -109,10 +111,46 @@ fun DigitalPill(
     )
 }
 
+/** The time in words and digits, with a large listen button on the end when speech is available. */
+@Composable
+fun TimeReadout(
+    time: Int,
+    h24: Boolean,
+    speechAvailable: Boolean,
+    onSpeak: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val res = resources()
+    Row(
+        modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM),
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(SkDimens.GapS)) {
+            Text(timeLabel(LocalAppLanguage.current, time, h24), style = SkType.Words)
+            DigitalPill(digitalLabel(res, time, h24))
+        }
+        if (speechAvailable) {
+            RoundIconButton(
+                SkIcons.Listen,
+                stringResource(R.string.listen),
+                { onSpeak(spokenTime(res, time, h24)) },
+                large = true,
+            )
+        }
+    }
+}
+
+/** How a finished game task went; [ProgressDots] draws it in place of the rainbow colour. */
+enum class DotOutcome { FIRST_TRY, WITH_HINT, SHOWN }
+
 /**
- * Edistymispallot: tehdyt sateenkaaren väreillä, nykyinen renkaalla (web: .progress).
- * [currentDone] täyttää nykyisen pallon pompahtaen [fillDelayMs] kuluttua (kun lentävä tähti saapuu),
- * ja [onDotCenter] kertoo pallojen keskipisteet tähden lentoa varten.
+ * Progress dots: finished ones in rainbow colours, the current one ringed (web: .progress).
+ * [currentDone] fills the current dot with a pop after [fillDelayMs] (when the flying star lands),
+ * and [onDotCenter] reports the dot centres for the star's flight.
+ * When [outcomes] is given (games), finished dots show how the task went: green or gold with a
+ * check mark, and grey with a ring when the answer was shown. The current dot then pops in its
+ * outcome colour, so pass [outcomes] including the task that was just solved.
  */
 @Composable
 fun ProgressDots(
@@ -122,6 +160,7 @@ fun ProgressDots(
     currentDone: Boolean = false,
     fillDelayMs: Long = 0L,
     onDotCenter: ((Int, Offset) -> Unit)? = null,
+    outcomes: List<DotOutcome>? = null,
 ) {
     Row(
         modifier.fillMaxWidth().clearAndSetSemantics { },
@@ -133,11 +172,14 @@ fun ProgressDots(
             val color = SkColors.Rainbow7[k % SkColors.Rainbow7.size]
             when {
                 k < current -> {
-                    Box(dot.background(color, CircleShape))
+                    val outcome = outcomes?.getOrNull(k)
+                    if (outcome == null) Box(dot.background(color, CircleShape)) else OutcomeDot(outcome, dot)
                 }
 
                 k == current && currentDone -> {
-                    PoppingDot(color, fillDelayMs, dot)
+                    // Success is the only path that pops, so a game dot pops in its solved colour.
+                    val solved = outcomes?.let { outcomeFill(it.getOrNull(k) ?: DotOutcome.FIRST_TRY) }
+                    PoppingDot(solved ?: color, fillDelayMs, dot)
                 }
 
                 k == current -> {
@@ -153,6 +195,32 @@ fun ProgressDots(
         }
     }
 }
+
+@Composable
+private fun OutcomeDot(
+    outcome: DotOutcome,
+    modifier: Modifier = Modifier,
+) {
+    when (outcome) {
+        DotOutcome.SHOWN -> {
+            Box(
+                modifier
+                    .background(SkColors.DotEmpty, CircleShape)
+                    .border(SkDimens.BorderThin, SkColors.InkSoft, CircleShape),
+            )
+        }
+
+        DotOutcome.FIRST_TRY, DotOutcome.WITH_HINT -> {
+            Box(modifier.background(outcomeFill(outcome), CircleShape), contentAlignment = Alignment.Center) {
+                SkIcon(SkIcons.Check, SkDimens.ProgressDotIcon)
+            }
+        }
+    }
+}
+
+/** The fill of a solved game dot: green on the first try, gold after a hint. */
+private fun outcomeFill(outcome: DotOutcome): Color =
+    if (outcome == DotOutcome.WITH_HINT) SkColors.GoldDeep else SkColors.Good
 
 enum class FeedbackKind { OK, HINT }
 
@@ -177,121 +245,6 @@ fun FeedbackBox(
                 .semantics { liveRegion = LiveRegionMode.Polite }
                 .background(bg, SkShapes.Feedback)
                 .padding(horizontal = 18.dp, vertical = 14.dp),
-    )
-}
-
-enum class OptionState { NORMAL, CORRECT, WRONG }
-
-/**
- * Vastausvaihtoehto: sanat vasemmalla ja numeroaika oikealla (web: .opt).
- * Väärä vastaus tärähtää ja himmenee.
- */
-@Composable
-fun OptionButton(
-    words: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    digital: String? = null,
-    state: OptionState = OptionState.NORMAL,
-    enabled: Boolean = true,
-    wordsStyle: TextStyle = SkType.OptWords,
-) {
-    val (bg, border, shadow) =
-        when (state) {
-            OptionState.NORMAL -> Triple(SkColors.Surface, SkColors.Line, ledgeColor(SkColors.Surface))
-            OptionState.CORRECT -> Triple(SkColors.GoodBg, SkColors.OptCorrectBorder, SkColors.OptCorrectShadow)
-            OptionState.WRONG -> Triple(SkColors.TryBg, SkColors.OptWrongBorder, SkColors.OptWrongShadow)
-        }
-    val shake = remember { Animatable(0f) }
-    val reduceMotion = rememberReduceMotion()
-    LaunchedEffect(state) {
-        if (state == OptionState.WRONG && !reduceMotion) {
-            shake.animateTo(
-                0f,
-                keyframes {
-                    durationMillis = SHAKE_MS
-                    0f at 0
-                    -SHAKE_LEFT_START at (SHAKE_MS * SHAKE_FIRST_FRACTION).toInt()
-                    SHAKE_RIGHT at (SHAKE_MS * SHAKE_SECOND_FRACTION).toInt()
-                    -SHAKE_LEFT_END at (SHAKE_MS * SHAKE_THIRD_FRACTION).toInt()
-                    0f at SHAKE_MS
-                },
-            )
-        }
-    }
-    DepthSurface(
-        onClick = onClick,
-        fill = bg,
-        shadow = shadow,
-        shape = SkShapes.Option,
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .graphicsLayer {
-                    translationX = shake.value * density
-                    alpha = if (state == OptionState.WRONG) WRONG_ALPHA else 1f
-                },
-        depth = SkDimens.OptionDepth,
-        pressedDepth = 1.dp,
-        border = BorderStroke(SkDimens.Border, border),
-        enabled = enabled,
-        dimWhenDisabled = false,
-    ) {
-        OptionLabel(words, digital, wordsStyle)
-    }
-}
-
-private const val SHAKE_MS = 350
-private const val WRONG_ALPHA = 0.75f
-
-private const val SHAKE_LEFT_START = 7f
-private const val SHAKE_RIGHT = 6f
-private const val SHAKE_LEFT_END = 4f
-private const val SHAKE_FIRST_FRACTION = 0.2f
-private const val SHAKE_SECOND_FRACTION = 0.45f
-private const val SHAKE_THIRD_FRACTION = 0.7f
-
-@Composable
-private fun OptionLabel(
-    words: String,
-    digital: String?,
-    wordsStyle: TextStyle,
-) {
-    BoxWithConstraints(
-        Modifier.fillMaxWidth().padding(horizontal = SkDimens.GapM, vertical = SkDimens.GapS),
-    ) {
-        if (digital != null && maxWidth < SkDimens.GridBreakpoint &&
-            LocalDensity.current.fontScale > SkDimens.MAX_ROW_FONT_SCALE
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapS)) {
-                WordSafeText(words, wordsStyle, Modifier.fillMaxWidth(), textAlign = TextAlign.Start)
-                OptionTime(digital, Modifier.align(Alignment.End))
-            }
-        } else {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                WordSafeText(words, wordsStyle, Modifier.weight(1f), textAlign = TextAlign.Start)
-                if (digital != null) OptionTime(digital)
-            }
-        }
-    }
-}
-
-@Composable
-private fun OptionTime(
-    digital: String,
-    modifier: Modifier = Modifier,
-) {
-    Text(
-        digital,
-        style = SkType.OptDigital,
-        modifier =
-            modifier
-                .background(SkColors.OptDigitalBg, SkShapes.OptDigital)
-                .padding(horizontal = 10.dp, vertical = 2.dp),
     )
 }
 

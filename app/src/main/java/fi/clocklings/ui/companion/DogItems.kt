@@ -191,7 +191,7 @@ private fun boots(): ItemArt {
 
 /** Flower lei: nine flowers in four colors along the neckline, on a few leaves. */
 private fun lei(): ItemArt =
-    itemFlowerLei({ t -> itemQuad(80f, 170f, 120f, 200f, 160f, 170f, t) }, 9, 5f, 5.5f, 5f, 23f)
+    itemFlowerLei({ t -> itemQuad(80f, 170f, 120f, 200f, 160f, 170f, t) }, 9, 5f, FlowerPetals(5.5f, 5f), 23f)
 
 /** Olive aviator cap with a fleece trim, ear flaps and goggles pushed up on the forehead. */
 private fun aviator(): ItemArt {

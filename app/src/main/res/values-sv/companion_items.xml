@@ -25,7 +25,7 @@
     <string name="item_dog_neck_bow_tie">Fluga</string>
     <string name="item_dog_head_party_hat">Partyhatt</string>
     <string name="item_dog_extra_boots">Gummistövlar</string>
-    <string name="item_dog_neck_lei">Blomsterhalsband</string>
+    <string name="item_dog_neck_lei">Blomhalsband</string>
     <string name="item_dog_head_aviator">Flygarmössa</string>
     <string name="item_dog_extra_backpack">Ryggsäck</string>
     <string name="item_dog_neck_medal">Medalj</string>
@@ -65,7 +65,7 @@
     <string name="item_dragon_head_crown">Krona</string>
     <string name="item_dragon_extra_wings">Glittrande vingar</string>
     <string name="item_dinosaur_extra_backpack">Ryggsäck</string>
-    <string name="item_dinosaur_head_flower">Blomma bakom örat</string>
+    <string name="item_dinosaur_head_flower">Blomma på huvudet</string>
     <string name="item_dinosaur_extra_bucket">Sandhink</string>
     <string name="item_dinosaur_neck_scarf">Halsduk</string>
     <string name="item_dinosaur_head_cap">Keps</string>
@@ -73,7 +73,7 @@
     <string name="item_dinosaur_neck_bow_tie">Fluga</string>
     <string name="item_dinosaur_head_party_hat">Partyhatt</string>
     <string name="item_dinosaur_extra_umbrella">Paraply</string>
-    <string name="item_dinosaur_neck_lei">Blomsterhalsband</string>
+    <string name="item_dinosaur_neck_lei">Blomhalsband</string>
     <string name="item_dinosaur_head_hard_hat">Skyddshjälm</string>
     <string name="item_dinosaur_extra_kite">Drake</string>
     <string name="item_dinosaur_neck_binoculars">Kikare</string>
@@ -118,7 +118,7 @@
     <string name="item_unicorn_extra_wings">Fjädervingar</string>
 
     <!-- Car -->
-    <string name="item_car_front_plate">Registreringsskylt</string>
+    <string name="item_car_front_plate">Nummerskylt</string>
     <string name="item_car_wheels_sport">Sportfälgar</string>
     <string name="item_car_roof_suitcase">Resväska på taket</string>
     <string name="item_car_front_sunglasses">Solglasögon</string>

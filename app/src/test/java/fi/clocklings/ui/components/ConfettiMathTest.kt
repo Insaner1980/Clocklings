@@ -43,4 +43,19 @@ class ConfettiMathTest {
         assertTrue(ConfettiMath.flightScale(0.3f) > ConfettiMath.flightScale(0f))
         assertTrue(ConfettiMath.flightScale(1f) < ConfettiMath.flightScale(0.3f))
     }
+
+    @Test
+    fun `particle is opaque before the fade`() = assertEquals(1f, ConfettiMath.particleAlpha(64, 110, 30), eps / 10f)
+
+    @Test
+    fun `particle is half faded mid fade`() = assertEquals(0.5f, ConfettiMath.particleAlpha(95, 110, 30), eps / 10f)
+
+    @Test
+    fun `particle is invisible at end of life`() = assertEquals(0f, ConfettiMath.particleAlpha(110, 110, 30), eps / 10f)
+
+    @Test
+    fun `particle alpha stays within zero and one outside the life span`() {
+        assertEquals(0f, ConfettiMath.particleAlpha(200, 110, 30), eps / 10f)
+        assertEquals(1f, ConfettiMath.particleAlpha(-5, 110, 30), eps / 10f)
+    }
 }

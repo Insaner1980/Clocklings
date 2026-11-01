@@ -17,8 +17,11 @@ import fi.clocklings.ui.theme.SkColors
 import fi.clocklings.ui.theme.SkDimens
 import fi.clocklings.ui.theme.SkShapes
 
-/** 11:05 keeps both hand tips inside the zoomed top window. */
-private const val ZOOM_TIME = 665
+/**
+ * 12:05 keeps both hand tips inside the zoomed top window and clear of the numerals 11 and 1; at 11:05 the
+ * hour tip would sit on the window's bottom edge, over the "11".
+ */
+internal const val ZOOM_TIME = 5
 
 /**
  * A close-up of the top of a full-size clock: the frame, the numbers 11, 12 and 1 and the hand tips
@@ -44,4 +47,4 @@ internal fun ZoomedClock(appearance: ClockAppearance) {
     }
 }
 
-private const val ZOOM_WINDOW_ASPECT = 1.2f
+internal const val ZOOM_WINDOW_ASPECT = 1.2f

@@ -46,6 +46,15 @@ internal object DragonRig : AnimalRig(
     // the neck crop starts below the mouth and is wide enough to show the royal cape beside the body.
     headCrop = Rect(24f, 0f, 216f, 151f),
     neckCrop = Rect(60f, 156f, 180f, 240f),
+    // Accessory crops: the item's drawing bounds plus 12 units on every side, squared to the thumbnail window.
+    itemCrops =
+        mapOf(
+            "dragon-extra-coins" to Rect(64f, 174f, 190f, 300f),
+            "dragon-extra-book" to Rect(60f, 162f, 180f, 282f),
+            "dragon-extra-shield" to Rect(0f, 164f, 120f, 284f),
+            "dragon-extra-star-cloud" to Rect(4f, 67f, 237f, 300f),
+            "dragon-extra-wings" to Rect(0f, 60f, 240f, 300f),
+        ),
 ) {
     /** Hide brushes for every companion color, built once and indexed by the color's ordinal. */
     private val hides = CompanionColor.entries.map { DragonHide(it) }

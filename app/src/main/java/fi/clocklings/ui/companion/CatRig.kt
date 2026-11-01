@@ -39,6 +39,15 @@ internal object CatRig : AnimalRig(
     // The crops keep every item of the slot whole while leaving out the tail and the mouth and whiskers.
     headCrop = Rect(46f, 10f, 194f, 151f),
     neckCrop = Rect(55f, 150f, 185f, 236f),
+    // Accessory crops: the item's drawing bounds plus 12 units on every side, squared to the thumbnail window.
+    itemCrops =
+        mapOf(
+            "cat-extra-yarn" to Rect(87f, 167f, 220f, 300f),
+            "cat-extra-glasses" to Rect(36f, 28f, 204f, 196f),
+            "cat-extra-fish-backpack" to Rect(0f, 134f, 144f, 278f),
+            "cat-extra-wand" to Rect(0f, 143f, 139f, 282f),
+            "cat-extra-wings" to Rect(0f, 40f, 240f, 280f),
+        ),
 ) {
     /** Fur brushes for every companion color, built once and indexed by the color's ordinal. */
     private val furs = CompanionColor.entries.map { CatFur(PersonalizationColors.companion(CompanionKind.CAT, it)) }

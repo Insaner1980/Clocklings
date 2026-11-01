@@ -7,6 +7,7 @@ import fi.clocklings.domain.Levels
 import fi.clocklings.domain.TaskType
 import fi.clocklings.ui.FakeServices
 import fi.clocklings.ui.MainDispatcherRule
+import fi.clocklings.ui.components.DotOutcome
 import fi.clocklings.ui.components.OptionState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -34,6 +35,30 @@ class GameViewModelTest {
         level: Int = 0,
         h24: Boolean = false,
     ) = GameViewModel(level, h24, services, Random(11))
+
+    private fun TestScope.revealSetAnswer(vm: GameViewModel): Int {
+        vm.pick(vm.state.value.task.time)
+        advanceTimeBy(1600)
+        val target = vm.state.value.task.time
+        vm.onClockChange((target + 60) % 720)
+        vm.done()
+        vm.done()
+        return target
+    }
+
+    private fun TestScope.finishPerfectRound(vm: GameViewModel) {
+        repeat(10) {
+            val task = vm.state.value.task
+            if (task.type == TaskType.READ) {
+                vm.pick(task.time)
+            } else {
+                vm.onClockChange(task.time)
+                vm.done()
+            }
+            advanceTimeBy(1600)
+        }
+        advanceUntilIdle()
+    }
 
     @Test
     fun `starts with a read task showing three options and the clock at the answer`() =
@@ -124,12 +149,7 @@ class GameViewModelTest {
     fun `second set mistake shows the answer on the clock`() =
         scope.runTest {
             val vm = game(level = 0)
-            vm.pick(vm.state.value.task.time)
-            advanceTimeBy(1600)
-            val target = vm.state.value.task.time
-            vm.onClockChange((target + 60) % 720)
-            vm.done()
-            vm.done()
+            val target = revealSetAnswer(vm)
             val s = vm.state.value
             assertEquals(GameFeedback.RevealSet(target), s.feedback)
             assertEquals(target, s.clock.time)
@@ -142,17 +162,7 @@ class GameViewModelTest {
     fun `finishing ten tasks records stars and reports the result`() =
         scope.runTest {
             val vm = game(level = 0)
-            repeat(10) {
-                val s = vm.state.value
-                if (s.task.type == TaskType.READ) {
-                    vm.pick(s.task.time)
-                } else {
-                    vm.onClockChange(s.task.time)
-                    vm.done()
-                }
-                advanceTimeBy(1600)
-            }
-            advanceUntilIdle()
+            finishPerfectRound(vm)
             val result = vm.state.value.finished
             assertNotNull(result)
             assertEquals(Screen.Result(level = 0, stars = 3, previousBest = 0, starsBefore = 0), result)
@@ -164,6 +174,95 @@ class GameViewModelTest {
             )
             assertEquals(Sound.WIN, services.sounds.last())
         }
+
+    @Test
+    fun `correct first answer records FIRST_TRY`() =
+        scope.runTest {
+            val vm = game()
+            assertTrue(
+                vm.state.value.outcomes
+                    .isEmpty(),
+            )
+            vm.pick(vm.state.value.task.time)
+            advanceTimeBy(1600)
+            assertEquals(1, vm.state.value.taskIndex)
+            assertEquals(listOf(DotOutcome.FIRST_TRY), vm.state.value.outcomes)
+        }
+
+    @Test
+    fun `one wrong answer then right records WITH_HINT`() =
+        scope.runTest {
+            val vm = game()
+            val s0 = vm.state.value
+            vm.pick(s0.options.first { it != s0.task.time })
+            vm.pick(s0.task.time)
+            advanceTimeBy(1600)
+            assertEquals(1, vm.state.value.taskIndex)
+            assertEquals(listOf(DotOutcome.WITH_HINT), vm.state.value.outcomes)
+        }
+
+    @Test
+    fun `two wrong answers then next records SHOWN`() =
+        scope.runTest {
+            val vm = game()
+            val s0 = vm.state.value
+            val wrong = s0.options.filter { it != s0.task.time }
+            vm.pick(wrong[0])
+            vm.pick(wrong[1])
+            vm.next()
+            assertEquals(1, vm.state.value.taskIndex)
+            assertEquals(listOf(DotOutcome.SHOWN), vm.state.value.outcomes)
+        }
+
+    @Test
+    fun `set task shown after two mistakes records SHOWN`() =
+        scope.runTest {
+            val vm = game(level = 0)
+            revealSetAnswer(vm)
+            vm.next()
+            assertEquals(2, vm.state.value.taskIndex)
+            assertEquals(listOf(DotOutcome.FIRST_TRY, DotOutcome.SHOWN), vm.state.value.outcomes)
+        }
+
+    @Test
+    fun `outcomes carry through to the final task and stay one per task`() =
+        scope.runTest {
+            val vm = game(level = 0)
+            finishPerfectRound(vm)
+            assertEquals(List(10) { DotOutcome.FIRST_TRY }, vm.state.value.outcomes)
+            // The last dot stays popped while the result is saved; its outcome is not added a second time.
+            assertTrue(vm.state.value.feedback is GameFeedback.Praise)
+            assertEquals(List(10) { DotOutcome.FIRST_TRY }, dotOutcomes(vm.state.value, currentDone = true))
+        }
+
+    @Test
+    fun `set task solved after one mistake records WITH_HINT and its dot pops gold`() =
+        scope.runTest {
+            val vm = game(level = 0)
+            vm.pick(vm.state.value.task.time)
+            advanceTimeBy(1600)
+            val s1 = vm.state.value
+            assertEquals(TaskType.SET, s1.task.type)
+            vm.onClockChange((s1.task.time + 60) % 720)
+            vm.done()
+            vm.onClockChange(s1.task.time)
+            vm.done()
+            val praised = vm.state.value
+            assertTrue(praised.feedback is GameFeedback.Praise)
+            // During the success pause the current dot already pops in its outcome colour.
+            assertEquals(listOf(DotOutcome.FIRST_TRY), praised.outcomes)
+            assertEquals(listOf(DotOutcome.FIRST_TRY, DotOutcome.WITH_HINT), dotOutcomes(praised, currentDone = true))
+            advanceTimeBy(1600)
+            assertEquals(2, vm.state.value.taskIndex)
+            assertEquals(listOf(DotOutcome.FIRST_TRY, DotOutcome.WITH_HINT), vm.state.value.outcomes)
+        }
+
+    @Test
+    fun `outcomeOf maps mistakes`() {
+        assertEquals(DotOutcome.FIRST_TRY, outcomeOf(0))
+        assertEquals(DotOutcome.WITH_HINT, outcomeOf(1))
+        assertEquals(DotOutcome.SHOWN, outcomeOf(2))
+    }
 
     @Test
     fun `no result before the last task`() =

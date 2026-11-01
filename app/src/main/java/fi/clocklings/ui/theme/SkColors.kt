@@ -13,6 +13,10 @@ object SkColors {
     val Line = Color(0xFFF1DDEA)
     val Ink = Color(0xFF3A2453)
     val InkSoft = Color(0xFF76638C)
+
+    /** Hairline around a colour swatch that is too close to the page background to read on its own. */
+    val SwatchOutline = InkSoft.copy(alpha = 0.35f)
+
     val Shadow = Color(0xFF3A2453)
     val FlatSurface = Surface.copy(alpha = 0.72f)
     val IconSurface = Surface.copy(alpha = 0.8f)

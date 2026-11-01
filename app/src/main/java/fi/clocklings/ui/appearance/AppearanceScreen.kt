@@ -25,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -39,6 +40,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.max
 import fi.clocklings.R
@@ -53,6 +55,7 @@ import fi.clocklings.domain.NumeralStyle
 import fi.clocklings.domain.Personalization
 import fi.clocklings.domain.Progress
 import fi.clocklings.ui.LocalAppViewModel
+import fi.clocklings.ui.RetryableSave
 import fi.clocklings.ui.clock.ClockCommand
 import fi.clocklings.ui.clock.ClockFace
 import fi.clocklings.ui.companion.CompanionCelebration
@@ -91,11 +94,23 @@ fun AppearanceScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val app = LocalAppViewModel.current
+    val save = remember(app) { RetryableSave() }
+    val onChange: ((Personalization) -> Personalization) -> Unit = { transform ->
+        save.run { app.personalize(it, transform) }
+    }
     var clocks by rememberSaveable { mutableStateOf(false) }
     ScreenScaffold(
         modifier,
         section = Section.COMPANION,
         topBar = { TopBar(stringResource(R.string.appearance_title), onBack) },
+        bottomBar =
+            save.retry?.let { retry ->
+                {
+                    Text(stringResource(R.string.settings_save_error), style = SkType.Body)
+                    SkButton(stringResource(R.string.settings_retry), retry, Modifier.fillMaxWidth())
+                }
+            },
     ) { clockSize ->
         SegmentedControl(
             "",
@@ -105,7 +120,7 @@ fun AppearanceScreen(
             Modifier.fillMaxWidth(),
         )
         if (clocks) {
-            ClockChoices(appearance)
+            ClockChoices(appearance, onChange)
         } else {
             // The preview grows with the screen so the page uses its height instead of leaving it empty.
             CompanionChoices(
@@ -113,6 +128,7 @@ fun AppearanceScreen(
                 progress,
                 max(SkDimens.CompanionPreview, clockSize * PREVIEW_GROWTH),
                 onOutfits,
+                onChange,
             )
         }
     }
@@ -124,14 +140,16 @@ private fun CompanionChoices(
     progress: Progress,
     previewHeight: Dp,
     onOutfits: () -> Unit,
+    onChange: ((Personalization) -> Personalization) -> Unit,
 ) {
     val app = LocalAppViewModel.current
     val kind = appearance.companion
+    val currentOnChange by rememberUpdatedState(onChange)
     val pager = rememberPagerState(initialPage = kind.ordinal) { CompanionKind.entries.size }
     LaunchedEffect(pager) {
         snapshotFlow { pager.settledPage }.drop(1).collect { page ->
             val chosen = CompanionKind.entries[page]
-            app.personalize { it.copy(companion = chosen) }
+            currentOnChange { it.copy(companion = chosen) }
             companionVoice(chosen)?.let(app::play)
         }
     }
@@ -156,19 +174,30 @@ private fun CompanionChoices(
 }
 
 @Composable
-private fun ClockChoices(appearance: Personalization) {
-    val app = LocalAppViewModel.current
+private fun ClockChoices(
+    appearance: Personalization,
+    onChange: ((Personalization) -> Personalization) -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapL)) {
-        ClockFace(
-            ClockCommand(PREVIEW_TIME),
-            Modifier.fillMaxWidth().testTag("selected_clock"),
-            appearance = appearance.clock,
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapS)) {
+            ClockFace(
+                ClockCommand(PREVIEW_TIME),
+                Modifier.fillMaxWidth().testTag("selected_clock"),
+                appearance = appearance.clock,
+            )
+            // The preview's state description already names the style, so TalkBack skips this caption.
+            Text(
+                stringResource(clockThemeName(appearance.clock.theme)),
+                style = SkType.SectionTitle,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().clearAndSetSemantics { },
+            )
+        }
         ChoiceGrid(ClockTheme.entries) { theme, cell ->
             ChoiceCard(
                 stringResource(clockThemeName(theme)),
                 appearance.clock.theme == theme,
-                { app.personalize { it.copy(clock = it.clock.copy(theme = theme)) } },
+                { onChange { it.copy(clock = it.clock.copy(theme = theme)) } },
                 cell.testTag("choose_clock_${theme.name}"),
             ) {
                 ClockFace(
@@ -181,7 +210,7 @@ private fun ClockChoices(appearance: Personalization) {
         }
         if (appearance.clock.theme == ClockTheme.CUSTOM) {
             CustomClockControls(appearance.clock.custom) { transform ->
-                app.personalize { it.copy(clock = it.clock.copy(custom = transform(it.clock.custom))) }
+                onChange { it.copy(clock = it.clock.copy(custom = transform(it.clock.custom))) }
             }
         }
     }
@@ -294,15 +323,18 @@ private fun ChoiceCard(
         border = if (on) BorderStroke(SkDimens.Border, SkColors.ItemOnBorder) else null,
         role = Role.RadioButton,
     ) {
-        Box(Modifier.padding(SkDimens.GapM)) {
+        // Centered in a wide grid cell; the check sits on the preview's corner, as on wardrobe tiles.
+        Box(Modifier.padding(SkDimens.GapM), contentAlignment = Alignment.TopCenter) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(SkDimens.GapS),
             ) {
-                Box(Modifier.clearAndSetSemantics { }) { art() }
+                Box(Modifier.clearAndSetSemantics { }) {
+                    art()
+                    if (on) SelectionBadge(Modifier.align(Alignment.TopEnd))
+                }
                 if (showLabel) WordSafeText(title, SkType.ItemName)
             }
-            if (on) SelectionBadge(Modifier.align(Alignment.TopEnd))
         }
     }
 }

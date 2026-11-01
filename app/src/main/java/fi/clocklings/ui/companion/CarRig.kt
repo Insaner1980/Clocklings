@@ -42,12 +42,12 @@ import fi.clocklings.ui.theme.PersonalizationColors
  */
 internal object CarRig : AnimalRig(
     // The crops keep every item of the slot whole: the roof items rise above the cabin, the front items
-    // sit on the face and bumper, and the wheel crop shows both side wheels.
+    // sit on the face and bumper, and the square wheel crop shows both side wheels inside the grid.
     crops =
         mapOf(
             Slot.ROOF to Rect(6f, 20f, 230f, 200f),
             Slot.FRONT to Rect(78f, 150f, 230f, 284f),
-            Slot.WHEELS to Rect(10f, 212f, 110f, 290f),
+            Slot.WHEELS to Rect(10f, 200f, 110f, 300f),
         ),
 ) {
     /** Paint brushes for every companion color, built once and indexed by the color's ordinal. */

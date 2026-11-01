@@ -44,6 +44,15 @@ internal object RobotRig : AnimalRig(
     // out the lower arms and hands.
     headCrop = Rect(24f, 0f, 216f, 172f),
     neckCrop = Rect(67f, 148f, 173f, 238f),
+    // Accessory crops: the item's drawing bounds plus 12 units on every side, squared to the thumbnail window.
+    itemCrops =
+        mapOf(
+            "robot-extra-wrench" to Rect(120f, 156f, 240f, 276f),
+            "robot-extra-heart-eyes" to Rect(60f, 40f, 180f, 160f),
+            "robot-extra-star-eyes" to Rect(60f, 40f, 180f, 160f),
+            "robot-extra-pet" to Rect(120f, 180f, 240f, 300f),
+            "robot-extra-jetpack" to Rect(4f, 68f, 236f, 300f),
+        ),
 ) {
     /** Shell brushes for every companion color, built once and indexed by the color's ordinal. */
     private val shells = CompanionColor.entries.map { RobotShell(it) }

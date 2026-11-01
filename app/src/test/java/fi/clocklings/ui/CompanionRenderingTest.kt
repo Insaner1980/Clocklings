@@ -12,8 +12,11 @@ import androidx.compose.ui.unit.dp
 import fi.clocklings.domain.CompanionColor
 import fi.clocklings.domain.CompanionKind
 import fi.clocklings.domain.Outfit
+import fi.clocklings.domain.Slot
 import fi.clocklings.domain.Wardrobe
+import fi.clocklings.domain.colorOptions
 import fi.clocklings.ui.companion.CompanionView
+import fi.clocklings.ui.companion.rigFor
 import fi.clocklings.ui.theme.ClocklingsTheme
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -54,6 +57,30 @@ class CompanionRenderingTest {
     }
 
     @Test
+    fun everyAccessoryThumbnailZoomsToItsItemInsideTheDesignGrid() {
+        val accessories = Wardrobe.items.filter { it.slot == Slot.EXTRA }
+        assertTrue("No accessories found", accessories.isNotEmpty())
+        val unzoomed = mutableListOf<String>()
+        val outside = mutableListOf<String>()
+        val small = mutableListOf<String>()
+        for (item in accessories) {
+            val rig = rigFor(item.companion)!!
+            val crop = rig.crop(item)
+            val full = rig.full()
+            if (crop == full) unzoomed += item.id
+            val outsideHorizontally = crop.left < full.left || crop.right > full.right
+            val outsideVertically = crop.top < full.top || crop.bottom > full.bottom
+            if (outsideHorizontally || outsideVertically) {
+                outside += item.id
+            }
+            if (crop.width < MIN_CROP || crop.height < MIN_CROP) small += item.id
+        }
+        assertTrue("Accessory crops equal to the whole grid: $unzoomed", unzoomed.isEmpty())
+        assertTrue("Accessory crops outside the grid: $outside", outside.isEmpty())
+        assertTrue("Accessory crops under $MIN_CROP units: $small", small.isEmpty())
+    }
+
+    @Test
     fun eachCompanionColorChangesTheRenderedBody() {
         val kind = mutableStateOf(CompanionKind.CAT)
         val color = mutableStateOf(CompanionColor.ORIGINAL)
@@ -74,11 +101,16 @@ class CompanionRenderingTest {
                 color.value = CompanionColor.ORIGINAL
             }
             val baseline = pixels(companion)
-            for (shade in CompanionColor.entries.filter { it != CompanionColor.ORIGINAL }) {
+            for (shade in companion.colorOptions().filter { it != CompanionColor.ORIGINAL }) {
                 compose.runOnIdle { color.value = shade }
                 assertTrue("Unchanged color: $companion / $shade", !baseline.contentEquals(pixels(companion)))
             }
         }
+    }
+
+    private companion object {
+        /** Smallest thumbnail crop, so the companion stays recognisable next to its item. */
+        const val MIN_CROP = 120f
     }
 
     private fun pixels(kind: CompanionKind): IntArray {

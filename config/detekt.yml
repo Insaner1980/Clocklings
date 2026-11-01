@@ -22,7 +22,8 @@ Compose:
   CompositionLocalAllowlist:
     active: true
     # Existing app-wide services and the shared confetti overlay are provided at the app root.
-    allowedCompositionLocals: ['LocalAppViewModel', 'LocalConfetti', 'LocalPersonalization', 'LocalCompanionOutfit', 'LocalSharedTransitionScope', 'LocalAppLanguage', 'LocalAppLocale']
+    # LocalAnswerRowCounter is a test-only observer across answer-row subcompositions; it holds no UI state.
+    allowedCompositionLocals: ['LocalAppViewModel', 'LocalConfetti', 'LocalPersonalization', 'LocalCompanionOutfit', 'LocalSharedTransitionScope', 'LocalAppLanguage', 'LocalAppLocale', 'LocalAnswerRowCounter']
   CompositionLocalNaming:
     active: true
   ContentEmitterReturningValues:

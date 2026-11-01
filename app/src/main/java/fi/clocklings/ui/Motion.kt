@@ -47,6 +47,7 @@ object SkMotion {
     val PopSpring = spring<Float>(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
     const val PRESS_SCALE = 0.96f
     const val NAV_DURATION = 300
+    const val RESIZE_DURATION = 300
     const val REDUCED_FADE = 80
     const val NAV_SLIDE_FRACTION = 4
     const val PREDICTIVE_SCALE = 0.92f

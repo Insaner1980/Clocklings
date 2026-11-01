@@ -26,7 +26,7 @@ object LocalizationScreenshots {
                 check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)) { "Could not encode screenshot" }
             }
         } finally {
-            bitmap.recycle()
+            if (rendered == null) bitmap.recycle()
         }
     }
 }

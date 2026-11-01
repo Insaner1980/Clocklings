@@ -12,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.scale
@@ -20,8 +21,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import fi.clocklings.domain.CompanionColor
 import fi.clocklings.domain.CompanionKind
+import fi.clocklings.domain.Item
 import fi.clocklings.domain.Outfit
-import fi.clocklings.domain.Slot
 import fi.clocklings.ui.appearance.LocalPersonalization
 import fi.clocklings.ui.components.LocalConfetti
 import fi.clocklings.ui.components.confettiAnchor
@@ -32,7 +33,7 @@ import kotlin.math.min
  * Draws any companion through its [CompanionRig]; nothing for [CompanionKind.NONE]. When [animated],
  * the companion idles and runs [celebration] once: a spin that reveals the new outfit with a sparkle,
  * then hops. With reduced motion it stays still and the new outfit shows at once. The pose is read
- * only while drawing, so motion redraws without recomposition. [cropSlot] fits that slot's thumbnail
+ * only while drawing, so motion redraws without recomposition. [cropItem] fits that item's thumbnail
  * area of the rig to the canvas instead of the whole companion.
  */
 @Composable
@@ -43,7 +44,7 @@ fun CompanionView(
     color: CompanionColor = LocalPersonalization.current.styleFor(kind).color,
     celebration: CompanionCelebration? = null,
     animated: Boolean = true,
-    cropSlot: Slot? = null,
+    cropItem: Item? = null,
 ) {
     val rig = rigFor(kind) ?: return
     val reduceMotion = rememberReduceMotion()
@@ -66,15 +67,31 @@ fun CompanionView(
         if (showNew && !reduceMotion) confetti?.sparkle(center.value)
     }
     val shown = active?.newOutfit?.takeIf { showNew } ?: outfit
-    val crop = if (cropSlot == null) rig.full() else rig.crop(cropSlot)
+    val crop = if (cropItem == null) rig.full() else rig.crop(cropItem)
     val art =
         modifier
-            .then(if (cropSlot == null) Modifier.testTag("companion_${kind.name}") else Modifier)
+            .then(if (cropItem == null) Modifier.testTag("companion_${kind.name}") else Modifier)
             .then(if (active != null) Modifier.confettiAnchor { center.value = it } else Modifier)
             .clearAndSetSemantics { }
     Canvas(art) {
         val pose = if (moving) poseAt(nowMs.longValue, active) else RestPose
-        drawFitted(rig, crop, clip = cropSlot != null, color, shown, pose)
+        drawFitted(rig, crop, clip = cropItem != null, color, shown, pose)
+    }
+}
+
+/**
+ * Grows a thumbnail crop to the canvas proportions, so every thumbnail fills its window edge to edge
+ * instead of showing a band of the companion with flat cut edges. A tall crop grows sideways around its
+ * centre; a wide crop keeps its top and grows downwards, because the area above a neck crop is the
+ * companion's mouth.
+ */
+internal fun Rect.grownTo(canvas: Size): Rect {
+    val aspect = canvas.width / canvas.height
+    return if (width / height < aspect) {
+        val half = height * aspect / 2f
+        Rect(center.x - half, top, center.x + half, bottom)
+    } else {
+        Rect(left, top, right, top + width / aspect)
     }
 }
 
@@ -92,12 +109,15 @@ private fun DrawScope.drawFitted(
     outfit: Outfit,
     pose: CompanionPose,
 ) {
-    val s = min(size.width / crop.width, size.height / crop.height)
-    translate((size.width - crop.width * s) / 2f, (size.height - crop.height * s) / 2f) {
+    val bounds = if (clip) crop.grownTo(size) else crop
+    val s = min(size.width / bounds.width, size.height / bounds.height)
+    translate((size.width - bounds.width * s) / 2f, (size.height - bounds.height * s) / 2f) {
         scale(s, s, pivot = Offset.Zero) {
-            translate(-crop.left, -crop.top) {
+            translate(-bounds.left, -bounds.top) {
                 if (clip) {
-                    clipRect(crop.left, crop.top, crop.right, crop.bottom) { with(rig) { draw(color, outfit, pose) } }
+                    clipRect(bounds.left, bounds.top, bounds.right, bounds.bottom) {
+                        with(rig) { draw(color, outfit, pose) }
+                    }
                 } else {
                     with(rig) { draw(color, outfit, pose) }
                 }

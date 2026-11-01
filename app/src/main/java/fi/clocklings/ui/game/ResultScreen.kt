@@ -128,7 +128,7 @@ fun ResultScreen(
                     if (newItems.isNotEmpty()) {
                         SkButton(stringResource(R.string.dress_doll), onDress, kind = ButtonKind.GREEN)
                     }
-                    SkButton(stringResource(R.string.levels_short), onLevels)
+                    SkButton(stringResource(R.string.back_description), onLevels)
                 }
             }
         }

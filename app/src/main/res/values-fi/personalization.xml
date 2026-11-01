@@ -3,7 +3,7 @@
     <string name="appearance_title">Tee omannäköinen</string>
     <string name="companions_title">Kaverit</string>
     <string name="clock_styles_title">Kellotyylit</string>
-    <string name="companion_human">Ihminen</string>
+    <string name="companion_human">Nukke</string>
     <string name="companion_cat">Kissa</string>
     <string name="companion_dog">Koira</string>
     <string name="companion_robot">Robotti</string>
@@ -19,6 +19,7 @@
     <string name="color_blue">Sininen</string>
     <string name="color_green">Vihreä</string>
     <string name="color_purple">Violetti</string>
+    <string name="color_orange">Oranssi</string>
     <string name="color_coral">Koralli</string>
     <string name="theme_classic">Klassinen</string>
     <string name="theme_rainbow">Sateenkaari</string>

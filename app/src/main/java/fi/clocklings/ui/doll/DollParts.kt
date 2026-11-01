@@ -6,6 +6,7 @@ package fi.clocklings.ui.doll
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.vector.PathParser
+import fi.clocklings.domain.Item
 import fi.clocklings.domain.Slot
 
 /** Nuken polut ja rajaukset web-version dollSVG:stä (koordinaatisto 200×340). */
@@ -39,7 +40,8 @@ internal object DollParts {
 
             Slot.DRESS -> Rect(28f, 108f, 28f + 144f, 108f + 150f)
 
-            Slot.SHOES -> Rect(56f, 268f, 56f + 88f, 268f + 52f)
+            // Square, so the thumbnail window does not grow it downwards past the doll's feet into empty space.
+            Slot.SHOES -> Rect(56f, 250f, 56f + 88f, 250f + 88f)
 
             Slot.EXTRA -> Rect(0f, 92f, 200f, 92f + 168f)
 
@@ -47,6 +49,18 @@ internal object DollParts {
             Slot.NECK -> Rect(60f, 100f, 60f + 80f, 100f + 60f)
 
             Slot.ROOF, Slot.FRONT, Slot.WHEELS, Slot.MODEL -> Full
+        }
+
+    /**
+     * The accessory thumbnails: the item's drawing bounds plus 12 units on every side, squared to the
+     * thumbnail window. The bag hangs from the right hand, so its crop takes in the shoulder and arm; the
+     * wings span the doll's width.
+     */
+    fun crop(item: Item): Rect =
+        when (item.id) {
+            "extra-laukku" -> Rect(80f, 117f, 200f, 237f)
+            "extra-siivet" -> Rect(6f, 74f, 194f, 262f)
+            else -> crop(item.slot)
         }
 
     val Full = Rect(0f, 0f, WIDTH, HEIGHT)

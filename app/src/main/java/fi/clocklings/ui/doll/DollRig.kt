@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import fi.clocklings.domain.CompanionColor
+import fi.clocklings.domain.Item
 import fi.clocklings.domain.Outfit
 import fi.clocklings.domain.Slot
 import fi.clocklings.ui.art.ArtTones
@@ -63,6 +64,8 @@ internal object DollRig : CompanionRig {
     override val height = DollParts.HEIGHT
 
     override fun crop(slot: Slot): Rect = DollParts.crop(slot)
+
+    override fun crop(item: Item): Rect = DollParts.crop(item)
 
     override fun full(): Rect = DollParts.Full
 

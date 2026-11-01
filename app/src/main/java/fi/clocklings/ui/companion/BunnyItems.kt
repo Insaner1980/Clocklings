@@ -84,8 +84,7 @@ private fun daisies(): ItemArt =
         { t -> itemQuad(84f, 180f, 120f, 204f, 156f, 180f, t) },
         7,
         5f,
-        5.5f,
-        5f,
+        FlowerPetals(ring = 5.5f, radius = 5f),
         30f,
         petalTones = listOf(ArtTones.Pearl),
     )
@@ -238,8 +237,7 @@ private fun flowerCrown(): ItemArt =
         { t -> itemQuad(62f, 82f, 120f, 22f, 178f, 82f, t) },
         7,
         5f,
-        6f,
-        5.5f,
+        FlowerPetals(ring = 6f, radius = 5.5f),
         30f,
         part = ArtPart.HEAD,
     )

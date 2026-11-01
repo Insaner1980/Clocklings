@@ -29,9 +29,13 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
+import fi.clocklings.R
 import fi.clocklings.ui.SkMotion
 import fi.clocklings.ui.rememberReduceMotion
 import fi.clocklings.ui.theme.SkColors
@@ -46,7 +50,8 @@ import fi.clocklings.ui.theme.ledgeColor
  * A pebble trail runs behind the nodes from centre to centre.
  *
  * Done stops are fully coloured with a check, the [current] stop is larger, ringed and gently
- * pulsing, and stops ahead are paler.
+ * pulsing and announced as up next, and stops ahead are paler. An [isHeading] stop is a screen reader
+ * heading without any visual change.
  */
 @Composable
 fun PathNode(
@@ -60,6 +65,7 @@ fun PathNode(
     current: Boolean = false,
     first: Boolean = index == 0,
     last: Boolean = false,
+    isHeading: Boolean = false,
     badge: @Composable () -> Unit = {},
     art: @Composable () -> Unit = { Text((index + 1).toString(), style = SkType.LessonNumber) },
 ) {
@@ -67,6 +73,7 @@ fun PathNode(
     val pulse = if (current && !reduced) nodePulse() else 1f
     val nodeOnStart = index % 2 == 0
     val fill = if (completed || current) color else lerp(color, SkColors.Surface, AHEAD_FADE)
+    val currentState = stringResource(R.string.path_current)
     val node: @Composable () -> Unit = {
         DepthSurface(
             onClick,
@@ -75,13 +82,18 @@ fun PathNode(
             SkShapes.Node,
             Modifier
                 .size(SkDimens.PathNode)
-                .semantics { contentDescription = description }
-                .graphicsLayer {
+                .semantics {
+                    contentDescription = description
+                    if (isHeading) heading()
+                    if (current) stateDescription = currentState
+                }.graphicsLayer {
                     scaleX = pulse
                     scaleY = pulse
                 }.then(
                     if (current) Modifier.border(SkDimens.Border, SkColors.GoldDeep, SkShapes.Node) else Modifier,
                 ),
+            // The number, icon or clock and the check only repeat what the description says.
+            decorativeContent = true,
         ) {
             Box(contentAlignment = Alignment.Center) {
                 art()
@@ -90,14 +102,7 @@ fun PathNode(
         }
     }
     val texts: @Composable (Modifier) -> Unit = { textModifier ->
-        Column(
-            textModifier,
-            horizontalAlignment = if (nodeOnStart) Alignment.Start else Alignment.End,
-            verticalArrangement = Arrangement.spacedBy(SkDimens.GapS),
-        ) {
-            WordSafeText(title, SkType.LessonTitle, textAlign = if (nodeOnStart) TextAlign.Start else TextAlign.End)
-            badge()
-        }
+        PathNodeLabel(title, nodeOnStart, textModifier, badge)
     }
     Row(
         modifier
@@ -177,3 +182,20 @@ private fun Modifier.pathTrail(
                 ),
         )
     }
+
+@Composable
+private fun PathNodeLabel(
+    title: String,
+    nodeOnStart: Boolean,
+    modifier: Modifier = Modifier,
+    badge: @Composable () -> Unit,
+) {
+    Column(
+        modifier,
+        horizontalAlignment = if (nodeOnStart) Alignment.Start else Alignment.End,
+        verticalArrangement = Arrangement.spacedBy(SkDimens.GapS),
+    ) {
+        WordSafeText(title, SkType.LessonTitle, textAlign = if (nodeOnStart) TextAlign.Start else TextAlign.End)
+        badge()
+    }
+}

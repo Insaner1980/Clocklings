@@ -214,7 +214,7 @@ private fun umbrella(): ItemArt {
 }
 
 /** Flower lei: eight flowers in four colors on leaves along the neckline. */
-private fun lei(): ItemArt = itemFlowerLei(::neckAt, 8, 6f, 6.2f, 5.8f, 29f)
+private fun lei(): ItemArt = itemFlowerLei(::neckAt, 8, 6f, FlowerPetals(6.2f, 5.8f), 29f)
 
 /** Sunny hard hat with a raised ridge, a wide brim and a pearl star sticker. */
 private fun hardHat(): ItemArt {

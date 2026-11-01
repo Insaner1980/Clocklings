@@ -41,6 +41,16 @@ internal object ConfettiMath {
         return from * (u * u) + control * (2f * u * k) + to * (k * k)
     }
 
+    /**
+     * Particle opacity: full until [fadeFrames] frames remain, then linearly down to zero
+     * at the end of the [lifeSpan].
+     */
+    fun particleAlpha(
+        life: Int,
+        lifeSpan: Int,
+        fadeFrames: Int,
+    ): Float = ((lifeSpan - life).toFloat() / fadeFrames).coerceIn(0f, 1f)
+
     /** Tähti kasvaa lennon alussa ja pienenee laskeutuessaan edistymispalloon. */
     fun flightScale(k: Float): Float = (1f + FLIGHT_GROW * sin(PI.toFloat() * k)) * (1f - FLIGHT_SHRINK * k)
 }

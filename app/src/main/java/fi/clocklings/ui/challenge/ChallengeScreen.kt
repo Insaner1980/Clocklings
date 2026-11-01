@@ -1,10 +1,11 @@
 package fi.clocklings.ui.challenge
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -21,13 +22,19 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
@@ -39,8 +46,10 @@ import fi.clocklings.domain.timeLanguage
 import fi.clocklings.ui.AppViewModel
 import fi.clocklings.ui.LocalAppViewModel
 import fi.clocklings.ui.clock.ClockFace
+import fi.clocklings.ui.components.ActionPair
 import fi.clocklings.ui.components.ButtonKind
 import fi.clocklings.ui.components.ClockBox
+import fi.clocklings.ui.components.ClockFit
 import fi.clocklings.ui.components.Eyebrow
 import fi.clocklings.ui.components.FlatPanel
 import fi.clocklings.ui.components.LocalConfetti
@@ -78,7 +87,7 @@ fun ChallengeRoute(
         onBack = onBack,
         onStart = {
             app.play(Sound.POP)
-            vm.start()
+            if (vm.state.value.saveFailed) vm.retrySave() else vm.start()
         },
         onPick = { value ->
             val before = vm.state.value
@@ -112,7 +121,11 @@ fun ChallengeScreen(
     modifier: Modifier = Modifier,
 ) {
     val finalAnchor = remember { mutableStateOf(Offset.Zero) }
-    RecordCelebrationEffect(state) { finalAnchor.value }
+    val barAnchor = remember { mutableStateOf(Offset.Zero) }
+    RecordCelebrationEffect(state) {
+        // A fully clipped score has empty bounds; celebrate from the visible result bar instead.
+        finalAnchor.value.takeUnless { it == Offset.Zero } ?: barAnchor.value
+    }
     ScreenScaffold(
         modifier,
         clockHeightShare = SkDimens.PLAY_CLOCK_HEIGHT_SHARE,
@@ -120,51 +133,131 @@ fun ChallengeScreen(
         topBar = {
             TopBar(
                 title = stringResource(R.string.challenge_title),
-                backLabel = stringResource(R.string.back_levels),
                 onBack = onBack,
                 trailing = { Pill(stringResource(R.string.challenge_score, state.score)) },
             )
         },
-    ) { clockSize ->
-        TimerBar(state)
-        ClockBox(clockSize) {
-            ClockFace(
-                command = state.clock,
-                period = ClockTime.period(h24),
-                help = help,
-                describeTime = state.phase != ChallengePhase.RUN || state.busy,
-            )
-        }
-        FlatPanel {
+        // The start action and the result actions stay reachable below a narrow or large-font intro or result
+        // without scrolling.
+        bottomBar =
             when (state.phase) {
                 ChallengePhase.START -> {
-                    Text(stringResource(R.string.challenge_desc), style = SkType.Question)
-                    Text(stringResource(R.string.challenge_intro), style = SkType.Body)
-                    val best = stringResource(R.string.challenge_best, state.best)
-                    Eyebrow(if (state.best > 0) best else stringResource(R.string.challenge_no_best))
-                    SkButton(stringResource(R.string.challenge_go), onStart, kind = ButtonKind.PRIMARY)
-                }
-
-                ChallengePhase.RUN -> {
-                    ReadOptions {
-                        for (t in state.options) {
-                            OptionButton(
-                                words = timeLabel(LocalAppLanguage.current, t, h24),
-                                digital = timeLanguage(LocalAppLanguage.current).digital(t, h24),
-                                state = state.optionStates[t] ?: OptionState.NORMAL,
-                                enabled = !state.busy,
-                                onClick = { onPick(t) },
-                            )
-                        }
+                    {
+                        SkButton(
+                            stringResource(R.string.challenge_go),
+                            onStart,
+                            Modifier.fillMaxWidth(),
+                            kind = ButtonKind.PRIMARY,
+                        )
                     }
                 }
 
-                ChallengePhase.END -> {
-                    ChallengeResult(state, onAnchorChange = { finalAnchor.value = it }, onStart, onBack)
+                ChallengePhase.RUN -> {
+                    null
                 }
-            }
-        }
+
+                ChallengePhase.END -> {
+                    {
+                        Box(Modifier.fillMaxWidth().confettiAnchor { barAnchor.value = it }) {
+                            ResultActions(state, onStart, onBack)
+                        }
+                    }
+                }
+            },
+        // A run shows all its answers without scrolling where the clock can shrink for them, and the result keeps
+        // that size whatever the height its bar takes, so the score and its confetti stay put. The clock resizes
+        // into the height the START bar frees instead of jumping.
+        clockFit =
+            when (state.phase) {
+                ChallengePhase.START -> ClockFit.NONE
+                ChallengePhase.RUN -> ClockFit.FIT
+                ChallengePhase.END -> ClockFit.KEEP
+            },
+        animateClock = true,
+        // Each phase opens at the top, so a run never starts with the clock scrolled away.
+        scrollState = rememberSaveable(state.phase, saver = ScrollState.Saver) { ScrollState(0) },
+    ) { clockSize ->
+        TimerBar(state)
+        ChallengeClock(state, h24, help, clockSize)
+        ChallengePanel(state, h24, onPick, onAnchorChange = { finalAnchor.value = it })
     }
+}
+
+/** Whether a run had to measure its answer room itself, as it started before START had prepared it. */
+private class MeasuredInRun {
+    var rows = false
+}
+
+private enum class RunSlot { SHOWN, ROOM }
+
+/**
+ * The answers of a run, kept as tall as the tallest answers any question can show: as many of the tallest of
+ * all challenge answers as there are answers (see [AnswerRooms]). The panel then keeps one height for the whole
+ * run, so the clock fitted above it never resizes and no answer moves between questions.
+ */
+@Composable
+private fun RunOptions(
+    state: ChallengeUiState,
+    h24: Boolean,
+    onPick: (Int) -> Unit,
+) {
+    val keyFor = rememberAnswerRoomKey(h24)
+    val density = LocalDensity.current
+    val measurer = rememberTextMeasurer()
+    val measuredInRun = remember { MeasuredInRun() }
+    SubcomposeLayout { constraints ->
+        val loose = constraints.copy(minHeight = 0)
+        val key = keyFor(constraints.maxWidth)
+        var room = AnswerRooms.heights(key)
+        // Started before START prepared the room, or opened straight into a run: rank by text now the answers START
+        // has not ranked yet, compose only the candidates, and keep them until the run ends instead of dropping
+        // them on the first pick.
+        if (room == null || measuredInRun.rows) {
+            val candidates = AnswerRooms.candidates(key) ?: AnswerRooms.rankNow(key, measurer, density)
+            val rows = measureAnswerRows(RunSlot.ROOM, candidates, h24, constraints)
+            if (room == null) AnswerRooms.storeHeights(key, rows)
+            room = rows.sortedDescending()
+            measuredInRun.rows = true
+        }
+        val tallest = room.take(state.options.size)
+        val column =
+            subcompose(RunSlot.SHOWN) {
+                Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapOptions)) {
+                    for (t in state.options) {
+                        RunOption(
+                            t,
+                            h24,
+                            state.optionStates[t] ?: OptionState.NORMAL,
+                            onClick = { onPick(t) },
+                            enabled = !state.busy,
+                        )
+                    }
+                }
+            }.first().measure(loose)
+        val reserved = tallest.sum() + SkDimens.GapOptions.roundToPx() * (tallest.size - 1).coerceAtLeast(0)
+        layout(column.width, maxOf(column.height, reserved)) { column.place(0, 0) }
+    }
+}
+
+@Composable
+internal fun RunOption(
+    t: Int,
+    h24: Boolean,
+    state: OptionState,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    CountAnswerRow()
+    val language = LocalAppLanguage.current
+    OptionButton(
+        words = timeLabel(language, t, h24),
+        onClick = onClick,
+        modifier = modifier,
+        digital = timeLanguage(language).digital(t, h24),
+        state = state,
+        enabled = enabled,
+    )
 }
 
 @Composable
@@ -220,10 +313,8 @@ private const val RECORD_CONFETTI = 120
 private fun ColumnScope.ChallengeResult(
     state: ChallengeUiState,
     onAnchorChange: (Offset) -> Unit,
-    onStart: () -> Unit,
-    onBack: () -> Unit,
 ) {
-    Eyebrow(stringResource(R.string.challenge_over))
+    Eyebrow(stringResource(if (state.newRecord) R.string.challenge_new_best else R.string.challenge_over))
     Text(
         state.score.toString(),
         style = SkType.BigNumber,
@@ -237,8 +328,78 @@ private fun ColumnScope.ChallengeResult(
         },
         style = SkType.ResultText,
     )
-    Row(horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM)) {
-        SkButton(stringResource(R.string.challenge_again), onStart, kind = ButtonKind.PRIMARY)
-        SkButton(stringResource(R.string.levels_short), onBack)
+    if (state.saveFailed) Text(stringResource(R.string.settings_save_error), style = SkType.Body)
+}
+
+/** Back and Play again (Retry after a failed save) in the result's bottom bar; Play again is the primary one. */
+@Composable
+private fun ResultActions(
+    state: ChallengeUiState,
+    onStart: () -> Unit,
+    onBack: () -> Unit,
+) {
+    val back = stringResource(R.string.back_description)
+    val again = stringResource(if (state.saveFailed) R.string.settings_retry else R.string.play_again)
+    ActionPair(
+        back,
+        again,
+        start = { SkButton(back, onBack, it) },
+        end = { SkButton(again, onStart, it, kind = ButtonKind.PRIMARY, enabled = !state.savePending) },
+    )
+}
+
+@Composable
+private fun ChallengePanel(
+    state: ChallengeUiState,
+    h24: Boolean,
+    onPick: (Int) -> Unit,
+    onAnchorChange: (Offset) -> Unit,
+) {
+    FlatPanel {
+        when (state.phase) {
+            ChallengePhase.START -> {
+                Text(stringResource(R.string.challenge_desc), style = SkType.Question)
+                Text(stringResource(R.string.challenge_intro), style = SkType.Body)
+                val best = stringResource(R.string.challenge_best, state.best)
+                // The panel is as wide as a run's answers, so their room is prepared here, before Start.
+                Box(Modifier.fillMaxWidth()) {
+                    Eyebrow(if (state.best > 0) best else stringResource(R.string.challenge_no_best))
+                    AnswerRoomPreparation(h24, Modifier.matchParentSize())
+                }
+            }
+
+            ChallengePhase.RUN -> {
+                ReadOptions { RunOptions(state, h24, onPick) }
+            }
+
+            ChallengePhase.END -> {
+                ChallengeResult(state, onAnchorChange = onAnchorChange)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChallengeClock(
+    state: ChallengeUiState,
+    h24: Boolean,
+    help: Boolean,
+    clockSize: Dp,
+) {
+    ClockBox(clockSize) {
+        ClockFace(
+            command = state.clock,
+            period = ClockTime.period(h24),
+            help = help,
+            describeTime = state.phase != ChallengePhase.RUN || state.busy,
+            modifier =
+                Modifier.testTag("challenge_clock").then(
+                    if (state.phase == ChallengePhase.START) {
+                        Modifier.alpha(SkDimens.INACTIVE_CLOCK_ALPHA)
+                    } else {
+                        Modifier
+                    },
+                ),
+        )
     }
 }

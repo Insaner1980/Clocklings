@@ -7,13 +7,22 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isHeading
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -21,17 +30,25 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import fi.clocklings.Screen
 import fi.clocklings.domain.CompanionKind
+import fi.clocklings.domain.Lessons
 import fi.clocklings.domain.Outfit
 import fi.clocklings.domain.Personalization
 import fi.clocklings.domain.Progress
 import fi.clocklings.domain.Settings
 import fi.clocklings.ui.appearance.LocalPersonalization
+import fi.clocklings.ui.ask.AskScreen
+import fi.clocklings.ui.companion.companionAspectRatio
 import fi.clocklings.ui.game.ResultScreen
 import fi.clocklings.ui.home.HomeDestination
 import fi.clocklings.ui.home.HomeScreen
+import fi.clocklings.ui.home.centredContentTop
+import fi.clocklings.ui.home.companionStageLayout
+import fi.clocklings.ui.lesson.LessonListScreen
 import fi.clocklings.ui.levels.LevelsScreen
 import fi.clocklings.ui.theme.ClocklingsTheme
+import fi.clocklings.ui.theme.SkDimens
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -121,6 +138,220 @@ class ScreenInteractionTest {
     }
 
     @Test
+    fun lessonPathHasNoChapterHeadersAndEachChapterEndsWithAPractiseNode() {
+        val progress = Progress(stars = listOf(3, 0, 0, 0, 0), lessonsDone = Lessons.levelLessons[0].toSet())
+        compose.setContent { ClocklingsTheme { LessonListScreen(false, progress, {}, {}, {}) } }
+        val levelNames = listOf("Whole hours", "Half past", "Quarter hours", "Five-minute steps", "Exact minutes")
+        for (name in levelNames) {
+            compose.onAllNodes(isHeading() and hasText(name)).assertCountEquals(0)
+        }
+        compose.onAllNodesWithText("Practise").assertCountEquals(levelNames.size)
+        compose.onAllNodesWithText("Play again").assertCountEquals(1)
+        compose.onAllNodesWithText("Start playing!").assertCountEquals(levelNames.size - 1)
+        compose
+            .onNode(hasContentDescription("Whole hours. Practise. Play again.", substring = true) and hasClickAction())
+            .assertExists()
+        compose
+            .onNode(hasContentDescription("Half past. Practise. Start playing!", substring = true) and hasClickAction())
+            .assertExists()
+    }
+
+    @Test
+    fun eachLessonChapterExposesOneScreenReaderHeadingOnItsFirstStop() {
+        compose.setContent { ClocklingsTheme { LessonListScreen(true, Progress(), {}, {}, {}) } }
+        // The top bar title is a text heading; chapter headings live on the first stop's description.
+        val headings =
+            compose.onAllNodes(isHeading()).fetchSemanticsNodes().mapNotNull {
+                it.config.getOrNull(SemanticsProperties.ContentDescription)?.firstOrNull()
+            }
+        val chapters =
+            listOf(
+                "Whole hours. Two hands.",
+                "Half past.",
+                "Quarter hours.",
+                "Five-minute steps.",
+                "Exact minutes.",
+                "24 hours in a day.",
+            )
+        assertEquals(headings.toString(), chapters.size, headings.size)
+        for (chapter in chapters) {
+            assertEquals("$chapter in $headings", 1, headings.count { it.startsWith(chapter) })
+        }
+    }
+
+    @Test
+    fun allFourHomeTilesFitWithoutScrollingOnAShortPhone() {
+        val kind = mutableStateOf(CompanionKind.CAT)
+        compose.setContent {
+            val personalization = Personalization(companion = kind.value)
+            CompositionLocalProvider(LocalPersonalization provides personalization) {
+                ClocklingsTheme {
+                    Box(Modifier.requiredSize(360.dp, RESULT_HEIGHT.dp)) {
+                        HomeScreen(Progress(), Settings(personalization = personalization), {})
+                    }
+                }
+            }
+        }
+        for (companion in listOf(CompanionKind.CAT, CompanionKind.NONE)) {
+            compose.runOnIdle { kind.value = companion }
+            val viewport = compose.onNode(hasScrollAction()).fetchSemanticsNode()
+            assertEquals(0f, viewport.config[SemanticsProperties.VerticalScrollAxisRange].maxValue(), 1f)
+            for (title in listOf("Learn", "Explore", "Play", "Play Together")) {
+                val tile = compose.onNode(hasText(title) and hasClickAction()).assertIsDisplayed().fetchSemanticsNode()
+                val ledge = with(compose.density) { SkDimens.BigButtonDepth.toPx() }
+                val bottom = tile.positionInRoot.y + tile.size.height + ledge
+                assertTrue("$companion / $title: entire tile and ledge visible", bottom <= viewport.boundsInRoot.bottom)
+            }
+        }
+    }
+
+    @Test
+    fun homeTapTargetIsOnlyTheCentredContentBoxOnATallPhone() {
+        val companion = mutableStateOf(CompanionKind.CAT)
+        compose.setContent {
+            val personalization = Personalization(companion = companion.value)
+            CompositionLocalProvider(LocalPersonalization provides personalization) {
+                ClocklingsTheme {
+                    Box(Modifier.requiredSize(411.dp, 914.dp)) {
+                        HomeScreen(Progress(), Settings(personalization = personalization), {})
+                    }
+                }
+            }
+        }
+        for (kind in listOf(CompanionKind.CAT, CompanionKind.HUMAN, CompanionKind.NONE)) {
+            compose.runOnIdle { companion.value = kind }
+            val slot = compose.onNodeWithTag("home_stage").fetchSemanticsNode().boundsInRoot
+            val target = compose.onNodeWithTag("companion_stage").fetchSemanticsNode().boundsInRoot
+            with(compose.density) {
+                val slotHeight = slot.height.toDp()
+                // Without a companion the target is the measured bubble and clock group, at most the content box.
+                val contentHeight =
+                    if (kind == CompanionKind.NONE) target.height.toDp() else SkDimens.HomeStageMaxHeight
+                val contentTop =
+                    if (kind == CompanionKind.NONE) {
+                        centredContentTop(slotHeight, contentHeight)
+                    } else {
+                        companionStageLayout(slot.width.toDp(), slotHeight, contentHeight, companionAspectRatio(kind))
+                            .contentTop
+                    }
+                assertTrue("$kind: the slot is taller than the content", slotHeight > contentHeight + 100.dp)
+                assertTrue("$kind: target height", contentHeight <= SkDimens.HomeStageMaxHeight)
+                assertEquals("$kind: target height", contentHeight.value, target.height.toDp().value, 1f)
+                assertEquals("$kind: target top", contentTop.value, (target.top - slot.top).toDp().value, 1f)
+            }
+        }
+    }
+
+    @Test
+    fun compactHomeStageHugsItsContentAndTheClockOnlyGroupIsCentred() {
+        val cell = mutableStateOf(Triple(320, 640, 1f))
+        val companion = mutableStateOf(CompanionKind.CAT)
+        compose.setContent {
+            val (width, height, fontScale) = cell.value
+            val base = LocalDensity.current
+            val personalization = Personalization(companion = companion.value)
+            CompositionLocalProvider(
+                LocalPersonalization provides personalization,
+                LocalDensity provides Density(base.density, fontScale),
+            ) {
+                ClocklingsTheme {
+                    Box(Modifier.requiredSize(width.dp, height.dp)) {
+                        HomeScreen(Progress(), Settings(personalization = personalization), {})
+                    }
+                }
+            }
+        }
+        val gap = with(compose.density) { SkDimens.GapM.toPx() }
+
+        fun bounds(matcher: SemanticsMatcher) =
+            compose
+                .onAllNodes(matcher, useUnmergedTree = true)
+                .fetchSemanticsNodes()
+                .first()
+                .boundsInRoot
+        val bubble = SemanticsMatcher.keyIsDefined(SemanticsProperties.LiveRegion)
+        val clock = SemanticsMatcher.keyIsDefined(SemanticsProperties.StateDescription)
+        for (c in listOf(Triple(320, 640, 1f), Triple(320, 640, 2f), Triple(411, 914, 2f))) {
+            for (kind in listOf(CompanionKind.HUMAN, CompanionKind.CAT, CompanionKind.CAR, CompanionKind.NONE)) {
+                compose.runOnIdle {
+                    cell.value = c
+                    companion.value = kind
+                }
+                val label = "$c $kind"
+                val stage = compose.onNodeWithTag("home_stage").fetchSemanticsNode().boundsInRoot
+                val target = compose.onNodeWithTag("companion_stage").fetchSemanticsNode().boundsInRoot
+                // The group is centred: as much sky above it as ground below it. A compact page scrolls, so
+                // there the stage leaves neither unless the screen has height to spare.
+                val sky = target.top - stage.top
+                val ground = stage.bottom - target.bottom
+                assertEquals("$label: sky $sky, ground $ground", sky, ground, 1f)
+                if (c.first == 320) assertEquals("$label: no spare height", 0f, sky, 1f)
+                val topGap = with(compose.density) { SkDimens.GapS.toPx() }
+                assertEquals("$label: bubble has the same top gap", topGap, bounds(bubble).top - target.top, 1f)
+                // The row stands right below the bubble: the gap is the column spacing, not empty sky.
+                val companionTop =
+                    if (kind == CompanionKind.NONE) null else bounds(hasTestTag("companion_$kind")).top
+                val rowTop = minOf(bounds(clock).top, companionTop ?: Float.MAX_VALUE)
+                val bubbleGap = rowTop - bounds(bubble).bottom
+                assertTrue("$label: bubble to row $bubbleGap", bubbleGap <= gap + 1f)
+            }
+        }
+    }
+
+    @Test
+    fun togetherPhaseActionsStayVisibleWithoutScrollingAndTheAnswerShowsAfterReveal() {
+        val viewport = mutableStateOf(360 to 1f)
+        val model = AppViewModel(FakeServices())
+        compose.setContent {
+            val base = LocalDensity.current
+            CompositionLocalProvider(
+                LocalAppViewModel provides model,
+                LocalDensity provides Density(base.density, viewport.value.second),
+            ) {
+                ClocklingsTheme {
+                    Box(Modifier.requiredSize(viewport.value.first.dp, 640.dp)) {
+                        AskScreen(false, false, false, {})
+                    }
+                }
+            }
+        }
+        val cells = listOf(360 to 1f, 320 to 1f, 360 to 2f, 320 to 2f)
+
+        fun assertActionVisible(label: String) {
+            for (cell in cells) {
+                compose.runOnIdle { viewport.value = cell }
+                compose.onNodeWithText(label).assertIsDisplayed()
+            }
+            compose.runOnIdle { viewport.value = cells.first() }
+        }
+        assertActionVisible("Pass to partner")
+        compose.onNodeWithText("Pass to partner").performClick()
+        assertActionVisible("Show the answer")
+        compose.onNodeWithText("Show the answer").performClick()
+        // At 360 x 640 dp and 100 % font the revealed answer starts below the fold; it must scroll into view
+        // by itself, since the child only pressed the button in the bottom bar.
+        compose.onNodeWithText("3:00").assertIsDisplayed()
+        // It must also clear the bottom scroll fade, so no digit is half faded out.
+        val pill = compose.onNodeWithText("3:00").fetchSemanticsNode().boundsInRoot
+        val viewportBox = compose.onNode(hasScrollAction()).fetchSemanticsNode().boundsInRoot
+        val fade = with(compose.density) { SkDimens.ScrollFade.toPx() }
+        assertTrue("${pill.bottom} vs ${viewportBox.bottom}", pill.bottom <= viewportBox.bottom - fade)
+        assertActionVisible("Swap turns")
+        compose.onNodeWithText("Swap turns").performClick()
+        var scroll = compose.onNode(hasScrollAction()).fetchSemanticsNode()
+        assertEquals(0f, scroll.config[SemanticsProperties.VerticalScrollAxisRange].value())
+        assertActionVisible("Pass to partner")
+        for (cell in cells) {
+            compose.runOnIdle { viewport.value = cell }
+            compose.onNodeWithText("Pass to partner").performClick()
+            compose.onNodeWithText("Show the answer").performClick()
+            compose.onNodeWithText("Swap turns").performClick()
+            scroll = compose.onNode(hasScrollAction()).fetchSemanticsNode()
+            assertEquals("$cell", 0f, scroll.config[SemanticsProperties.VerticalScrollAxisRange].value(), 0f)
+        }
+    }
+
+    @Test
     fun resultStarsAndActionsMatchTheCompletedLevelAndCompanion() {
         val kind = mutableStateOf(CompanionKind.HUMAN)
         val result = mutableStateOf(Screen.Result(0, 1, 0, 0))
@@ -151,21 +382,24 @@ class ScreenInteractionTest {
                 assertEquals("replay", action)
                 compose.onNodeWithText("Next level").scrollIfNeeded().performClick()
                 assertEquals("next", action)
-                compose.onNodeWithText("Levels").scrollIfNeeded().performClick()
+                compose.onNodeWithText("Back").scrollIfNeeded().performClick()
                 assertEquals("levels", action)
             }
         }
         compose.runOnIdle { result.value = Screen.Result(4, 3, 3, 15) }
         compose.onNodeWithText("Next level").assertDoesNotExist()
     }
-
-    private fun SemanticsNodeInteraction.scrollIfNeeded(): SemanticsNodeInteraction {
-        if (generateSequence(
-                fetchSemanticsNode().parent,
-            ) { it.parent }.any { SemanticsActions.ScrollBy in it.config }
-        ) {
-            performScrollTo()
-        }
-        return this
-    }
 }
+
+internal fun SemanticsNodeInteraction.scrollIfNeeded(): SemanticsNodeInteraction {
+    if (generateSequence(
+            fetchSemanticsNode().parent,
+        ) { it.parent }.any { SemanticsActions.ScrollBy in it.config }
+    ) {
+        performScrollTo()
+    }
+    return this
+}
+
+/** The content height of a short phone. */
+internal const val RESULT_HEIGHT = 576

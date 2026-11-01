@@ -36,6 +36,7 @@ import fi.clocklings.domain.MarkColor
 import fi.clocklings.domain.Outfit
 import fi.clocklings.domain.Slot
 import fi.clocklings.domain.Wardrobe
+import fi.clocklings.domain.colorOptions
 import fi.clocklings.ui.clock.ClockCommand
 import fi.clocklings.ui.clock.ClockFace
 import fi.clocklings.ui.companion.CompanionPose
@@ -301,7 +302,7 @@ class GalleryTest {
     /**
      * Saves `<kind>-colors` (the bare companion in every color), `<kind>-items` (the companion in the
      * Original color wearing exactly one item per tile, with the item name underneath) and `<kind>-crops`
-     * (the same items as wardrobe thumbnails, cropped to their slot in the wardrobe's art size).
+     * (the same items as wardrobe thumbnails, cropped to the item in the wardrobe's art size).
      */
     private fun companionInEveryItem(kind: CompanionKind) {
         val page = mutableStateOf(Page.COLORS)
@@ -318,7 +319,7 @@ class GalleryTest {
                         }
                     } else {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            CompanionColor.entries.forEach {
+                            kind.colorOptions().forEach {
                                 CompanionView(
                                     kind,
                                     Outfit(),
@@ -342,7 +343,7 @@ class GalleryTest {
         save("$name-crops")
     }
 
-    /** One gallery tile: [kind] wearing only [item], cropped to the item's slot when [cropped], and its name. */
+    /** One gallery tile: [kind] wearing only [item], cropped to the item when [cropped], and its name. */
     @Composable
     private fun ItemTile(
         kind: CompanionKind,
@@ -352,7 +353,7 @@ class GalleryTest {
         Column(Modifier.width(TILE_WIDTH.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             CompanionView(
                 kind,
-                Outfit().with(item.slot, item.id),
+                Outfit().previewFor(item),
                 if (cropped) {
                     Modifier.size(SkDimens.ItemWindow)
                 } else {
@@ -360,7 +361,7 @@ class GalleryTest {
                 },
                 color = CompanionColor.ORIGINAL,
                 animated = false,
-                cropSlot = item.slot.takeIf { cropped },
+                cropItem = item.takeIf { cropped },
             )
             Text(
                 stringResource(itemName(item.id)),

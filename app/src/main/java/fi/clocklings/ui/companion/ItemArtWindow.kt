@@ -41,11 +41,11 @@ internal fun ItemArtWindow(
     ) {
         CompanionView(
             item.companion,
-            outfit.with(item.slot, item.id),
+            outfit.previewFor(item),
             Modifier.size(SkDimens.ItemWindow),
             color = color,
             animated = false,
-            cropSlot = item.slot,
+            cropItem = item,
         )
     }
 }

@@ -93,10 +93,14 @@ object SkType {
     val ResultText = body(19)
     val BigNumber = display(64, FontWeight.Bold, 1f).copy(color = SkColors.Hour)
 
-    val SectionTitle = display(24, lineHeight = 1.1f)
+    /** Smaller than [Title], so a screen's own title stays its largest heading. */
+    val SectionTitle = display(20, lineHeight = 1.1f)
     val SettingsHeading = body(15, FontWeight.ExtraBold, 1.2f).copy(color = SkColors.InkSoft)
     val ItemNameMinSize = 10.sp
     val ItemNameStep = 0.5.sp
     val ItemName = body(14, lineHeight = 1.2f)
     val NameField = display(22, lineHeight = 1.2f)
+
+    /** Same size as [NameField], so typing does not move the field, but lighter to read as a hint. */
+    val NameFieldPlaceholder = NameField.copy(fontWeight = FontWeight.Medium, color = SkColors.InkSoft)
 }

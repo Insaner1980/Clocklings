@@ -51,7 +51,7 @@ ui/art/
 ui/companion/
   CompanionPose.kt       pose and motion (moved and widened from ui/doll)
   CompanionView.kt       one entry point for every companion (moved from ui/appearance)
-  CatArt.kt, DogArt.kt, RobotArt.kt, DragonArt.kt, DinosaurArt.kt
+  CatRig.kt, DogRig.kt, RobotRig.kt, DragonRig.kt, DinosaurRig.kt
   CatItems.kt, DogItems.kt, RobotItems.kt, DragonItems.kt, DinosaurItems.kt
   WardrobeScreen.kt      generalized from DollScreen
 ui/doll/
