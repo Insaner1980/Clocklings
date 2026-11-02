@@ -1,0 +1,130 @@
+package fi.clocklings.ui
+
+import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.StateRestorationTester
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
+import fi.clocklings.ClocklingsApp
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+
+@RunWith(RobolectricTestRunner::class)
+class NavigationFlowTest {
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+    private val services = FakeServices()
+    private val viewport = mutableStateOf(411 to 1f)
+
+    @Test
+    fun repeatedAndStaleCallbacksDoNotDuplicateOrSkipDestinations() {
+        compose.setContent { App() }
+        awaitHome()
+        for (cell in listOf(411 to 1f, 320 to 1f, 411 to 2f, 320 to 2f)) {
+            compose.runOnIdle { viewport.value = cell }
+            val openSettings = clickAction("Settings")
+            val openExplore = clickAction("Explore")
+            compose.runOnIdle {
+                openSettings()
+                openSettings()
+                openExplore()
+            }
+            compose.onNodeWithText("Clock display").assertIsDisplayed()
+
+            val openLanguage = clickAction("Language:")
+            val settingsBack = clickAction("Back")
+            compose.runOnIdle {
+                openLanguage()
+                openLanguage()
+                settingsBack()
+            }
+            compose.onNodeWithText("Device language").assertIsDisplayed()
+            val languageBack = clickAction("Back")
+            compose.runOnIdle {
+                languageBack()
+                languageBack()
+            }
+            compose.onNodeWithText("Clock display").assertIsDisplayed()
+            val backHome = clickAction("Back")
+            compose.runOnIdle {
+                backHome()
+                backHome()
+            }
+            awaitHome()
+            compose.onNodeWithText("Clock display").assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun savedNavigationRestoresLanguageAndBothBackSteps() {
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent { App() }
+        awaitHome()
+        val openSettings = clickAction("Settings")
+        compose.runOnIdle { openSettings() }
+        val openLanguage = clickAction("Language:")
+        compose.runOnIdle { openLanguage() }
+        compose.onNodeWithText("Device language").assertIsDisplayed()
+
+        restoration.emulateSavedInstanceStateRestore()
+
+        compose.onNodeWithText("Device language").assertIsDisplayed()
+        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.onNodeWithText("Clock display").assertIsDisplayed()
+        val back = clickAction("Back")
+        compose.runOnIdle { back() }
+        awaitHome()
+    }
+
+    @Composable
+    private fun App() {
+        val (width, fontScale) = viewport.value
+        CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, fontScale)) {
+            Box(Modifier.requiredSize(width.dp, 914.dp)) {
+                ClocklingsApp(container = services)
+            }
+        }
+    }
+
+    private fun awaitHome() {
+        compose.waitUntil(10_000) {
+            if (compose.onAllNodesWithText("Skip intro").fetchSemanticsNodes().isNotEmpty()) {
+                compose.onNodeWithText("Skip intro").performClick()
+            }
+            compose
+                .onAllNodes(hasContentDescription("Settings") and hasClickAction())
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }
+    }
+
+    private fun clickAction(label: String): () -> Boolean {
+        val node =
+            compose.onNode((hasText(label) or hasContentDescription(label, substring = true)) and hasClickAction())
+        if (generateSequence(node.fetchSemanticsNode().parent) { it.parent }.any {
+                SemanticsActions.ScrollBy in it.config
+            }
+        ) {
+            node.performScrollTo()
+        }
+        node.assertIsDisplayed()
+        return requireNotNull(node.fetchSemanticsNode().config[SemanticsActions.OnClick].action)
+    }
+}

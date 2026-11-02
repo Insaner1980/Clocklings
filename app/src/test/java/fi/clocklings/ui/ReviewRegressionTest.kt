@@ -89,12 +89,7 @@ class ReviewRegressionTest {
 
     @Test
     fun appearanceSaveFailureIsVisibleAndRetrySavesTheChoice() {
-        compose.setContent {
-            Viewport {
-                val settings by model.settings.collectAsStateWithLifecycle()
-                AppearanceScreen((settings ?: Settings()).personalization, Progress(), {}, {})
-            }
-        }
+        showAppearanceScreen()
         store.fail = true
         compose.runOnIdle { model.startLevel(0) }
         compose.onNodeWithText(errorText()).assertDoesNotExist()
@@ -174,12 +169,7 @@ class ReviewRegressionTest {
 
     @Test
     fun companionChoiceCanRetryWithoutMovingToAnotherPage() {
-        compose.setContent {
-            Viewport {
-                val settings by model.settings.collectAsStateWithLifecycle()
-                AppearanceScreen((settings ?: Settings()).personalization, Progress(), {}, {})
-            }
-        }
+        showAppearanceScreen()
         store.fail = true
         compose.onNodeWithTag("choose_companion_CAT").scrollIfNeeded().performClick()
         compose.onNodeWithText(errorText()).assertIsDisplayed()
@@ -223,6 +213,15 @@ class ReviewRegressionTest {
             val hint = lesson.quiz.hint.resolve(localizedContext(language.value).resources)
             compose.onNodeWithText(hint).scrollIfNeeded().assertIsDisplayed()
             compose.onNodeWithText(errorText()).assertDoesNotExist()
+        }
+    }
+
+    private fun showAppearanceScreen() {
+        compose.setContent {
+            Viewport {
+                val settings by model.settings.collectAsStateWithLifecycle()
+                AppearanceScreen((settings ?: Settings()).personalization, Progress(), {}, {})
+            }
         }
     }
 

@@ -6,6 +6,7 @@ import android.media.AudioFormat
 import android.media.AudioTrack
 import android.media.SoundPool
 import android.util.Log
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -18,6 +19,7 @@ import kotlinx.coroutines.launch
  */
 class Sfx(
     context: Context,
+    ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val tracks = mutableMapOf<Sound, AudioTrack>()
@@ -39,7 +41,8 @@ class Sfx(
 
     /** The latest stream of each clip, so a replay restarts it like an AudioTrack. */
     private val streams = mutableMapOf<Sound, Int>()
-    private val samples: Map<Sound, Int>
+
+    @Volatile private var samples: Map<Sound, Int> = emptyMap()
 
     init {
         pool.setOnLoadCompleteListener { _, sampleId, status ->
@@ -49,7 +52,14 @@ class Sfx(
                 Log.w(TAG, "Äänitiedostoa $sampleId ei voitu ladata ($status)")
             }
         }
-        samples = Sound.entries.mapNotNull { sound -> sound.clip?.let { sound to pool.load(context, it, 1) } }.toMap()
+        scope.launch(ioDispatcher) {
+            // Opening APK resource descriptors is synchronous even though SoundPool decoding is asynchronous.
+            samples =
+                Sound.entries
+                    .mapNotNull { sound ->
+                        sound.clip?.let { sound to pool.load(context, it, 1) }
+                    }.toMap()
+        }
         scope.launch {
             for (sound in Sound.entries.filter { it.clip == null }) {
                 runCatching { createTrack(ToneSynth.render(sound)) }

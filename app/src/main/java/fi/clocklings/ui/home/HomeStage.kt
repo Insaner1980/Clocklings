@@ -228,7 +228,7 @@ private fun ClockOnlyStage(
             color = SkColors.Surface,
         )
         ClockFace(
-            ClockCommand(time),
+            remember(time) { ClockCommand(time) },
             Modifier.sharedClocklingsElement("clock").size(min(stageWidth, stageHeight * NONE_CLOCK_SHARE)),
             mini = true,
         )
@@ -272,7 +272,7 @@ private fun CompactCompanionStage(
             )
             HangerButton(onOpen)
             ClockFace(
-                ClockCommand(time),
+                remember(time) { ClockCommand(time) },
                 Modifier.sharedClocklingsElement("clock").size(clockSize),
                 mini = true,
             )
@@ -327,7 +327,7 @@ private fun BoxScope.CompanionStage(
     ) {
         SpeechBubble(words, style = SkType.NowWords, fill = false, color = SkColors.Surface)
         ClockFace(
-            ClockCommand(time),
+            remember(time) { ClockCommand(time) },
             Modifier.sharedClocklingsElement("clock").size(
                 min(stageWidth * CLOCK_WIDTH_SHARE, stageHeight * CLOCK_HEIGHT_SHARE),
             ),
