@@ -22,6 +22,8 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import fi.clocklings.ClocklingsApp
+import fi.clocklings.audio.Sound
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -69,6 +71,35 @@ class NavigationFlowTest {
             }
             awaitHome()
             compose.onNodeWithText("Clock display").assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun repeatedPracticeClicksReturnToTheirSourceWithOneBack() {
+        compose.setContent { App() }
+        awaitHome()
+        for (cell in listOf(411 to 1f, 320 to 1f, 411 to 2f, 320 to 2f)) {
+            compose.runOnIdle { viewport.value = cell }
+            for ((destination, practice) in listOf("Play." to "Whole hours.", "Learn" to "Whole hours. Practise.")) {
+                val open = clickAction(destination)
+                compose.runOnIdle { open() }
+                // The first start includes introductory lessons; later starts open the game directly.
+                repeat(2) {
+                    val start = clickAction(practice)
+                    compose.runOnIdle {
+                        services.sounds.clear()
+                        start()
+                        start()
+                        assertEquals(1, services.sounds.count { it == Sound.POP })
+                    }
+                    compose.waitForIdle()
+                    compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+                    clickAction(practice)
+                }
+                val back = clickAction("Back")
+                compose.runOnIdle { back() }
+                awaitHome()
+            }
         }
     }
 

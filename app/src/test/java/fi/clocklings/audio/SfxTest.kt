@@ -37,6 +37,8 @@ class SfxTest {
         BlockingSoundPool.caller = Thread.currentThread()
         BlockingSoundPool.entered = CountDownLatch(1)
         BlockingSoundPool.release = CountDownLatch(1)
+        BlockingSoundPool.laterEntered = CountDownLatch(1)
+        BlockingSoundPool.laterRelease = CountDownLatch(1)
         BlockingSoundPool.loadedOnCaller.set(false)
         BlockingSoundPool.timedOut.set(false)
         val dispatched = AtomicBoolean(false)
@@ -60,6 +62,12 @@ class SfxTest {
             sfx.play(Sound.OK)
             assertFalse(shadow.wasResourcePlayed(R.raw.correct))
             BlockingSoundPool.release.countDown()
+            assertTrue(BlockingSoundPool.laterEntered.await(5, TimeUnit.SECONDS))
+            sfx.play(Sound.OK)
+            assertTrue(shadow.wasResourcePlayed(R.raw.correct))
+            sfx.play(Sound.BAD)
+            assertFalse(shadow.wasResourcePlayed(R.raw.wrong))
+            BlockingSoundPool.laterRelease.countDown()
             runBlocking {
                 withTimeout(5_000) {
                     scope.coroutineContext.job.children
@@ -67,14 +75,13 @@ class SfxTest {
                         .joinAll()
                 }
             }
-            sfx.play(Sound.OK)
-            assertTrue(shadow.wasResourcePlayed(R.raw.correct))
             sfx.play(Sound.BAD)
             assertFalse(shadow.wasResourcePlayed(R.raw.wrong))
             assertFalse(BlockingSoundPool.loadedOnCaller.get())
             assertFalse(BlockingSoundPool.timedOut.get())
         } finally {
             BlockingSoundPool.release.countDown()
+            BlockingSoundPool.laterRelease.countDown()
             try {
                 runBlocking {
                     withTimeout(5_000) {
@@ -103,6 +110,10 @@ class SfxTest {
             if (Thread.currentThread() === caller) loadedOnCaller.set(true)
             entered.countDown()
             if (!release.await(5, TimeUnit.SECONDS)) timedOut.set(true)
+            if (resId == R.raw.wrong) {
+                laterEntered.countDown()
+                if (!laterRelease.await(5, TimeUnit.SECONDS)) timedOut.set(true)
+            }
             val id = super.load(context, resId, priority)
             notifyResourceLoaded(resId, resId != R.raw.wrong)
             return id
@@ -112,6 +123,8 @@ class SfxTest {
             lateinit var caller: Thread
             lateinit var entered: CountDownLatch
             lateinit var release: CountDownLatch
+            lateinit var laterEntered: CountDownLatch
+            lateinit var laterRelease: CountDownLatch
             val loadedOnCaller = AtomicBoolean(false)
             val timedOut = AtomicBoolean(false)
         }

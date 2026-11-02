@@ -54,11 +54,9 @@ class Sfx(
         }
         scope.launch(ioDispatcher) {
             // Opening APK resource descriptors is synchronous even though SoundPool decoding is asynchronous.
-            samples =
-                Sound.entries
-                    .mapNotNull { sound ->
-                        sound.clip?.let { sound to pool.load(context, it, 1) }
-                    }.toMap()
+            for (sound in Sound.entries) {
+                sound.clip?.let { samples = samples + (sound to pool.load(context, it, 1)) }
+            }
         }
         scope.launch {
             for (sound in Sound.entries.filter { it.clip == null }) {

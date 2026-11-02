@@ -103,9 +103,11 @@ fun ClocklingsApp(
                                 nav.pop()
                             }
                         }
-                        val playLevel = { level: Int, replaceTop: Boolean ->
-                            app.play(Sound.POP)
-                            nav.startLevel(level, app.startLevel(level), replaceTop)
+                        val playLevel = { from: Screen, level: Int, replaceTop: Boolean ->
+                            if (backStack.last() == from) {
+                                app.play(Sound.POP)
+                                nav.startLevel(level, app.startLevel(level), replaceTop)
+                            }
                         }
                         val reducedMotion = rememberReduceMotion()
                         SharedTransitionLayout {
@@ -190,7 +192,7 @@ fun ClocklingsApp(
                                                 LessonListScreen(
                                                     s.h24,
                                                     p,
-                                                    onPlayLevel = { playLevel(it, false) },
+                                                    onPlayLevel = { playLevel(Screen.LessonList, it, false) },
                                                     onOpen = { go(Screen.LessonList, Screen.Lesson(listOf(it))) },
                                                     onBack = { back(Screen.LessonList) },
                                                 )
@@ -208,7 +210,7 @@ fun ClocklingsApp(
                                             entry<Screen.Levels> {
                                                 LevelsScreen(
                                                     progress = p,
-                                                    onPlay = { playLevel(it, false) },
+                                                    onPlay = { playLevel(Screen.Levels, it, false) },
                                                     onLesson = {
                                                         go(Screen.Levels, Screen.Lesson(Lessons.levelLessons[it]))
                                                     },
@@ -233,7 +235,7 @@ fun ClocklingsApp(
                                                         app.play(Sound.POP)
                                                         nav.replace(Screen.Game(key.level, round = System.nanoTime()))
                                                     },
-                                                    onNextLevel = { playLevel(key.level + 1, true) },
+                                                    onNextLevel = { playLevel(key, key.level + 1, true) },
                                                     onDress = {
                                                         app.play(Sound.POP)
                                                         nav.replace(Screen.Wardrobe)
