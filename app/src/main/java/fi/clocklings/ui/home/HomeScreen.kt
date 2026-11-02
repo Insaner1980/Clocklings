@@ -33,6 +33,9 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import fi.clocklings.R
 import fi.clocklings.domain.ClockTime
 import fi.clocklings.domain.Progress
@@ -63,13 +66,7 @@ fun HomeScreen(
     onOpen: (HomeDestination) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var now by remember { mutableIntStateOf(ClockTime.now()) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(NOW_TICK_MS)
-            now = ClockTime.now()
-        }
-    }
+    val now = rememberHomeTime()
     val time = if (settings.h24) now else now % ClockTime.HALF_DAY
     ScreenScaffold(modifier, section = Section.HOME, scroll = false) {
         BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
@@ -86,6 +83,21 @@ fun HomeScreen(
             }
         }
     }
+}
+
+@Composable
+internal fun rememberHomeTime(readTime: () -> Int = ClockTime::now): Int {
+    var now by remember { mutableIntStateOf(readTime()) }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(lifecycle, readTime) {
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (true) {
+                now = readTime()
+                delay(NOW_TICK_MS)
+            }
+        }
+    }
+    return now
 }
 
 /**

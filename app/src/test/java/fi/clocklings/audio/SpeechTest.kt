@@ -2,23 +2,156 @@ package fi.clocklings.audio
 
 import android.speech.tts.TextToSpeech
 import android.speech.tts.Voice
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import fi.clocklings.domain.AppLanguage
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import java.util.Locale
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
-@RunWith(AndroidJUnit4::class)
+@OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [33])
 class SpeechTest {
+    @Test
+    fun queuedSpeechIsDiscardedByStopLanguageRefreshAndShutdown() =
+        runTest {
+            val cancellations: List<(Speech) -> Unit> =
+                listOf(
+                    { it.stop() },
+                    { it.setLanguage(AppLanguage.FINNISH) },
+                    { it.refresh() },
+                    { it.shutdown() },
+                )
+            for (cancel in cancellations) {
+                val engine = FakeEngine()
+                val speech =
+                    Speech(StandardTestDispatcher(testScheduler)) { callback ->
+                        callback(TextToSpeech.SUCCESS)
+                        engine
+                    }
+                try {
+                    runCurrent()
+                    assertTrue(speech.available.value)
+                    speech.speak("stale")
+                    cancel(speech)
+                    runCurrent()
+                    assertTrue(engine.spoken.isEmpty())
+                    if (engine.shutdowns == 0) {
+                        speech.speak("current")
+                        runCurrent()
+                        assertEquals(listOf("current"), engine.spoken)
+                    }
+                } finally {
+                    speech.shutdown()
+                    runCurrent()
+                }
+            }
+        }
+
+    @Test
+    fun queuedInitializationUsesLatestLanguageAndDoesNotReplayEarlySpeech() =
+        runTest {
+            val engine = FakeEngine()
+            lateinit var initialize: (Int) -> Unit
+            val speech =
+                Speech(StandardTestDispatcher(testScheduler)) { callback ->
+                    initialize = callback
+                    engine
+                }
+            try {
+                runCurrent()
+                speech.setLanguage(AppLanguage.FINNISH)
+                speech.setLanguage(AppLanguage.SWEDISH)
+                speech.speak("before initialization")
+                initialize(TextToSpeech.SUCCESS)
+                runCurrent()
+                assertTrue(speech.available.value)
+                assertEquals(listOf("sv"), engine.selectedLanguages)
+                assertTrue(engine.spoken.isEmpty())
+            } finally {
+                speech.shutdown()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun blockedEngineNeverHoldsTheCallingThreadOrItsRequestLock() {
+        val caller = Thread.currentThread()
+        val calls = ConcurrentLinkedQueue<Thread>()
+        val entered = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val speaking = CountDownLatch(1)
+        val releaseSpeech = CountDownLatch(1)
+        val finished = CountDownLatch(1)
+        val timedOut = AtomicBoolean(false)
+        val engine =
+            FakeEngine().apply {
+                onCall = { calls += Thread.currentThread() }
+                beforeVoices = {
+                    entered.countDown()
+                    if (!release.await(5, TimeUnit.SECONDS)) timedOut.set(true)
+                }
+                beforeSpeak = {
+                    speaking.countDown()
+                    if (!releaseSpeech.await(5, TimeUnit.SECONDS)) timedOut.set(true)
+                }
+                afterShutdown = { finished.countDown() }
+            }
+        val speech =
+            Speech { callback ->
+                calls += Thread.currentThread()
+                callback(TextToSpeech.SUCCESS)
+                engine
+            }
+        try {
+            assertTrue(entered.await(5, TimeUnit.SECONDS))
+            speech.setLanguage(AppLanguage.FINNISH)
+            speech.refresh()
+            speech.speak("unavailable")
+            speech.stop()
+            release.countDown()
+            runBlocking { withTimeout(5_000) { speech.available.first { it } } }
+            speech.speak("active")
+            assertTrue(speaking.await(5, TimeUnit.SECONDS))
+            speech.speak("queued")
+            speech.stop()
+            speech.shutdown()
+            assertFalse(speech.available.value)
+            assertEquals(1L, finished.count)
+        } finally {
+            release.countDown()
+            releaseSpeech.countDown()
+            speech.shutdown()
+            assertTrue(finished.await(5, TimeUnit.SECONDS))
+        }
+        assertFalse(timedOut.get())
+        assertTrue(calls.isNotEmpty())
+        assertTrue(calls.all { it !== caller })
+        assertEquals(listOf("active"), engine.spoken)
+    }
+
     @Test
     fun latestLanguageWinsBeforeAsynchronousInitializationWithoutReplayingText() {
         val engine = FakeEngine()
         lateinit var initialize: (Int) -> Unit
         val speech =
-            Speech { callback ->
+            Speech(Dispatchers.Unconfined) { callback ->
                 initialize = callback
                 engine
             }
@@ -73,7 +206,7 @@ class SpeechTest {
 
     @Test
     fun missingEngineAndFailedInitializationRemainUnavailable() {
-        val missing = Speech { throw IllegalStateException("No engine") }
+        val missing = Speech(Dispatchers.Unconfined) { throw IllegalStateException("No engine") }
         try {
             missing.refresh()
             missing.speak("ignored")
@@ -83,7 +216,7 @@ class SpeechTest {
         }
         val engine = FakeEngine()
         val failed =
-            Speech { callback ->
+            Speech(Dispatchers.Unconfined) { callback ->
                 callback(TextToSpeech.ERROR)
                 engine
             }
@@ -169,7 +302,7 @@ class SpeechTest {
         val engine = FakeEngine()
         lateinit var initialize: (Int) -> Unit
         val speech =
-            Speech { callback ->
+            Speech(Dispatchers.Unconfined) { callback ->
                 initialize = callback
                 engine
             }
@@ -188,7 +321,7 @@ class SpeechTest {
     private fun withSpeech(check: (Speech, FakeEngine) -> Unit) {
         val engine = FakeEngine()
         val speech =
-            Speech { callback ->
+            Speech(Dispatchers.Unconfined) { callback ->
                 callback(TextToSpeech.SUCCESS)
                 engine
             }
@@ -200,7 +333,16 @@ class SpeechTest {
     }
 
     private class FakeEngine : SpeechEngine {
+        var onCall: () -> Unit = {}
+        var beforeVoices: () -> Unit = {}
+        var beforeSpeak: () -> Unit = {}
+        var afterShutdown: () -> Unit = {}
         override var voices = setOf(voice("english", "en-GB"), voice("finnish", "fi-FI"), voice("swedish", "sv-SE"))
+            get() {
+                onCall()
+                beforeVoices()
+                return field
+            }
         var voiceResult = TextToSpeech.SUCCESS
         var rateResult = TextToSpeech.SUCCESS
         var speakResult = TextToSpeech.SUCCESS
@@ -216,16 +358,19 @@ class SpeechTest {
         private var onError: (String) -> Unit = {}
 
         override fun setErrorListener(listener: (String) -> Unit) {
+            onCall()
             onError = listener
         }
 
         override fun setVoice(voice: Voice): Int {
+            onCall()
             beforeSetVoice()
             selectedLanguages += voice.locale.language
             return voiceResult
         }
 
         override fun setSpeechRate(rate: Float): Int {
+            onCall()
             beforeSetRate()
             rates += rate
             return rateResult
@@ -235,18 +380,23 @@ class SpeechTest {
             text: String,
             utteranceId: String,
         ): Int {
+            onCall()
+            beforeSpeak()
             spoken += text
             utteranceIds += utteranceId
             return speakResult
         }
 
         override fun stop(): Int {
+            onCall()
             stops++
             return stopResult
         }
 
         override fun shutdown() {
+            onCall()
             shutdowns++
+            afterShutdown()
         }
 
         fun reportError(utteranceId: String) = onError(utteranceId)

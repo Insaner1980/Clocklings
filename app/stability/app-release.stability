@@ -1212,6 +1212,13 @@ private fun fi.clocklings.ui.home.StageSurface(description: kotlin.String, onOpe
     - content: STABLE (composable function type)
 
 @Composable
+internal fun fi.clocklings.ui.home.rememberHomeTime(readTime: kotlin.Function0<kotlin.Int>): kotlin.Int
+  skippable: false
+  restartable: false
+  params:
+    - readTime: STABLE (function type)
+
+@Composable
 private fun fi.clocklings.ui.intro.IntroClock(command: fi.clocklings.ui.clock.ClockCommand, from: kotlin.Int, time: kotlin.Function0<kotlin.Long>, onSettle: kotlin.Function0<kotlin.Unit>, modifier: androidx.compose.ui.Modifier): kotlin.Unit
   skippable: true
   restartable: true

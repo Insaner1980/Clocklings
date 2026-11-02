@@ -116,7 +116,8 @@ fun ClockFace(
 
     val pulse = highlightPulse(highlight, reduceMotion)
 
-    val time = state.value
+    val immediateTime = command.immediateMiniTime(mini, interactive, period)
+    val time = immediateTime ?: state.value
     val dayPart = timeLanguage(LocalAppLanguage.current).dayPart(time)
     val themeLabel = stringResource(clockThemeName(appearance.theme))
     val description = clockDescription(time, period, describeTime)
@@ -143,17 +144,17 @@ fun ClockFace(
             scale(scale, scale, pivot = Offset.Zero)
             translate(-origin, -origin)
         }) {
-            val reveal = paintRingFrom?.let { S.ringReveal(state.raw, it, state.period) } ?: ClockTime.FULL_TURN
-            drawClockRim(appearance, reveal)
+            val raw = immediateTime?.toFloat() ?: state.raw
+            drawClockRim(appearance, raw, paintRingFrom, period)
             val showHelp = help && !mini
-            if (showHelp) drawHelp(textMeasurer, styles, is24, zoneLabels, state.raw)
+            if (showHelp) drawHelp(textMeasurer, styles, is24, zoneLabels, raw)
             drawClockDepth(mini)
             under.forEach { drawMark(it, textMeasurer, styles) }
             drawTicks()
             drawNumbers(textMeasurer, styles)
             if (is24) drawDayPart(dayPart, textMeasurer, styles)
-            drawHands(state.raw, highlight, pulse, interactive && !mini, appearance.handsAt(mini))
-            drawCoveredNumerals(textMeasurer, styles, state.raw, showHelp, under)
+            drawHands(raw, highlight, pulse, interactive && !mini, appearance.handsAt(mini))
+            drawCoveredNumerals(textMeasurer, styles, raw, showHelp, under)
             drawCircle(SkColors.Ink, S.PIN_RADIUS, Offset(S.CENTER, S.CENTER))
             drawCircle(SkColors.Face, S.PIN_DOT, Offset(S.CENTER, S.CENTER))
             over.forEach { drawMark(it, textMeasurer, styles) }
@@ -162,10 +163,20 @@ fun ClockFace(
     }
 }
 
+// Passive thumbnails render immediate commands without waiting for the interaction state's effect.
+private fun ClockCommand.immediateMiniTime(
+    mini: Boolean,
+    interactive: Boolean,
+    period: Int,
+): Int? = if (mini && !interactive && ms == 0) ClockTime.mod(time, period) else null
+
 private fun DrawScope.drawClockRim(
     appearance: ClockAppearance,
-    reveal: Float,
+    raw: Float,
+    paintRingFrom: Int?,
+    period: Int,
 ) {
+    val reveal = paintRingFrom?.let { S.ringReveal(raw, it, period) } ?: ClockTime.FULL_TURN
     if (appearance.theme == ClockTheme.RAINBOW) drawRing(reveal) else drawThemedRim(appearance, reveal)
     drawCircle(
         Brush.radialGradient(

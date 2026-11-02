@@ -90,17 +90,24 @@ fun ClocklingsApp(
                             onDispose { app.stopSpeech() }
                         }
                         val nav = remember(backStack) { Navigator(backStack) }
-                        val go = { screen: Screen ->
-                            app.play(Sound.POP)
-                            nav.push(screen)
+                        // Ignore repeated or delayed callbacks from a destination that has already left.
+                        val go = { from: Screen, screen: Screen ->
+                            if (backStack.last() == from) {
+                                app.play(Sound.POP)
+                                nav.push(screen)
+                            }
                         }
-                        val back = {
-                            app.play(Sound.POP)
-                            nav.pop()
+                        val back = { from: Screen ->
+                            if (backStack.last() == from) {
+                                app.play(Sound.POP)
+                                nav.pop()
+                            }
                         }
-                        val playLevel = { level: Int, replaceTop: Boolean ->
-                            app.play(Sound.POP)
-                            nav.startLevel(level, app.startLevel(level), replaceTop)
+                        val playLevel = { from: Screen, level: Int, replaceTop: Boolean ->
+                            if (backStack.last() == from) {
+                                app.play(Sound.POP)
+                                nav.startLevel(level, app.startLevel(level), replaceTop)
+                            }
                         }
                         val reducedMotion = rememberReduceMotion()
                         SharedTransitionLayout {
@@ -125,6 +132,7 @@ fun ClocklingsApp(
                                             entry<Screen.Home> {
                                                 HomeScreen(p, s, onOpen = { destination ->
                                                     go(
+                                                        Screen.Home,
                                                         when (destination) {
                                                             HomeDestination.KOULU -> {
                                                                 Screen.LessonList
@@ -157,32 +165,36 @@ fun ClocklingsApp(
                                                 SettingsScreen(
                                                     s,
                                                     speech,
-                                                    { go(Screen.Language) },
-                                                    back,
+                                                    { go(Screen.Settings, Screen.Language) },
+                                                    { back(Screen.Settings) },
                                                 )
                                             }
-                                            entry<Screen.Language> { LanguageScreen(back) }
-                                            entry<Screen.FreeClock> { FreeClockScreen(s.h24, s.help, speech, back) }
-                                            entry<Screen.Ask> { AskScreen(s.h24, s.help, speech, back) }
+                                            entry<Screen.Language> { LanguageScreen({ back(Screen.Language) }) }
+                                            entry<Screen.FreeClock> {
+                                                FreeClockScreen(s.h24, s.help, speech, { back(Screen.FreeClock) })
+                                            }
+                                            entry<Screen.Ask> { AskScreen(s.h24, s.help, speech, { back(Screen.Ask) }) }
                                             entry<Screen.Wardrobe> {
                                                 val kind = s.personalization.companion
-                                                WardrobeScreen(kind, p, s.personalization.styleFor(kind).color, back)
+                                                WardrobeScreen(kind, p, s.personalization.styleFor(kind).color, {
+                                                    back(Screen.Wardrobe)
+                                                })
                                             }
                                             entry<Screen.Personalize> {
                                                 AppearanceScreen(
                                                     s.personalization,
                                                     p,
-                                                    { go(Screen.Wardrobe) },
-                                                    back,
+                                                    { go(Screen.Personalize, Screen.Wardrobe) },
+                                                    { back(Screen.Personalize) },
                                                 )
                                             }
                                             entry<Screen.LessonList> {
                                                 LessonListScreen(
                                                     s.h24,
                                                     p,
-                                                    onPlayLevel = { playLevel(it, false) },
-                                                    onOpen = { go(Screen.Lesson(listOf(it))) },
-                                                    onBack = back,
+                                                    onPlayLevel = { playLevel(Screen.LessonList, it, false) },
+                                                    onOpen = { go(Screen.LessonList, Screen.Lesson(listOf(it))) },
+                                                    onBack = { back(Screen.LessonList) },
                                                 )
                                             }
                                             entry<Screen.Lesson> { key ->
@@ -198,10 +210,12 @@ fun ClocklingsApp(
                                             entry<Screen.Levels> {
                                                 LevelsScreen(
                                                     progress = p,
-                                                    onPlay = { playLevel(it, false) },
-                                                    onLesson = { go(Screen.Lesson(Lessons.levelLessons[it])) },
-                                                    onChallenge = { go(Screen.Challenge) },
-                                                    onBack = back,
+                                                    onPlay = { playLevel(Screen.Levels, it, false) },
+                                                    onLesson = {
+                                                        go(Screen.Levels, Screen.Lesson(Lessons.levelLessons[it]))
+                                                    },
+                                                    onChallenge = { go(Screen.Levels, Screen.Challenge) },
+                                                    onBack = { back(Screen.Levels) },
                                                 )
                                             }
                                             entry<Screen.Game> { key ->
@@ -209,7 +223,7 @@ fun ClocklingsApp(
                                                     key,
                                                     s.h24,
                                                     s.help,
-                                                    onBack = back,
+                                                    onBack = { back(key) },
                                                     onFinish = { nav.replace(it) },
                                                 )
                                             }
@@ -221,7 +235,7 @@ fun ClocklingsApp(
                                                         app.play(Sound.POP)
                                                         nav.replace(Screen.Game(key.level, round = System.nanoTime()))
                                                     },
-                                                    onNextLevel = { playLevel(key.level + 1, true) },
+                                                    onNextLevel = { playLevel(key, key.level + 1, true) },
                                                     onDress = {
                                                         app.play(Sound.POP)
                                                         nav.replace(Screen.Wardrobe)
@@ -233,7 +247,9 @@ fun ClocklingsApp(
                                                     onSound = app::play,
                                                 )
                                             }
-                                            entry<Screen.Challenge> { ChallengeRoute(s.h24, s.help, back) }
+                                            entry<Screen.Challenge> {
+                                                ChallengeRoute(s.h24, s.help, { back(Screen.Challenge) })
+                                            }
                                         },
                                 )
                             }
