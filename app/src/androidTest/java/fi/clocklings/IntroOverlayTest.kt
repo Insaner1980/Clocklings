@@ -125,6 +125,8 @@ class IntroOverlayTest {
             val value = android.util.TypedValue()
             assertTrue(theme.resolveAttribute(android.R.attr.windowSplashScreenAnimatedIcon, value, true))
             assertEquals(R.drawable.ic_splash_animated, value.resourceId)
+            assertTrue(theme.resolveAttribute(android.R.attr.windowSplashScreenIconBackgroundColor, value, true))
+            assertEquals(context.getColor(R.color.icon_background), value.data)
         }
     }
 

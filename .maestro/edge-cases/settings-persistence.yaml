@@ -1,13 +1,9 @@
-# ST-04/05, LO-03. English synthetic fixture; Luna is seeded by personalization.yaml.
+# ST-04/05, LO-03. Seeds its own English synthetic fixture through personalization.yaml.
 # Confirms a destructive reset only inside the owned read-only emulator overlay.
 # Restart evidence is force-stop/relaunch, never OS process-death restoration.
 appId: fi.clocklings
 ---
-- launchApp:
-    clearState: false
-- extendedWaitUntil:
-    visible: "Settings"
-    timeout: 15000
+- runFlow: personalization.yaml
 - tapOn: "Settings"
 - tapOn: "24 h"
 - back
@@ -17,6 +13,7 @@ appId: fi.clocklings
     visible: "Settings"
     timeout: 15000
 - tapOn: "Explore. Move the hands and explore the time"
+# The default afternoon time proves the persisted 24 h setting, not Explore time persistence.
 - assertVisible: "15:00"
 - back
 - tapOn: "Settings"

@@ -61,6 +61,8 @@ class SfxTest {
             assertTrue(dispatched.get())
             sfx.play(Sound.OK)
             assertFalse(shadow.wasResourcePlayed(R.raw.correct))
+            sfx.play(Sound.INTRO)
+            assertFalse(shadow.wasResourcePlayed(R.raw.clocklings))
             BlockingSoundPool.release.countDown()
             assertTrue(BlockingSoundPool.laterEntered.await(5, TimeUnit.SECONDS))
             sfx.play(Sound.OK)
@@ -73,6 +75,8 @@ class SfxTest {
             assertFalse(shadow.wasResourcePlayed(R.raw.wrong))
             assertFalse(BlockingSoundPool.loadedOnCaller.get())
             assertFalse(BlockingSoundPool.timedOut.get())
+            // A missed intro cue must not be replayed late after the greeting may have been skipped.
+            assertFalse(shadow.wasResourcePlayed(R.raw.clocklings))
             sfx.play(Sound.INTRO)
             assertTrue(shadow.wasResourcePlayed(R.raw.clocklings))
         } finally {

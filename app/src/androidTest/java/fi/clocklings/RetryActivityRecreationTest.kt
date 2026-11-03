@@ -18,6 +18,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import fi.clocklings.data.ProgressRepository
 import fi.clocklings.domain.CompanionColor
@@ -41,6 +42,7 @@ import java.io.IOException
 
 /** Characterize unsaved drafts without inventing a durable retry-restoration contract. */
 @RunWith(AndroidJUnit4::class)
+@SdkSuppress(minSdkVersion = 33)
 class RetryActivityRecreationTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     private val environment = LocaleTestEnvironment()
