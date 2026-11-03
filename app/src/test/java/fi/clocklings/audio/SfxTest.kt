@@ -61,6 +61,8 @@ class SfxTest {
             assertTrue(dispatched.get())
             sfx.play(Sound.OK)
             assertFalse(shadow.wasResourcePlayed(R.raw.correct))
+            sfx.play(Sound.INTRO)
+            assertFalse(shadow.wasResourcePlayed(R.raw.clocklings))
             BlockingSoundPool.release.countDown()
             assertTrue(BlockingSoundPool.laterEntered.await(5, TimeUnit.SECONDS))
             sfx.play(Sound.OK)
@@ -68,33 +70,35 @@ class SfxTest {
             sfx.play(Sound.BAD)
             assertFalse(shadow.wasResourcePlayed(R.raw.wrong))
             BlockingSoundPool.laterRelease.countDown()
-            runBlocking {
-                withTimeout(5_000) {
-                    scope.coroutineContext.job.children
-                        .toList()
-                        .joinAll()
-                }
-            }
+            awaitLoading(scope)
             sfx.play(Sound.BAD)
             assertFalse(shadow.wasResourcePlayed(R.raw.wrong))
             assertFalse(BlockingSoundPool.loadedOnCaller.get())
             assertFalse(BlockingSoundPool.timedOut.get())
+            // A missed intro cue must not be replayed late after the greeting may have been skipped.
+            assertFalse(shadow.wasResourcePlayed(R.raw.clocklings))
+            sfx.play(Sound.INTRO)
+            assertTrue(shadow.wasResourcePlayed(R.raw.clocklings))
         } finally {
             BlockingSoundPool.release.countDown()
             BlockingSoundPool.laterRelease.countDown()
             try {
-                runBlocking {
-                    withTimeout(5_000) {
-                        scope.coroutineContext.job.children
-                            .toList()
-                            .joinAll()
-                    }
-                }
+                awaitLoading(scope)
             } finally {
                 scope.cancel()
                 sfx.stopAll()
                 ReflectionHelpers.getField<Map<Sound, AudioTrack>>(sfx, "tracks").values.forEach { it.release() }
                 pool.release()
+            }
+        }
+    }
+
+    private fun awaitLoading(scope: CoroutineScope) {
+        runBlocking {
+            withTimeout(5_000) {
+                scope.coroutineContext.job.children
+                    .toList()
+                    .joinAll()
             }
         }
     }

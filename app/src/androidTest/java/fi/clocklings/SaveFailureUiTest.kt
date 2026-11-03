@@ -196,7 +196,11 @@ class SaveFailureUiTest {
                 }
             }
         val before = retries
-        compose.onNodeWithText(label).performScrollTo().performClick()
+        compose
+            .onNodeWithText(label)
+            .scrollToIfScrollable()
+            .assertIsDisplayed()
+            .performClick()
         compose.runOnIdle { assertEquals(before + 1, retries) }
     }
 

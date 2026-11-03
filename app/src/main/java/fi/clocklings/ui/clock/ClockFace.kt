@@ -682,7 +682,7 @@ private fun Modifier.clockDrag(
             while (true) {
                 val event = awaitPointerEvent()
                 val change = event.changes.firstOrNull { it.id == down.id }
-                if (change == null || !change.pressed) break
+                if (!interactive() || change == null || !change.pressed) break
                 val q = local(change.position)
                 if (hypot(q.x, q.y) >= S.DRAG_MIN_RADIUS) state.dragTo(ClockTime.angleOf(q.x, q.y))
                 change.consume()

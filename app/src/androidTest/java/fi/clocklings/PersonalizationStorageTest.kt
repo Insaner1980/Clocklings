@@ -16,6 +16,8 @@ import fi.clocklings.domain.HandStyle
 import fi.clocklings.domain.NumeralStyle
 import fi.clocklings.domain.Outfit
 import fi.clocklings.domain.Personalization
+import fi.clocklings.domain.Progress
+import fi.clocklings.domain.Settings
 import fi.clocklings.domain.Slot
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,14 +26,44 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
+import java.io.IOException
 
 @RunWith(AndroidJUnit4::class)
 class PersonalizationStorageTest {
     @get:Rule val files = TemporaryFolder(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir)
+
+    @Test
+    fun corruptOwnedStoreFallsBackOnReadButCannotClaimSuccessfulWrite() =
+        runBlocking {
+            val file = files.newFolder().resolve("corrupt.preferences_pb")
+            file.writeBytes(byteArrayOf(0x0a, 0x7f, 0x01))
+            val job = SupervisorJob()
+            try {
+                val repository =
+                    ProgressRepository(
+                        PreferenceDataStoreFactory.create(
+                            scope = CoroutineScope(job + Dispatchers.IO),
+                            produceFile = { file },
+                        ),
+                    )
+                assertEquals(Progress(), repository.progress.first())
+                assertEquals(Settings(), repository.settings.first())
+                var failed = false
+                try {
+                    repository.updateProgress { it.withLevelResult(0, 3) }
+                } catch (_: IOException) {
+                    failed = true
+                }
+                assertTrue("ST-03: corrupt store must not report a committed write", failed)
+            } finally {
+                job.cancelAndJoin()
+            }
+        }
 
     @Test
     fun selectionsAndIndividualStylesSurviveClosingAndReopeningRealStore() =

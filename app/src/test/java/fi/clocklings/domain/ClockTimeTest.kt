@@ -11,6 +11,35 @@ class ClockTimeTest {
     private val eps = 0.001f
 
     @Test
+    fun normalizationReadingsAndAnglesCoverBothPeriods() {
+        val boundaries = listOf(-1441, -1440, -721, -720, -1, 0, 1, 719, 720, 721, 1439, 1440, 1441)
+        for (period in listOf(720, 1440)) {
+            for (raw in boundaries) assertEquals(Math.floorMod(raw, period), ClockTime.mod(raw, period))
+            for (time in 0 until period) {
+                val reading = ClockTime.reading(time, period == 1440)
+                assertEquals(time % 60, reading.minute)
+                assertEquals(if (period == 720 && time < 60) 12 else time / 60, reading.hour)
+                assertEquals((time % 720) * 0.5f, ClockTime.hourAngle(time.toFloat()), eps)
+                assertEquals((time % 60) * 6f, ClockTime.minuteAngle(time.toFloat()), eps)
+            }
+        }
+    }
+
+    @Test
+    fun snapHalfStepsRoundForwardIncludingNegativeAndWrapBoundaries() {
+        for (period in listOf(720, 1440)) {
+            for (step in listOf(1, 5, 15, 30, 60)) {
+                for (base in listOf(-step, 0, period - step)) {
+                    val half = base + step / 2f
+                    assertEquals(Math.floorMod(base, period), ClockTime.snap(half - 0.01f, step, period))
+                    assertEquals(Math.floorMod(base + step, period), ClockTime.snap(half, step, period))
+                    assertEquals(Math.floorMod(base + step, period), ClockTime.snap(half + 0.01f, step, period))
+                }
+            }
+        }
+    }
+
+    @Test
     fun `mod is always non-negative`() {
         assertEquals(719, ClockTime.mod(-1, 720))
         assertEquals(0, ClockTime.mod(1440, 720))

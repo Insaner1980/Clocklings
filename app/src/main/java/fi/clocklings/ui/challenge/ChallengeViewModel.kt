@@ -84,7 +84,7 @@ class ChallengeViewModel(
                 services.repository.progress
                     .first()
                     .challengeBest
-            _state.update { it.copy(best = best) }
+            _state.update { it.copy(best = maxOf(it.best, best)) }
         }
     }
 
@@ -127,6 +127,7 @@ class ChallengeViewModel(
     fun pick(time: Int) {
         val s = _state.value
         if (s.phase != ChallengePhase.RUN || s.busy) return
+        if (nowNanos() >= s.deadlineNanos) return
         val correct = time == s.question
         services.play(if (correct) Sound.OK else Sound.BAD)
         _state.value =
@@ -152,10 +153,17 @@ class ChallengeViewModel(
         pending?.cancel()
         _state.update { it.copy(busy = true, savePending = true) }
         val s = _state.value
-        val record = s.score > s.best
+        var best = s.best
+        var record = s.score > best
         val saved =
             try {
-                if (record) services.repository.updateProgress { it.withChallengeScore(s.score) }
+                if (record) {
+                    services.repository.updateProgress {
+                        best = it.challengeBest
+                        record = s.score > best
+                        it.withChallengeScore(s.score)
+                    }
+                }
                 true
             } catch (_: IOException) {
                 false
@@ -165,7 +173,7 @@ class ChallengeViewModel(
         _state.update {
             it.copy(
                 phase = ChallengePhase.END,
-                best = if (saved && record) s.score else s.best,
+                best = if (saved && record) s.score else best,
                 newRecord = newRecord,
                 saveFailed = !saved,
                 savePending = false,

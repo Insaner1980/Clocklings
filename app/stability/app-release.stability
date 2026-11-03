@@ -1219,43 +1219,22 @@ internal fun fi.clocklings.ui.home.rememberHomeTime(readTime: kotlin.Function0<k
     - readTime: STABLE (function type)
 
 @Composable
-private fun fi.clocklings.ui.intro.IntroClock(command: fi.clocklings.ui.clock.ClockCommand, from: kotlin.Int, time: kotlin.Function0<kotlin.Long>, onSettle: kotlin.Function0<kotlin.Unit>, modifier: androidx.compose.ui.Modifier): kotlin.Unit
+public fun fi.clocklings.ui.intro.IntroOverlay(onTick: kotlin.Function0<kotlin.Unit>, onDone: kotlin.Function0<kotlin.Unit>, modifier: androidx.compose.ui.Modifier): kotlin.Unit
   skippable: true
   restartable: true
   params:
-    - command: STABLE (marked @Stable or @Immutable)
-    - from: STABLE (primitive type)
-    - time: STABLE (function type)
-    - onSettle: STABLE (function type)
-    - modifier: STABLE (marked @Stable or @Immutable)
-
-@Composable
-private fun fi.clocklings.ui.intro.IntroDoll(outfit: fi.clocklings.domain.Outfit, time: kotlin.Function0<kotlin.Long>, modifier: androidx.compose.ui.Modifier): kotlin.Unit
-  skippable: true
-  restartable: true
-  params:
-    - outfit: STABLE (stability configuration file type)
-    - time: STABLE (function type)
-    - modifier: STABLE (marked @Stable or @Immutable)
-
-@Composable
-public fun fi.clocklings.ui.intro.IntroOverlay(outfit: fi.clocklings.domain.Outfit, onTick: kotlin.Function0<kotlin.Unit>, onDone: kotlin.Function0<kotlin.Unit>, modifier: androidx.compose.ui.Modifier): kotlin.Unit
-  skippable: true
-  restartable: true
-  params:
-    - outfit: STABLE (stability configuration file type)
     - onTick: STABLE (function type)
     - onDone: STABLE (function type)
     - modifier: STABLE (marked @Stable or @Immutable)
 
 @Composable
-private fun fi.clocklings.ui.intro.IntroTimelineEffect(reduceMotion: kotlin.Boolean, onFrame: kotlin.Function1<kotlin.Long, kotlin.Unit>, onSpin: kotlin.Function0<kotlin.Unit>, onDone: kotlin.Function0<kotlin.Unit>): kotlin.Unit
+private fun fi.clocklings.ui.intro.IntroTimelineEffect(reduceMotion: kotlin.Boolean, onFrame: kotlin.Function1<kotlin.Long, kotlin.Unit>, onTick: kotlin.Function0<kotlin.Unit>, onDone: kotlin.Function0<kotlin.Unit>): kotlin.Unit
   skippable: true
   restartable: true
   params:
     - reduceMotion: STABLE (primitive type)
     - onFrame: STABLE (function type)
-    - onSpin: STABLE (function type)
+    - onTick: STABLE (function type)
     - onDone: STABLE (function type)
 
 @Composable
@@ -1265,6 +1244,15 @@ private fun fi.clocklings.ui.intro.IntroTitle(title: kotlin.String, time: kotlin
   params:
     - title: STABLE (String is immutable)
     - time: STABLE (function type)
+
+@Composable
+internal fun fi.clocklings.ui.intro.LogoMascot(time: kotlin.Function0<kotlin.Long>, reducedMotion: kotlin.Boolean, modifier: androidx.compose.ui.Modifier): kotlin.Unit
+  skippable: true
+  restartable: true
+  params:
+    - time: STABLE (function type)
+    - reducedMotion: STABLE (primitive type)
+    - modifier: STABLE (marked @Stable or @Immutable)
 
 @Composable
 private fun fi.clocklings.ui.lesson.LessonCaption(caption: kotlin.String): kotlin.Unit

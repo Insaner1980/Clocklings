@@ -34,9 +34,6 @@ internal object ToneSynth {
         when (sound) {
             Sound.POP -> listOf(Tone(880.0, 0.0, 0.08, false, 0.08))
 
-            // Aloitusnäkymä: lyhyt tik ja matalampi tak, kun viisarit pysähtyvät.
-            Sound.TICK -> listOf(Tone(1760.0, 0.0, 0.05, false, 0.1), Tone(1320.0, 0.14, 0.06, false, 0.1))
-
             // Recorded clips (Sound.clip) are not synthesized.
             else -> emptyList()
         }

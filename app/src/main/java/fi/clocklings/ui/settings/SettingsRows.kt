@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
@@ -93,7 +94,8 @@ internal fun SettingsSwitch(
     onChange: (Boolean) -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
-    Row(
+    val supportingBelow = LocalDensity.current.fontScale > SkDimens.MAX_ROW_FONT_SCALE
+    Column(
         Modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
@@ -102,30 +104,36 @@ internal fun SettingsSwitch(
                 onChange(it)
             })
             .padding(vertical = SkDimens.GapS),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM),
+        verticalArrangement = Arrangement.spacedBy(SkDimens.SettingsLineGap),
     ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(SkDimens.SettingsLineGap)) {
-            Text(text, style = SkType.Body)
-            Text(supporting, style = SkType.SmallSoft)
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM),
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(SkDimens.SettingsLineGap)) {
+                Text(text, style = SkType.Body)
+                if (!supportingBelow) Text(supporting, style = SkType.SmallSoft)
+            }
+            Switch(
+                checked,
+                onCheckedChange = null,
+                enabled = enabled,
+                colors =
+                    SwitchDefaults.colors(
+                        checkedTrackColor = SkColors.Hour,
+                        checkedThumbColor = SkColors.Surface,
+                        uncheckedTrackColor = SkColors.Surface,
+                        uncheckedBorderColor = SkColors.InkSoft,
+                        uncheckedThumbColor = SkColors.InkSoft,
+                        disabledCheckedTrackColor = SkColors.Hour.copy(alpha = SkColors.DISABLED_CONTROL_ALPHA),
+                        disabledCheckedThumbColor = SkColors.Surface.copy(alpha = SkColors.DISABLED_CONTROL_ALPHA),
+                        disabledUncheckedTrackColor = SkColors.Surface.copy(alpha = SkColors.DISABLED_CONTROL_ALPHA),
+                        disabledUncheckedBorderColor = SkColors.InkSoft.copy(alpha = SkColors.DISABLED_CONTROL_ALPHA),
+                        disabledUncheckedThumbColor = SkColors.InkSoft.copy(alpha = SkColors.DISABLED_CONTROL_ALPHA),
+                    ),
+            )
         }
-        Switch(
-            checked,
-            onCheckedChange = null,
-            enabled = enabled,
-            colors =
-                SwitchDefaults.colors(
-                    checkedTrackColor = SkColors.Hour,
-                    checkedThumbColor = SkColors.Surface,
-                    uncheckedTrackColor = SkColors.Surface,
-                    uncheckedBorderColor = SkColors.InkSoft,
-                    uncheckedThumbColor = SkColors.InkSoft,
-                    disabledCheckedTrackColor = SkColors.Hour.copy(alpha = SkColors.DISABLED_CONTROL_ALPHA),
-                    disabledCheckedThumbColor = SkColors.Surface.copy(alpha = SkColors.DISABLED_CONTROL_ALPHA),
-                    disabledUncheckedTrackColor = SkColors.Surface.copy(alpha = SkColors.DISABLED_CONTROL_ALPHA),
-                    disabledUncheckedBorderColor = SkColors.InkSoft.copy(alpha = SkColors.DISABLED_CONTROL_ALPHA),
-                    disabledUncheckedThumbColor = SkColors.InkSoft.copy(alpha = SkColors.DISABLED_CONTROL_ALPHA),
-                ),
-        )
+        if (supportingBelow) Text(supporting, style = SkType.SmallSoft)
     }
 }

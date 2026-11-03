@@ -9,6 +9,38 @@ class LevelsTest {
     private val seeds = 0 until 200
 
     @Test
+    fun everyAlignedTargetHasThreeDistinctOptionsInEveryLanguage() {
+        for (level in Levels.all) {
+            for (h24 in listOf(false, true)) {
+                val period = ClockTime.period(h24)
+                for (target in 0 until period step level.step) {
+                    assertAlignedTarget(level, h24, target)
+                }
+            }
+        }
+    }
+
+    private fun assertAlignedTarget(
+        level: Level,
+        h24: Boolean,
+        target: Int,
+    ) {
+        for (seed in listOf(0, 1, 17)) {
+            val options = Levels.optionsFor(target, level, h24, Random(seed))
+            assertEquals(3, options.size)
+            assertEquals(3, options.toSet().size)
+            assertEquals(1, options.count { it == target })
+            assertValidOptions(options, h24, level)
+            for (language in AppLanguage.entries) {
+                val formatter = timeLanguage(language)
+                assertEquals(3, options.map { formatter.fullWords(it, h24) }.toSet().size)
+                assertEquals(3, options.map { formatter.digital(it, h24) }.toSet().size)
+            }
+            assertTrue(!ClockTime.sameHands(target, Levels.setTaskStart(target)))
+        }
+    }
+
+    @Test
     fun `five levels with the web steps and samples`() {
         assertEquals(listOf(60, 30, 15, 5, 1), Levels.all.map { it.step })
         assertEquals(listOf(180, 150, 555, 260, 463), Levels.all.map { it.sample })

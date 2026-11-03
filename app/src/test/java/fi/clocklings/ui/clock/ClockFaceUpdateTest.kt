@@ -4,12 +4,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import fi.clocklings.domain.AppLanguage
 import fi.clocklings.domain.timeLanguage
@@ -27,6 +29,31 @@ import kotlin.math.roundToInt
 @RunWith(RobolectricTestRunner::class)
 class ClockFaceUpdateTest {
     @get:Rule val compose = createComposeRule()
+
+    @Test
+    fun disablingInteractivityDuringDragStopsFurtherClockChanges() {
+        val interactive = mutableStateOf(true)
+        val command = ClockCommand(180)
+        var value = 180
+        compose.setContent {
+            ClocklingsTheme {
+                ClockFace(
+                    command,
+                    Modifier.size(300.dp).testTag("clock"),
+                    interactive = interactive.value,
+                    onChange = { value = it },
+                )
+            }
+        }
+        compose.onNodeWithTag("clock").performTouchInput { down(Offset(center.x, height * 0.15f)) }
+        compose.runOnIdle { interactive.value = false }
+        val before = value
+        compose.onNodeWithTag("clock").performTouchInput {
+            moveTo(Offset(width * 0.85f, center.y))
+            up()
+        }
+        compose.runOnIdle { assertEquals("CK-06: disabled clock accepted a continuing drag", before, value) }
+    }
 
     @Test
     fun `immediate mini clock updates its hands without a second draw`() {
