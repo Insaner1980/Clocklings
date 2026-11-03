@@ -15,7 +15,7 @@ enum class Sound(
     BAD(R.raw.wrong),
     WIN(R.raw.success),
     POP,
-    TICK,
+    INTRO(R.raw.clocklings),
     STAR(R.raw.star),
     UNLOCK(R.raw.unlock),
     RECORD(R.raw.record),

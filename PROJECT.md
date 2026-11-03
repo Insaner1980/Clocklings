@@ -1,10 +1,22 @@
 # Clocklings — Technical Reference and Development Handoff
 
-**Repository snapshot:** 1 November 2026, branch `codex/localization-settings`, HEAD `25e61299cf5107916ddf876e2d307679aca8f50a` (`25e6129`). The working tree was clean before this documentation update. Only root `PROJECT.md` is changed by this task; this snapshot describes the application at that HEAD, not an application-code change or a new test/build result.
+**Repository snapshot:** 2 November 2026, branch `codex/localization-settings`, HEAD `971d9e5fe5bd443f6d5795db21f706d21634681b` (`971d9e5`). The working tree was clean before this documentation update. Only root `PROJECT.md` is changed by this task; this snapshot describes the application at that HEAD, not an application-code change or a new test/build result.
 
 **Purpose:** A repository-specific guide to the complete application: product behavior, screens, architecture, data, rendering, localization, platform boundaries, tests, build tooling, review priorities, and unresolved decisions. It is an orientation reference, not a replacement for inspecting code or an authorization to implement proposals.
 
 **Authority:** Owner instructions and [AGENTS.md](AGENTS.md) govern scope and working rules. Current source governs implemented behavior. [STATUS.md](docs/implementation/STATUS.md) records decisions and dated validation reports. The [product plan](docs/superpowers/plans/2026-10-20-public-clock-learning-app.md) distinguishes approved requirements from proposals; detailed specifications do not automatically approve features.
+
+### Using this reference for review, tests and UI work
+
+| Question | Start here | Evidence to request or inspect |
+| --- | --- | --- |
+| What does the app do, and what must a change preserve? | B feature inventory, D screens, E journeys, G stored data | Current implementation and owner decisions; distinguish an implemented behavior from an approved future requirement |
+| Is a reviewer finding valid? | R review map, then the owning source and callers | Concrete trigger, affected state/lifecycle, existing guard and relevant test; a possible risk is not a reproduced defect |
+| Which tests should cover a change? | N test map and validation boundaries, O commands | Smallest relevant suite and realistic failure path; source test counts, executed tests and passing tests are different facts |
+| How should a UI change fit the app? | D design system, M accessibility, S source links | Existing tokens/components, normal layout plus 320 dp, 200% font and their combination, affected languages and states; distinguish Robolectric from device evidence |
+| Is it ready to publish? | J privacy, O release configuration, T unresolved work | Exact artifact/commit and current release evidence; historical debug checks or a test-signed profiling APK are insufficient |
+
+When using this file as context for a question, include the relevant code/diff and the current commit if available. Ask for findings tied to actual source and tests, with uncertainty stated explicitly. This file is not a substitute for the code, a full test report or screenshot evidence.
 
 ## Contents
 
@@ -44,7 +56,7 @@
 | UI | Kotlin, Jetpack Compose, one activity, portrait declaration, light theme | `MainActivity`, manifest, `ClocklingsTheme` |
 | Languages | English, Finnish, one shared Swedish; device-language option | `AppLanguage`, locale resources/configuration |
 | Runtime data | One local progress/settings store; no accounts or separate learner profiles | `ProgressRepository` |
-| Release status | Development implementation with historical debug validation; publication and signed release readiness not established | `STATUS.md`; no Play Console evidence inspected |
+| Release status | Development implementation with historical debug checks and scoped test-signed R8 profiling; publication and production-signed release readiness not established | `STATUS.md`, local performance report described in N; no Play Console evidence inspected |
 
 Clocklings teaches analog time through short demonstrations, multiple-choice reading questions, hand-setting exercises, free clock manipulation, and shared play. Best practice results earn up to fifteen stars that unlock companion clothing. Users can choose nine companions or no companion, change clock artwork, set a companion name, choose 12/24-hour display, and use optional local speech and sound effects.
 
@@ -58,11 +70,11 @@ The intended audience is children learning to tell time, with optional adult/sha
 - **Planned/unresolved:** Supported by planning/decision documents but not present in the implementation.
 - **Unavailable:** Cannot be established from this repository investigation, such as current Play Console configuration or actual speech quality on a physical device.
 
-The investigation inventoried tracked repository files and inspected the application entry points, all screen flows, state owners, domain logic, persistence, localization, audio, shared UI/rendering architecture, build configuration, manifests, scripts, test inventory and relevant test implementations. Rendering registries and shared drawing/animation code were inspected; this is not a claim of a pixel-by-pixel review of every artwork path or screenshot. Existing plans were compared with code and the dated status record. Private local configuration, credentials, signing material, external dashboards, and the original application's workspace were not inspected.
+This update compared production/test changes since the previous `25e6129` snapshot with the current code, rechecked the entry points, navigation, persistence, audio, Home/clock updates, toolchain and manifest, and recalculated source/test/resource inventories. It retains the previous reference's descriptions of unchanged screens, domain rules and artwork; it is not a new line-by-line audit of every source file or a pixel-by-pixel review. Dated status entries and the local ktlint/performance reports were read, but their raw logs, traces, APKs and screenshots were not independently revalidated. Private local configuration, credentials, signing material, external dashboards, and the original application's workspace were not inspected.
 
-The production tree contains **110 Kotlin files**. JVM tests contain **57 Kotlin files**, of which 52 declare **312 `@Test` methods**; instrumentation contains **26 Kotlin files**, of which 23 declare **132 `@Test` methods**. File totals include helpers; method totals include opt-in galleries and are not passing-test counts. There are nine companion catalogs with 146 clothing/accessory items, 17 packaged OGG clips, six font weights and three UI languages. Detailed inventories and evidence boundaries follow below.
+The production tree contains **110 Kotlin files**. JVM tests contain **62 Kotlin files**, of which 57 declare **329 `@Test` methods**; instrumentation contains **25 Kotlin files**, of which 22 declare **124 `@Test` methods**. File totals include helpers; method totals include opt-in galleries and are not passing-test counts. These counts use `app/src/main`, `app/src/test` and `app/src/androidTest`, excluding build output and report snapshots. There are nine companion catalogs with 146 clothing/accessory items, 17 packaged OGG clips, six font weights and three UI languages. Detailed inventories and evidence boundaries follow below.
 
-For this documentation task, `tools/check-localization.ps1` ran successfully. The required deterministic `sonar analyze secrets` pre-read checks passed for the workspace text files inspected. No Gradle build, JVM test suite, instrumentation suite, emulator session, vulnerability audit, Sonar source upload, or release validation was executed. Final documentation validation checks source-link existence and repository diff scope. No application implementation was changed.
+For this documentation task, `tools/check-localization.ps1` ran successfully. The required deterministic `sonar analyze secrets` pre-read checks passed for the workspace text files inspected. All 159 distinct local Markdown link targets and the linked section anchors were checked; none were missing. Every current test-bearing Kotlin filename appears in the reference, source/resource counts were recalculated, and `git diff --check` passed. Only `PROJECT.md` changed. No Gradle build, JVM test suite, instrumentation suite, emulator session, vulnerability audit, Sonar source upload, or release validation was executed. No application implementation was changed.
 
 ## B. Complete feature inventory
 
@@ -71,7 +83,7 @@ Every implemented feature below uses local state/storage and requires no app-req
 | Feature and access | Processing and persistence | States, restrictions, recovery | Main implementation and tests |
 | --- | --- | --- | --- |
 | Launch introduction | Animated clock/companion/title overlay; session-level saveable completion | Tap to skip; underlying UI semantics/focus blocked; reduced-motion timeline; not persistent first-install onboarding | `IntroScreen.kt`, `IntroTimeline.kt`; `IntroTimelineTest`, `IntroOverlayTest` |
-| Home | Real local time refreshed every ten seconds; localized time, companion stage and total stars | Flexible stage between header/menu; compact scroll fallback; `NONE` removes the character while customization remains reachable; waits for initial settings/progress | `HomeScreen.kt`; `AppFlowTest`, `PersonalizationFlowTest` |
+| Home | Real local time read on entry and every ten seconds while lifecycle is STARTED or above; immediate refresh on returning to STARTED; localized time, companion stage and total stars | Flexible stage between header/menu; compact scroll fallback; `NONE` removes the character while customization remains reachable; waits for initial settings/progress | `HomeScreen.kt`; `HomeTimeTest`, `AppFlowTest`, `PersonalizationFlowTest` |
 | Lesson library | Nine authored lessons, pages, demos and quizzes; winding chapter path with five direct practice entries; completion IDs persisted | Day lesson hidden in 12-hour mode; quiz mistakes disable choices; successful persistence unlocks next action, failed save permits answering again | `LessonScreens.kt`, `LessonCatalog.kt`, `LessonViewModel`; lesson/domain/localization tests |
 | Automatic pre-level lessons | `introPlan` selects incomplete lessons for a level and optional day lesson | Intro-shown markers saved when starting the route, before completing the lessons; top-bar skip enters game | `Lessons.kt`, `AppViewModel.startLevel`, `Navigator`; `LessonsTest`, `GameViewModelTest` |
 | Explore/free clock | Drag hands in five-minute steps, randomize, read words/digits, listen, toggle guides | No scoring; saveable time; 24-hour conversion retains an afternoon representation when enabled | `FreeClockScreen`, `ClockFace`; `AppFlowTest`, `ClockSurfaceStateTest`, `LanguageSettingsTest` |
@@ -87,8 +99,8 @@ Every implemented feature below uses local state/storage and requires no app-req
 | Settings | Language entry, 12/24-hour choice, guides, effects switch, speech status, reset | Pending writes disable affected controls; IOException shown; persisted state drives UI | `SettingsScreen`, `AppViewModel`; `AppSettingsTest`, `SettingsErrorTest` |
 | Language choice | Device/default plus English/Finnish/Swedish; platform storage on API 33+, DataStore on older Android | Loading/error/retry at locale initialization; failed selection remains retryable; locale changes stop speech | `LanguageScreen`, `AppLocaleController`; controller, locale and active-state tests |
 | Reset progress | Confirmation clears progress, names, clothing, best challenge and lesson markers | Preserves display/audio/help/language/appearance settings; no undo/import recovery; IO failure retains dialog/error | `ResetProgressDialog`, `AppViewModel.resetProgress`, repository; `AppSettingsTest`, `LanguageSettingsTest` |
-| Optional read-aloud | Local offline-eligible voice reads localized clock/lesson text | Hidden when unavailable; no replay of missed requests; navigation/background/language changes stop playback | `Speech`, `Texts.kt`; `SpeechTest`, `OfflineVoiceTest` |
-| Sound effects | Generated POP/TICK PCM; recorded answer, result, unlock, record, lesson, equip and companion voice clips (`res/raw`); gated by sound setting | Unloaded clips and guarded AudioTrack failures are silent; SoundPool calls are not blanket exception-wrapped; enabling sound can force a confirmation pop | `Sfx`, `ToneSynth`; `ToneSynthTest` |
+| Optional read-aloud | Local offline-eligible voice reads localized clock/lesson text; engine calls run serially on a background dispatcher | Hidden when unavailable; stale queued requests invalidated by stop/language/refresh/shutdown; stopping an already running engine call is asynchronous | `Speech`, `Texts.kt`; JVM `SpeechTest`, Android `OfflineVoiceTest` |
+| Sound effects | Generated POP/TICK PCM; recorded answer, result, unlock, record, lesson, equip and companion voice clips (`res/raw`); resource loading dispatched to IO; gated by sound setting | Each clip becomes usable once registered and decoded; unloaded/failed clips stay silent; SoundPool calls are not blanket exception-wrapped; enabling sound can force a confirmation pop | `Sfx`, `ToneSynth`; `SfxTest`, `ToneSynthTest` |
 
 Not implemented: account management, authentication, multiple learner profiles, billing, ads, cloud sync, analytics, crash reporting SDK, user-visible history/log, import/export, backup UI, notifications, widgets, everyday timers/routines, achievements beyond current star/clothing progression, or a parent PIN/gate. Absence is based on source/configuration inventory, not on a claim about transitive library internals.
 
@@ -106,7 +118,7 @@ Not implemented: account management, authentication, multiple learner profiles, 
 | `audio/` | Android speech adapter, generated PCM effects, recorded clip playback |
 | `ui/` | App state owner, text adapters, screens and screen ViewModels, locale bridge, shared controls, Canvas art and theme |
 | `app/src/main/res/` | Three-language UI resources, fonts, 17 OGG clips, launcher/splash/theme XML, backup and locale declarations |
-| `app/src/test/` | JVM domain/repository/ViewModel/math tests, API 37 Robolectric Compose/rendering tests and fakes |
+| `app/src/test/` | JVM domain/repository/ViewModel/math tests, Robolectric Compose/rendering/audio tests (default API 37, some API 33 overrides) and fakes |
 | `app/src/androidTest/` | Compose UI, real activity/storage/locale and Android audio-adapter tests |
 | `config/`, `tools/`, `.github/`, `.deepsec/` | Development checks and automation, not runtime features |
 | `docs/` | Decisions, historical evidence, language review and proposals |
@@ -242,6 +254,8 @@ Color options are ORIGINAL/BLUE/GREEN/PURPLE except dragon (ORIGINAL/BLUE/GREEN/
 
 ### Home, learning paths and shared guidance
 
+`rememberHomeTime` reads the local clock on initial composition and polls every 10,000 ms inside `repeatOnLifecycle(STARTED)`. Polling stops below STARTED and reads immediately when that state resumes; this is not an exact wall-clock-minute alarm. `HomeStage` remembers each `ClockCommand` by the displayed time. Passive mini clocks with zero-duration commands render that command's normalized time directly in their hands and semantics, avoiding an extra draw just to synchronize interaction state. Animated or interactive clocks retain the existing `ClockState` path. See N for the limited before/after profiling evidence.
+
 `HomeStage` and `HomeStageMath` allocate the header and menu first, then give remaining height to the clock/companion stage, normally with a 200 dp minimum and stage content capped at 360 dp. Compact layouts use content-height scrolling; NONE centers the remaining group. Background sky/cloud/ground art is non-clickable; the stage content opens Appearance with `pressScale = 1`. The wordmark starts at 28 sp with a density-based 14 dp floor. The four menu cards use two columns only at content width at least 320 dp and font scale at most 1.3.
 
 Learn groups the eight standard lessons into five chapters, each followed by a practice entry; the optional ninth day lesson is last without another practice node. There is no separate visible chapter heading: the first lesson carries chapter context. The first incomplete lesson is current; inserted practice nodes are never marked current; completed items remain accessible. Practice uses the first level below three stars as current. `PathNode` draws the winding pebbles, current pulse and completed checks with explicit state semantics. `CompanionTip` places the currently dressed companion beside guidance; NONE retains text guidance without an empty character slot.
@@ -319,6 +333,8 @@ flowchart LR
 
 [`Navigator.kt`](app/src/main/java/fi/clocklings/Navigator.kt) wraps the mutable back stack. `push` adds entries; `pop` retains the bottom Home; `replace` replaces the top while preserving a root; `popTo` returns to the last matching entry or reconstructs a route above Home. `startLevel` selects lessons or a game based on the supplied queue.
 
+`ClocklingsApp` wraps ordinary `go`, toolbar `back` and `playLevel` callbacks with `backStack.last() == from`. Once the first call changes the top destination, repeated or delayed callbacks from that outgoing destination are ignored, including the POP sound and intro-marker write in guarded level starts. This is a route-equality check, not a time-based debounce or a universal guard inside `Navigator`. System Back and direct lesson/game/result replacement callbacks use their own paths; do not claim every navigation callback has this guard. `NavigationFlowTest` covers repeated/stale Settings/Language/Home callbacks, practice starts from Learn and Levels, and saved navigation restoration.
+
 - **Fresh launch:** Locale/data initialize, Home becomes available, introduction runs or is skipped. There is no mandatory setup form. Default preferences apply until changed.
 - **Learn:** Home → lesson/practice path → lesson or chapter practice (using the same intro-plan/start-level flow as Levels). Previous/next moves within the lesson ViewModel; completing the queue returns to the list unless a level continuation is present.
 - **Practice:** Home → levels → optional introductory lessons → game → result. Game-to-result uses replacement so Back does not revive the finished game. Replay/next also replace the result entry; next may first insert required lessons.
@@ -349,7 +365,8 @@ Navigation 3 saves destination keys; entry decorators preserve Compose saveable 
 | Explore/together time and phase | Screen `rememberSaveable` | Local Compose updates; not a DataStore session |
 | Clock raw position/animation | `ClockState` / clock composition | Remembered state and cancellable animation; commands synchronize target |
 | Intro/result celebration consumption | Saveable Compose state | Avoid repeated event effects on supported recreation paths |
-| Audio availability/engine state | `Speech`, `AppContainer` / application | StateFlow and synchronized engine callbacks; application scope |
+| Home wall-clock time | `rememberHomeTime` / composition lifecycle | Initial read; ten-second polling only while STARTED or above; immediate read on lifecycle return |
+| Audio availability/engine state | `Speech`, `AppContainer` / application | StateFlow; serialized background engine work; short synchronized request-state changes and generation/revision checks |
 
 ### Update flow and failures
 
@@ -366,6 +383,8 @@ DataStore `edit` transforms the latest stored preferences, which prevents indepe
 [`ClockState.kt`](app/src/main/java/fi/clocklings/ui/clock/ClockState.kt) separates raw floating-point minute position from snapped integer time. `ClockCommand` carries target, duration, exact-duration flag and a unique ID so repeated targets can still represent distinct commands. Period changes normalize state and cancel incompatible animation. A drag cancels animation; a new command replaces prior motion. Circular movement uses the shortest delta; the `exact` flag controls duration rather than selecting another movement path.
 
 Tiny/no-motion commands can settle directly without firing the same completion callback as an actual animation. Callers must not treat every command as guaranteed to emit an animation event. Accessibility nudge actions and pointer interaction share the clock-state machinery. Pointer handlers read current interaction eligibility so a transition to a revealed/locked clock takes effect.
+
+`ClockFace` has a narrow direct-render path for `mini && !interactive && command.ms == 0`: normalized command time drives semantics, hands, numeral coverage and rim calculations without awaiting the state effect. Do not generalize this to interactive/full-size clocks or animated lesson commands. `ClockFaceUpdateTest` verifies the immediate mini update and one draw in its Robolectric setup.
 
 ### Lifecycle limitations
 
@@ -431,8 +450,8 @@ The manifest disables backup/full backup and references extraction rules excludi
 
 | Integration | Data/action | Failure boundary |
 | --- | --- | --- |
-| Android TextToSpeech | Localized time or lesson text, selected language/voice, playback commands | Optional; engine/voice failure makes speech unavailable |
-| Android AudioTrack and SoundPool | Two generated PCM effects and 17 recorded clips | AudioTrack creation/playback is guarded; unloaded clips are skipped. SoundPool construction/load/play are not comprehensively exception-wrapped |
+| Android TextToSpeech | Localized time or lesson text, selected language/voice, playback commands; serialized background engine work | Optional; handled engine/voice failures make speech unavailable; an in-flight blocking engine call can delay queued stop/shutdown |
+| Android AudioTrack and SoundPool | Two generated PCM effects and 17 recorded clips; SoundPool resource loads run on IO | AudioTrack creation/playback is guarded; unloaded/failed clips are skipped. SoundPool construction/load/play are not comprehensively exception-wrapped |
 | Android LocaleManager (API 33+) | Application locale selection and legacy handoff | Controller exposes failed/pending state; external changes reconciled on refresh |
 | Android Preferences DataStore | Local progress, appearance and settings | IO fallback on reads; caller-dependent write recovery |
 | Android system clock | `LocalTime.now()` for Home and introduction | Device-local time; no time server or calendar integration |
@@ -441,7 +460,9 @@ There is no authored runtime HTTP client, API endpoint, Firebase configuration, 
 
 ### Speech selection and lifecycle
 
-[`Speech.kt`](app/src/main/java/fi/clocklings/audio/Speech.kt) separates an engine adapter from speech orchestration. It synchronizes state behind a lock and handles asynchronous initialization, including a callback that may arrive during construction. Current language wins over earlier initialization requests. Availability is exposed to UI.
+[`Speech.kt`](app/src/main/java/fi/clocklings/audio/Speech.kt) separates an engine adapter from speech orchestration. Production uses `SupervisorJob` with `Dispatchers.IO.limitedParallelism(1)` for engine creation, configuration, speak, stop, shutdown and callback handling. Engine operations do not suspend and execute serially. A lock protects only short request-state changes; it is not held while calling the engine. Availability is a StateFlow. Initialization callbacks are dispatched to the same scope, including callbacks delivered during engine construction; configuration reads the latest requested language.
+
+`setLanguage` and `refresh` immediately mark availability false and increment configuration revision and request generation. Only the current revision may publish a configuration result. `speak` captures the generation, then rechecks generation/availability/closed state before calling the engine. `stop` and `shutdown` invalidate queued requests immediately; shutdown also marks closed/unavailable before scheduling stop, engine shutdown and scope cancellation. This prevents stale queued text from replaying in the covered cases, but does not interrupt a synchronous engine call already in progress. Stop/shutdown may wait behind it; this is not a timeout/recovery mechanism for a hung TTS service.
 
 An eligible voice must match the supported primary language, report that it does not require a network connection, and not advertise the not-installed feature. Selection prefers an exact locale match, then a deterministic name order. Both voice selection and speech-rate setup (0.9) must succeed. Swedish regional variants can be considered within the shared Swedish language.
 
@@ -453,7 +474,9 @@ Root lifecycle/locale effects, destination changes, lesson replay and together-p
 
 [`ToneSynth.kt`](app/src/main/java/fi/clocklings/audio/ToneSynth.kt) generates 44.1 kHz, 16-bit mono PCM using sine/triangle wave components. [`Sfx.kt`](app/src/main/java/fi/clocklings/audio/Sfx.kt) prepares static `AudioTrack` instances on a background scope and keeps them by sound. POP and TICK are generated. Sounds with a `clip` ([`Sound.kt`](app/src/main/java/fi/clocklings/audio/Sound.kt)) are OGG Vorbis files in `res/raw` played by a `SoundPool`: OK (`correct.ogg`) and BAD (`wrong.ogg`) for answers; WIN (`success.ogg`, level result and a challenge end without a record); RECORD (`record.ogg`, new challenge best); STAR (`star.ogg`, each earned result star, played at rising rates 1, 1.26 and 1.498); UNLOCK (`unlock.ogg`, new items as the result celebration starts); LESSON_COMPLETE (`lesson_complete.ogg`, leaving an answered lesson quiz); EQUIP (`equip.ogg`, putting on a wardrobe item; taking one off keeps POP); and one voice per companion (`companion_human.ogg`, `companion_cat.ogg`, `companion_dog.ogg`, `companion_robot.ogg`, `companion_dragon.ogg`, `companion_dinosaur.ogg`, `companion_bunny.ogg`, `companion_unicorn.ogg`, `companion_car.ogg`). `companionVoice()` maps a companion to its voice; a new voice stops the previous one, so only one voice plays at a time. A voice plays when selection settles in the Appearance pager and when the level result's companion celebration starts after its 1.1 s reveal delay, with another 1.2 s delay after an unlock sound. Result-screen star, unlock and voice sounds play only on the first visit. There are 19 `Sound` values: two synthesized effects, eight recorded feedback/reward clips and nine voices. SoundPool allows four streams, tracks loaded clips, stops an earlier instance of the same sound on replay and keeps companion voices exclusive. Historical audio entries report most clips around −20 LUFS integrated and the 0.48 s correct-answer clip matched by maximum momentary loudness; the later EQUIP adjustment reports about −29.65 LUFS (10 dB lower). These are dated preparation measurements, not fresh measurements or listening in this task. The separate `Clocklings-sounds/` originals/drafts are development source material outside Android source sets; runtime assets are the 17 files in `app/src/main/res/raw/`.
 
-Playback checks the sound preference through `AppContainer`; an explicit forced effect supports enabling sound. If a track or clip is not loaded yet, the effect is silent. App pause stops tracks and clip streams. `Sfx` has no explicit release lifecycle in the inspected implementation; the bounded track set has application lifetime. Whether that needs an explicit disposal path is a resource-management review question, not a demonstrated growing leak.
+SoundPool itself is constructed with `Sfx`, while resource-descriptor opening through `pool.load` runs in a coroutine on the injected dispatcher (production default `Dispatchers.IO`). Each returned sample ID is published into a volatile immutable-map snapshot immediately; successful decoding is tracked separately under a lock. A ready early clip can therefore play while a later clip is still loading. Failed decoding never enters the loaded set. This does not move every sound API call off the caller thread or add comprehensive SoundPool exception handling.
+
+Playback checks the sound preference through `AppContainer`; an explicit forced effect supports enabling sound. If a track or clip is not loaded yet, the effect is silent. App pause stops tracks and clip streams. `Sfx` has no explicit release lifecycle in the inspected production implementation; the bounded track set has application lifetime. `SfxTest` explicitly releases its test-owned pool/tracks and cancels its scope, which is not a production disposal API. Whether production needs an explicit disposal path is a resource-management review question, not a demonstrated growing leak. The dragon/dinosaur packaged clips changed after the previous snapshot; their current loudness and audible quality were not remeasured in this documentation update.
 
 ## I. Monetization and entitlements
 
@@ -591,13 +614,13 @@ The visual palette is centralized but no new measured contrast report was produc
 
 For any changed UI, the project requires **320 dp width**, **200% font scale**, and **their combination**, in addition to normal layout, with English/Finnish/Swedish considered. Device evidence must be reported separately from source/test-code inspection. Use only an explicitly identified dedicated test emulator; do not install or test on physical devices or unrelated running emulators.
 
-`STATUS.md` records historical API 26/33/37 and large-text/narrow-width work. It also limits TalkBack evidence to a bounded Settings/back focus smoke check, not full spoken traversal. Real speech listening, native-language review, physical-device and signed-release UI evidence remain unproven here.
+`STATUS.md` records historical API 26/33/37 and large-text/narrow-width work. It also limits TalkBack evidence to a bounded Settings/back focus smoke check, not full spoken traversal. The separate 1–2 November performance report records an English Home matrix on API 36 with a test-signed R8 build; see N. Real speech listening, complete native-language review, physical-device and production-signed release UI evidence remain unproven here.
 
 ## N. Tests and validation evidence
 
 ### Existing JVM suites
 
-Paths in this table are relative to [`app/src/test/java/fi/clocklings/`](app/src/test/java/fi/clocklings). There are 52 test-bearing Kotlin files with 312 declared `@Test` methods, plus five helpers (57 files total). Tests use JUnit 4, coroutine-test virtual time and Robolectric where applicable. Counts describe source declarations, not execution or assertion coverage.
+Paths in this table are relative to [`app/src/test/java/fi/clocklings/`](app/src/test/java/fi/clocklings). There are 57 test-bearing Kotlin files with 329 declared `@Test` methods, plus five helpers (62 files total). Tests use JUnit 4, coroutine-test virtual time and Robolectric where applicable. Counts describe source declarations, not execution or assertion coverage. A test method may loop over several languages/layout cells; those iterations are not additional declared methods.
 
 | Files | Main assertions and boundaries |
 | --- | --- |
@@ -616,23 +639,26 @@ Paths in this table are relative to [`app/src/test/java/fi/clocklings/`](app/src
 | `ui/clock/RingRevealTest.kt`, `ui/intro/IntroTimelineTest.kt` | Drawing reveal math and intro timing/reduced motion |
 | `ui/companion/CompanionMotionTest.kt`, `ui/components/ConfettiMathTest.kt`, `ui/art/VinylTonesTest.kt` | Pure pose/particle/shading behavior; not final visual quality |
 | `audio/ToneSynthTest.kt`, `SoundTest.kt` | Generated sample properties, recorded/synthesized sound and companion-voice mapping; not audible-device output |
+| `audio/SpeechTest.kt` | Eleven host-side methods: queued request invalidation, latest-language initialization, blocked engine versus caller/request lock, voice/rate/speak/stop failures, stale errors, refresh and shutdown; fake engine with Robolectric API 33, not an installed voice |
+| `audio/SfxTest.kt` | Blocking SoundPool shadow verifies resource opening is dispatched, a ready earlier clip plays before a later load finishes, and failed clips remain silent; API 33 host test with explicit owned-resource cleanup |
 | `domain/CompanionColorOptionsTest.kt` | Per-kind color choices and unsupported-color normalization |
 | `ui/LocalAppFlowTest.kt`, `ScreenInteractionTest.kt`, `ScreenshotReviewUiTest.kt` | Host-side Compose journeys, responsive screen controls and screenshot-review regressions |
+| `ui/NavigationFlowTest.kt` | Repeated/stale navigation callbacks and double practice starts from Learn/Levels; 411/320 dp × 100%/200% in English; StateRestorationTester restores Language and both Back steps, not a real process kill |
 | `ui/ChallengeInteractionTest.kt`, `ui/challenge/AnswerRoomCostTest.kt`, `RunOptionReservationTest.kt` | Challenge phase actions, warm-cache/early-start measurement work and answer-space reservation across candidate labels/configurations; not a device performance benchmark |
 | `ui/PersistenceFailureTest.kt` | Fault-injected game final-save retry, lesson re-answer, challenge END/retry and duplicate guards; cancellation remains cancellation |
 | `ui/ReviewRegressionTest.kt`, `RetryableSaveTest.kt` | Pinned errors at narrow/large text in EN/FI/SV; failed name survives color change; independent color/slot retries survive unrelated success; unrelated errors stay out of Appearance; quiz retry/hint priority and stale callbacks |
 | `ui/CompanionRenderingTest.kt`, `ui/companion/CropFitTest.kt`, `ui/art/SwatchColorsTest.kt`, `ui/appearance/ZoomWindowTest.kt` | Distinct rendered items/colors, crop expansion, CIE76 swatch separation and custom-clock zoom bounds; not full visual acceptance |
-| `ui/clock/ClockDayPartLayoutTest.kt`, `ClockFaceHaloRenderTest.kt`, `NumeralCoverTest.kt`, `DragTickTest.kt` | Day text/hand overlap, rendered halo regression, numeral coverage math and snapped drag feedback |
+| `ui/clock/ClockDayPartLayoutTest.kt`, `ClockFaceHaloRenderTest.kt`, `ClockFaceUpdateTest.kt`, `NumeralCoverTest.kt`, `DragTickTest.kt` | Day text/hand overlap, rendered halo regression, immediate mini-clock update in one draw, numeral coverage math and snapped drag feedback |
 | `ui/components/ActionPairTest.kt`, `SurfaceAccessibilityTest.kt`, `ConfettiStateTest.kt` | Stacked actions, informational versus interactive surfaces, confetti event/anchor clearing |
-| `ui/home/HomeStageMathTest.kt`, `ui/theme/LedgeColorTest.kt` | Stage sizing/placement and depth-color calculation |
+| `ui/home/HomeStageMathTest.kt`, `HomeTimeTest.kt`, `ui/theme/LedgeColorTest.kt` | Stage sizing/placement, stopped-lifecycle polling suppression and immediate return refresh, depth-color calculation |
 
-`app/src/test/resources/robolectric.properties` selects SDK 37, `en-rUS-w411dp-h914dp-xhdpi`, native graphics and `TestClocklingsApplication`. The test application overrides `preferencesStore()` with an in-memory store because host filesystem replacement behavior is a different boundary from Android UI tests. JDK 21 is required for this API level.
+`app/src/test/resources/robolectric.properties` selects SDK 37, `en-rUS-w411dp-h914dp-xhdpi`, native graphics and `TestClocklingsApplication` by default. Class-level `@Config` overrides exist: `SpeechTest` and `SfxTest` select API 33. The test application overrides `preferencesStore()` with an in-memory store because host filesystem replacement behavior is a different boundary from Android UI tests. JDK 21 is required for the default API 37 runtime.
 
 Helpers: `TestClocklingsApplication.kt` supplies the application; `ui/TestLocales.kt` supplies locale contexts; `data/InMemoryPreferencesStore.kt` serializes updates using a mutex and StateFlow; `ui/FakeServices.kt` records sound/speech/language calls; `ui/MainDispatcherRule.kt` replaces Main with a test dispatcher. The in-memory store avoids native/filesystem behavior and does not prove Android DataStore durability or Windows file-rename semantics.
 
 ### Existing Android and Compose suites
 
-Paths are relative to [`app/src/androidTest/java/fi/clocklings/`](app/src/androidTest/java/fi/clocklings). AndroidJUnitRunner, Compose UI tests and ActivityScenario provide the runtime harness. There are 23 test-bearing files with 132 declared `@Test` methods plus three helpers (26 files total). Of those methods, 36 belong to the opt-in screenshot-review-6 gallery and are not an unconditional default test run.
+Paths are relative to [`app/src/androidTest/java/fi/clocklings/`](app/src/androidTest/java/fi/clocklings). AndroidJUnitRunner, Compose UI tests and ActivityScenario provide the runtime harness. There are 22 test-bearing files with 124 declared `@Test` methods plus three helpers (25 files total). Of those methods, 36 belong to the opt-in screenshot-review-6 gallery and are not an unconditional default test run.
 
 | Files | Main assertions and limitations |
 | --- | --- |
@@ -652,7 +678,7 @@ Paths are relative to [`app/src/androidTest/java/fi/clocklings/`](app/src/androi
 | `GalleryTest.kt`, `PersonalizationGalleryTest.kt`, `ScreenshotReviewGalleryTest.kt`, `ScreenshotReview6GalleryTest.kt` | Artwork/theme/wardrobe/result/responsive-state captures and selected measurements; screenshot production is not an automatic pixel-golden comparison |
 | `NativeFeelUiTest.kt` | Native-feel controls, screen layout and interaction regressions |
 | `SaveFailureUiTest.kt` | Synthetic save-failure states and retry callbacks rendered through feature screens; does not force a real disk-full/storage failure |
-| `audio/OfflineVoiceTest.kt`, `audio/SpeechTest.kt` | Voice metadata and fake-engine lifecycle/error/concurrency behavior in Android runtime; not real listening |
+| `audio/OfflineVoiceTest.kt` | Three tests of voice-eligibility filtering and regional selection using constructed Voice objects; not real installed-voice discovery or listening. `SpeechTest` is now in the JVM source set |
 
 `LocaleTestEnvironment.kt` seeds the test application's repository, sets/restores platform language and supports pre-33 recreation. These tests mutate test-app data; they must not run against an unrelated installation. `LocalizationScreenshots.kt` only writes images when the instrumentation argument `screenshotPrefix` is nonblank. It sanitizes filenames and writes under app external files `localization/`, recycles the bitmap, and otherwise produces no screenshot files. The resource helper creates localized configuration contexts rather than changing the entire device language. `TestScroll.kt` is the third helper and handles test scrolling. `ScreenshotReview6GalleryTest` requires the explicit `cell` instrumentation argument and skips without it; callers configure the matching device width/font cell. It writes captures and `measure.txt` beneath app external files `review6/<cell>`. Its 36 methods must not be counted as ordinary executed passes merely because they exist.
 
@@ -664,17 +690,32 @@ Paths are relative to [`app/src/androidTest/java/fi/clocklings/`](app/src/androi
 | Later native-feel and new-companion/audio checkpoints | Reported 190-test then 220/226-test JVM snapshots and scoped emulator checks as inventories grew | A single combined run or current coverage percentage |
 | 1 November Round 3 entry | Reports 306/306 JVM tests, debug app/test APK builds, localization and stability; 45 requested instrumentation tests plus 16 capture invocations / 186 screenshots across 411 dp/100%, 360×640/100%, 320 dp/100%, 320 dp/200%, and approximately 420 dp/200%, including Finnish 24-hour/bold cases | Physical-device or full TalkBack proof; an early ktlint failure is not a pass (later scoped corrections report passing checks) |
 | PR #7 correction entries | Reports 19 targeted tests with build/ktlint/detekt/stability; a subsequent follow-up reports 12 tests | The intermediate lint run was stopped after over ten minutes, not passed; no fresh full-suite claim |
-| Latest per-slot retry correction, HEAD `25e6129` | Reports six focused tests (five ReviewRegression plus one RetryableSave), debug build, ktlint, detekt and stability | No full 312-method suite, device run or lint result at this HEAD; earlier `f62a923` CI evidence is not current HEAD CI |
+| Per-slot retry correction, historical commit `25e6129` | STATUS reports six focused tests (five ReviewRegression plus one RetryableSave), debug build, ktlint, detekt and stability | Not a full suite or current `971d9e5` result; earlier `f62a923` CI evidence is not current HEAD CI |
+| Local ktlint correction report, 1 November | Reports 307 JVM tests in 49 classes, debug app/test APK tasks, stability and final ktlint with zero findings; ActionPair state/callback/layout regression includes 320 dp + 200% | Report describes its then-working tree; not a 329-test result, device run, detekt, or current HEAD verification |
+| Local Home performance report, 1–2 November | Reports 17 focused JVM/Robolectric tests, two R8 builds and an English Home emulator matrix; three real minute changes per before/after scenario | Test-signed profiling artifact, not production signing; no complete application performance/UI certification or current HEAD full-suite evidence |
+| Current code, `971d9e5` | Source includes background speech/clip loading, Home lifecycle/direct-mini updates and source-route guards for ordinary navigation and practice starts, plus their regression tests | No test execution or CI result tied to this exact commit was verified in this update; test presence is not a pass |
 | Sonar workflow history | Dated wrapper/coverage/quality-gate reports; current source uses JVM coverage without a device | Current server state, coverage percentage or current security audit |
 | This documentation task | Source/inventory review, required deterministic secret pre-read checks, localization parity PASS and document link/diff checks | Gradle, emulator, release, vulnerability audit, Sonar upload or current owner-run `lc`/`sc` pass |
 
-The owner's `lc` and `sc` checks must not be declared passed without their reports. These historical entries were read from `STATUS.md`; their ignored logs/images were not freshly revalidated, and ignored local `reports/` files are not guaranteed available in a new clone. Existing historical evidence should be read with its exact scope and date, not promoted to a blanket release certification.
+The owner's `lc` and `sc` checks must not be declared passed without their reports. Historical sources are `STATUS.md` and, for the two explicitly local rows, `reports/ktlint-fixes-20261101/REPORT.md` and `reports/clock-performance/REPORT.md`. These ignored reports may be absent from a fresh clone; they are not required source files or self-contained proof of a current pass. Their raw logs/images/traces were not freshly revalidated. Existing historical evidence should be read with its exact scope and date, not promoted to a blanket release certification.
+
+The Home performance report used dedicated `ClocklingsReview20261030`, serial `emulator-5580`, API 36, with a minified, non-debuggable release-variant APK made profileable and signed with a local test key. It reports English Home checks for cat/NONE at approximately 411 dp/100%, 320 dp/100%, approximately 411 dp/200% and 320 dp/200%. In the three measured no-companion minute updates, drawn frames fell from six to three, while three App Deadline Missed events remained. Cat animation still produced long frames; the report does not establish a general speedup or the cause of animation spikes. It identifies base commit `25e6129` plus then-existing working-tree changes, not exact final HEAD equivalence. Production signing was not configured by that work. The AVD name/serial is historical evidence, not permission to reuse or reset a currently running emulator.
 
 ### Gaps and choosing validation
 
-Process death is distinct from ActivityScenario recreation; active-game/challenge durable recovery is not covered as a complete supported contract. Real TTS voices, actual audio, complete TalkBack narration, physical-device interaction, native editorial language review and minified signed-release behavior remain limited/unverified. Gallery tests do not establish visual acceptability or contrast by themselves. No live API/billing tests are needed for absent runtime features.
+Process death is distinct from ActivityScenario recreation and host-side StateRestorationTester; active-game/challenge durable recovery is not covered as a complete supported contract. Real TTS voices, actual audio, complete TalkBack narration, physical-device interaction, native editorial language review and production-signed release behavior remain limited/unverified. The scoped test-signed R8 Home evidence does not cover every minified navigation/restore path. Gallery tests do not establish visual acceptability or contrast by themselves. No live API/billing tests are needed for absent runtime features.
 
 For a scoped change, run the relevant existing pure/ViewModel tests first; add meaningful regression coverage when behavior changes. Use real DataStore/UI tests for changes crossing those boundaries. Broaden to the required device/font/language matrix for UI work. Do not rerun unrelated expensive suites merely to make a documentation-only change appear more validated.
+
+| Changed behavior | Useful first checks | Additional boundary when relevant |
+| --- | --- | --- |
+| Clock/time wording or teaching | ClockTime, language, Levels/Hints and LessonCatalog tests | Lessons, READ choices, SET equivalence, speech and hidden-answer semantics in all three languages |
+| Navigation or lifecycle | NavigationFlowTest, HomeTimeTest, relevant ViewModel tests | Real activity recreation/Back and locale switching; process death needs separate evidence |
+| Settings/progress/customization writes | Repository, AppSettings, PersistenceFailure, RetryableSave and ReviewRegression tests | Actual DataStore reopen, independent name/color/slot failure and retry; mock IO failure is not a disk-full test |
+| Shared layout, text or artwork | Relevant ScreenInteraction/ScreenshotReview, ActionPair, clock/rendering tests | Dedicated-emulator rendering at normal size, 320 dp, 200% and 320 dp + 200%; affected EN/FI/SV text, NONE/companion, 12/24-hour and loading/error/result states |
+| Speech or effects | SpeechTest, SfxTest, SoundTest, ToneSynthTest; OfflineVoiceTest for eligibility | Actual engine listening, pause/return/language changes and clip quality are distinct from fakes/shadows |
+
+Report which cells/classes actually ran, with build/commit, locale, width, font scale and device/API where applicable. Do not infer Finnish/Swedish coverage from the English-only NavigationFlowTest or the Home profiling matrix. Device testing remains limited to the explicitly identified dedicated emulator under current project rules.
 
 ## O. Development, CI, and release procedures
 
@@ -777,8 +818,11 @@ Do not configure signing, create keys, copy original-app keys or publish as a si
 | Language selection or initial handoff fails | `AppLocaleController` records failure; initial readiness gate offers retry | No silent claim of success; modern handoff retry avoids overwriting newer platform choice |
 | Device selects unsupported language | `resolveLanguage` searches remaining supported locales, then English | One shared Swedish formatter; locale-list tests |
 | TTS voice missing/not installed/network-only | Eligibility filtering leaves unavailable | Text learning remains usable; Listen omitted and Settings explains; no forced download |
-| TTS engine callback/init/speak error | Synchronized adapter handles current request and availability | No later replay of unavailable requests; fake-engine tests cover cases, actual voice quality unknown |
+| TTS engine callback/init/speak error | Serialized background work handles engine state; configuration revision/current utterance determine whether results still apply | Queued text is invalidated by stop/language/refresh/shutdown; an already blocking call can delay engine stop; fake-engine evidence is not real voice quality |
 | Sound track not ready/fails | Unloaded clip is skipped; AudioTrack creation/playback is guarded | SoundPool calls are not blanket guarded; no sound-dependent learning completion |
+| Earlier clip ready while a later resource load blocks | IO loading publishes sample IDs incrementally; play requires both an ID and successful decode | Earlier clip can play without waiting for the entire load loop; SfxTest uses a blocking SoundPool shadow |
+| Double or stale ordinary navigation/practice click | Root go/back/playLevel checks the source route still equals the stack top | First accepted transition suppresses subsequent outgoing-route callbacks; direct replacement and system Back paths are separate |
+| Home resumes after backgrounding | Lifecycle-controlled polling reads immediately at STARTED | No background Home polling; not an exact minute-boundary scheduler or a persisted clock service |
 | First/second practice mistake | `GameViewModel` hint then reveal; disabled/busy states suppress repeats | Explicit Next after reveal; correctness of hand setting uses modulo twelve hours |
 | Game completion save IOException | Completed round stays visible with `SaveFailed` and Retry; no result event yet | Retry writes before navigation without duplicating final outcome; fault-injection tests exist, not rerun here |
 | New challenge best save IOException | END still displays score, old best and error; primary action retries; savePending guards duplicate work | Successful retry updates best before replay becomes available; fault-injection/interaction tests exist |
@@ -817,6 +861,7 @@ These describe boundaries visible in source, not necessarily deviations from app
 | --- | --- |
 | Earlier PROJECT.md described AGP 9.4.1 and stale catalog/lint comments | Current AGP is 9.5.0; the cited catalog and lint comment problems have been removed. Do not carry those findings forward |
 | `STATUS.md` leading update date/companion summary predates later entries | The heading still says 27 October and an early decision summary lists six companions; later 1 November entries and current source establish the newer snapshot |
+| `STATUS.md` ends with the 1 November per-slot retry correction | It does not describe all changes in `5b1e543`/`971d9e5`; current source and the separate Home performance report supply the newer behavior/evidence, with their limits |
 | `config/detekt.yml` comment mentions Compose Detekt rules 0.4.23 | Version catalog declares 0.4.28 |
 | `res/values/colors.xml` refers to `ui/theme/Color.kt` | Current Compose palette owner is `ui/theme/SkColors.kt` |
 | `domain/Hints.kt` comment refers to `ui/HintText.kt` | Current localized hint/text adapter is `ui/Texts.kt` |
@@ -825,9 +870,10 @@ These describe boundaries visible in source, not necessarily deviations from app
 | Older plan/current-state sections describe a smaller companion or clock inventory | Current code has nine companions plus none, 146 clothing/accessory items and seven named clock styles plus custom |
 | New-companion design initially describes silent new kinds until clips arrive | Bunny, unicorn and car now have packaged clips and voice mappings; silence is not the current implemented contract |
 | Language-review history contains older resource totals | Current counts are 479 default/478 per translation; do not sum or treat every checkpoint as simultaneous |
+| Previous PROJECT.md listed Android `audio/SpeechTest.kt` and 312 JVM/132 instrumentation methods | SpeechTest is host-side; current declarations are 329 JVM/124 instrumentation methods. No passing-run count follows from this inventory |
 | Plans specify profiles, everyday time tools, commercial choices and other possibilities | They are not implemented merely because their behavior is described in detail |
 
-Other files were not edited to reconcile these discrepancies. The old PROJECT.md was not a consistent snapshot: some later audio/Robolectric/Sonar changes were already described beneath its 26 October header. This update establishes one source-based snapshot. Absence of TODO markers is not evidence of completed product work; decisions and verification gaps live in the dated records.
+Other files were not edited to reconcile these discrepancies. This update replaces the previous reference's `25e6129` snapshot with `971d9e5`, while retaining dated evidence as historical. Absence of TODO markers is not evidence of completed product work; decisions and verification gaps live in the dated records.
 
 ### Concerns requiring further verification
 
@@ -845,21 +891,21 @@ Use this table to begin a focused review, then trace callers and tests. It ident
 | Review area | Entry points and dependencies | Existing evidence / question to resolve |
 | --- | --- | --- |
 | Startup and readiness | `ClocklingsApplication`, `ClocklingsApp`, `AppViewModel`, `AppLocaleProvider` | `LocaleReadFailureTest`, controller tests; can locale/store failure leave content unavailable and is retry accurate? |
-| Navigation/serialization | `Screen`, `ScreenSavedState`, `Navigator`, root `NavDisplay`, ProGuard rules | `AppFlowTest`, `ActiveLocaleStateTest`; distinguish back/skip, replacement, recreation and process death |
+| Navigation/serialization | `Screen`, `ScreenSavedState`, `Navigator`, root `NavDisplay` and go/back/playLevel guards, ProGuard rules | `NavigationFlowTest`, `AppFlowTest`, `ActiveLocaleStateTest`; distinguish source-route checks from unguarded direct replacements, back/skip, recreation and process death |
 | Coroutine ownership | Three screen ViewModels, app scope, `ClockState` animations | VM tests, motion tests; cancellation when replaced, stale callbacks, delay and timer races |
 | Progress integrity | `ProgressRepository.updateProgress`, `Progress.withLevelResult`, game completion | Repository/game tests; latest-value transform, prior snapshot, save before route event, fault injection |
 | Settings/reset | `AppViewModel` guarded writes, `SettingsScreen`, `ResetProgressDialog` | `AppSettingsTest`, `SettingsErrorTest`, `LanguageSettingsTest`; pending/dismiss/retry semantics and data retained |
 | Locale authority | `AppLocaleController`, `AppLocale.kt`, platform bridge, legacy preference | Controller/active-locale/content tests; external platform changes during migration/retry |
 | Teaching correctness | `ClockTime`, `Levels`, `Hints`, three time formatters, `LessonCatalog` | Domain language/generator/catalog tests; half-hour references, day context and non-ambiguous answer options |
 | Input and answer leakage | `ClockFace`, `ClockState`, `GameScreen`, `AskScreen`, `ReadOptions` | Surface/flow/lint tests; gestures, snapping, semantics actions, hidden-answer states |
-| Audio/resource ownership | `Speech`, engine adapter, `Sfx`, `ToneSynth`, container pause/resume | Speech/voice/tone tests; asynchronous init, current utterance errors, availability refresh, actual listening and resource lifetime |
+| Audio/resource ownership | `Speech`, engine adapter, `Sfx`, `ToneSynth`, container pause/resume | Speech/Sfx/voice/tone tests; serialized engine calls, generation/revision guards, blocking stop boundary, incremental clip readiness, actual listening and resource lifetime |
 | Appearance persistence and retry | `PersonalizationPreferences`, `Wardrobe`, `CompanionItems`, `WardrobeScreen`, `RetryableSave` | Repository/storage/art/flow, PersistenceFailure, ReviewRegression and RetryableSave tests; stable IDs, reset, per-slot failure isolation, late callbacks, retry lifetime and locked-item assumptions |
 | Challenge layout/cache | `AnswerRoom`, `ChallengeScreen`, `ClockFit`, `ActionPair` | AnswerRoomCost/RunOptionReservation/interaction tests; warm-up versus early start, width/font keys, END size retention and unmeasured device frame pacing |
-| Home/learning path | `HomeStage`, `HomeStageMath`, `PathNode`, `LessonListScreen`, `LevelsScreen` | Stage math/flow/layout tests; constrained height, NONE, current markers, direct chapter-practice navigation |
-| Drawing performance | `ClockFace`, `ClockThemeArt`, `CompanionView`, `ItemArtWindow`, rig/pose/shading caches, confetti | Pure math/stability/gallery tests; draw-phase state reads, allocation/cache growth, clipping and frame pacing |
+| Home/learning path | `rememberHomeTime` in `HomeScreen.kt`, `HomeStage`, `HomeStageMath`, `PathNode`, `LessonListScreen`, `LevelsScreen` | HomeTime/stage math/navigation/layout tests; lifecycle return, constrained height, NONE, current markers, direct chapter-practice navigation |
+| Drawing performance | `ClockFace`, `ClockThemeArt`, `CompanionView`, `ItemArtWindow`, rig/pose/shading caches, confetti | ClockFaceUpdate/math/stability/gallery tests and scoped historical Home profiling; direct mini versus animated/interactive paths, draw-phase reads, allocation/cache growth, clipping and remaining frame-time spikes |
 | Accessibility/layout | `Layout`, `Buttons`, `Display`, `CompanionTip`, `PathNode`, `SettingsScreen`, themes/text adapters | Locale/layout/intro tests; 320 dp/200% combined, focus, live regions, timer semantics, contrast |
 | Security/privacy | Manifest, backup rules, store, TTS query, dependency declarations | Source and scanner config; merged-release components, permissions and real external service boundary |
-| Release/toolchain | App/root Gradle, catalog, wrapper, verification metadata, serializers, CI | Historical reports only here; actual signed/minified artifact and current check reports needed |
+| Release/toolchain | App/root Gradle, catalog, wrapper, verification metadata, serializers, CI | Historical reports include scoped test-signed R8 Home checks; production-signed artifact, minified navigation/restore and current check reports still needed for release claims |
 | Developer tool safety | `tools/sonar.ps1`, wrappers, `.deepsec` patches and config | Sonar wrapper tests; task-owned process cleanup, upload authorization, external helper availability |
 
 Authentication, billing and cloud authorization are absent; do not spend a review inventing purchase/account flows. If the product later adds them, update the architecture and threat boundaries explicitly.
@@ -883,13 +929,13 @@ All links below are repository-relative. File names and symbols refer to this sn
 | [AppLanguage.kt](app/src/main/java/fi/clocklings/domain/AppLanguage.kt), [TimeLanguage.kt](app/src/main/java/fi/clocklings/domain/TimeLanguage.kt) | Supported-language resolution and formatter interface/factory |
 | [EnglishTime.kt](app/src/main/java/fi/clocklings/domain/EnglishTime.kt), [FinnishTime.kt](app/src/main/java/fi/clocklings/domain/FinnishTime.kt), [SwedishTime.kt](app/src/main/java/fi/clocklings/domain/SwedishTime.kt) | Language-specific time words, numeric forms, day context and greeting rules |
 | [Texts.kt](app/src/main/java/fi/clocklings/ui/Texts.kt), [AppLocale.kt](app/src/main/java/fi/clocklings/ui/locale/AppLocale.kt), [AppLocaleController.kt](app/src/main/java/fi/clocklings/ui/locale/AppLocaleController.kt) | Android resource/text bridge, locale locals/provider and platform/DataStore locale authority |
-| [Speech.kt](app/src/main/java/fi/clocklings/audio/Speech.kt), [Sfx.kt](app/src/main/java/fi/clocklings/audio/Sfx.kt), [Sound.kt](app/src/main/java/fi/clocklings/audio/Sound.kt), [ToneSynth.kt](app/src/main/java/fi/clocklings/audio/ToneSynth.kt) | Speech eligibility/lifecycle, `Sound` effects and PCM generation |
+| [Speech.kt](app/src/main/java/fi/clocklings/audio/Speech.kt), [Sfx.kt](app/src/main/java/fi/clocklings/audio/Sfx.kt), [Sound.kt](app/src/main/java/fi/clocklings/audio/Sound.kt), [ToneSynth.kt](app/src/main/java/fi/clocklings/audio/ToneSynth.kt) | Background speech orchestration/generation checks, IO clip loading/readiness, `Sound` effects and PCM generation |
 
 ### Feature screens and ViewModels
 
 | Sources | Responsibility |
 | --- | --- |
-| [HomeScreen.kt](app/src/main/java/fi/clocklings/ui/home/HomeScreen.kt), [HomeDestination.kt](app/src/main/java/fi/clocklings/ui/home/HomeDestination.kt) | `HomeScreen`, home destination mapping, current-time/companion/menu actions |
+| [HomeScreen.kt](app/src/main/java/fi/clocklings/ui/home/HomeScreen.kt), [HomeDestination.kt](app/src/main/java/fi/clocklings/ui/home/HomeDestination.kt) | `HomeScreen`, `rememberHomeTime`, home destination mapping, lifecycle-controlled current time and companion/menu actions |
 | [HomeStage.kt](app/src/main/java/fi/clocklings/ui/home/HomeStage.kt), [HomeStageMath.kt](app/src/main/java/fi/clocklings/ui/home/HomeStageMath.kt) | Flexible stage sizing, clock/companion arrangement and compact fallback |
 | [IntroScreen.kt](app/src/main/java/fi/clocklings/ui/intro/IntroScreen.kt), [IntroTimeline.kt](app/src/main/java/fi/clocklings/ui/intro/IntroTimeline.kt) | `IntroOverlay`, `IntroTimeline`: startup animation and event/semantics gate |
 | [LessonScreens.kt](app/src/main/java/fi/clocklings/ui/lesson/LessonScreens.kt), [LessonViewModel.kt](app/src/main/java/fi/clocklings/ui/lesson/LessonViewModel.kt), [LessonCatalog.kt](app/src/main/java/fi/clocklings/ui/lesson/LessonCatalog.kt) | `LessonListScreen`, `LessonScreen`, `LessonViewModel`: pages, localized authored demos, quizzes |
@@ -951,7 +997,7 @@ All links below are repository-relative. File names and symbols refer to this sn
 
 ## T. Current development state and unresolved questions
 
-The inspected branch contains implemented English/Finnish/Swedish settings and teaching flows, nine companion wardrobes, bunny/unicorn/car artwork and voices, clock themes, chapter/practice paths, flexible Home/pinned-action layouts, shared motion and save-recovery corrections through the latest per-slot retry fix. Early source-import statements in the status history are not its current development state. The document's snapshot commit identifies the code examined; it does not claim upstream branches or later commits were synchronized.
+The inspected branch contains implemented English/Finnish/Swedish settings and teaching flows, nine companion wardrobes, bunny/unicorn/car artwork and voices, clock themes, chapter/practice paths, flexible Home/pinned-action layouts, shared motion and per-slot save recovery. Changes after `25e6129` add serialized background speech, IO clip loading with incremental readiness, lifecycle-controlled Home time, direct immediate mini-clock rendering, remembered Home commands, and source-route guards for ordinary navigation/practice starts. Dragon/dinosaur audio assets also changed. Early source-import statements in the status history are not its current development state. The document's snapshot commit identifies the code examined; it does not claim upstream branches or later commits were synchronized.
 
 The owner requires completion of all agreed features and all three languages before publication. There is no authorized MVP release or automatic commitment to every activity in the product proposal. Current code implements a useful concrete inventory; deciding the final public inventory is a separate product decision.
 
@@ -964,11 +1010,12 @@ The owner requires completion of all agreed features and all three languages bef
 | Data transfer/recovery | No app export/import/backup UI; platform backup/transfer disabled by configuration |
 | Artwork acceptance/human head motion | New kinds, isolated item previews, shading and crop corrections are implemented. Historical visual observations and the separate human head-motion choice are not automatic approval for further redesign |
 | Persistence recovery | IO failure UX is implemented for completion and customization; pending retry intent/session state is not durable, Help/intro feedback remains narrower, and real storage-failure behavior is not certified |
-| Validation at current HEAD | Six focused tests/build/static/stability are reported for the latest fix; 312 is the current JVM source count, not a freshly passing suite |
+| Validation at current HEAD | Source/resource/link/diff checks in this documentation task; 329 JVM and 124 instrumentation methods inventoried. No fresh build/test execution or exact-HEAD CI result verified; historical results are scoped in N |
+| Home performance | Historical test-signed R8 emulator report shows one draw per no-companion minute update after the correction; deadline misses and companion-animation spikes remain. No universal smoothness or physical-device speedup claim |
 | Language confidence | Resource and algorithm coverage exists; full native editorial review and rare Swedish wording confidence remain bounded |
 | Spoken accessibility and audio | Historical limited focus/metadata evidence; no complete real listening/TalkBack certification |
 | Process-death experience | Full active-session continuity absent; intended product promise needs an explicit decision before redesign |
-| Release signing and artifact validation | Separate authorization required; signed/minified installed artifact not verified here |
+| Release signing and artifact validation | Separate authorization required for production signing. Historical Home checks used a test-signed minified profiling APK; no production-signed release or full minified navigation/restore certification |
 | Play readiness | Final audience/commercial/privacy/store requirements and Console state unavailable; do not infer publication readiness from debug checks |
 | Current security/quality dashboards | Not queried; only repository configuration and dated reports available |
 

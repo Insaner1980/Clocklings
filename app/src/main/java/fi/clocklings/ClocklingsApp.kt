@@ -256,8 +256,7 @@ fun ClocklingsApp(
                         }
                         if (!introDone) {
                             IntroOverlay(
-                                p.outfitFor(s.personalization.companion),
-                                onTick = { app.play(Sound.TICK) },
+                                onTick = { app.play(Sound.INTRO) },
                                 onDone = { introDone = true },
                             )
                         }

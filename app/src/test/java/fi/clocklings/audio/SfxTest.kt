@@ -68,33 +68,33 @@ class SfxTest {
             sfx.play(Sound.BAD)
             assertFalse(shadow.wasResourcePlayed(R.raw.wrong))
             BlockingSoundPool.laterRelease.countDown()
-            runBlocking {
-                withTimeout(5_000) {
-                    scope.coroutineContext.job.children
-                        .toList()
-                        .joinAll()
-                }
-            }
+            awaitLoading(scope)
             sfx.play(Sound.BAD)
             assertFalse(shadow.wasResourcePlayed(R.raw.wrong))
             assertFalse(BlockingSoundPool.loadedOnCaller.get())
             assertFalse(BlockingSoundPool.timedOut.get())
+            sfx.play(Sound.INTRO)
+            assertTrue(shadow.wasResourcePlayed(R.raw.clocklings))
         } finally {
             BlockingSoundPool.release.countDown()
             BlockingSoundPool.laterRelease.countDown()
             try {
-                runBlocking {
-                    withTimeout(5_000) {
-                        scope.coroutineContext.job.children
-                            .toList()
-                            .joinAll()
-                    }
-                }
+                awaitLoading(scope)
             } finally {
                 scope.cancel()
                 sfx.stopAll()
                 ReflectionHelpers.getField<Map<Sound, AudioTrack>>(sfx, "tracks").values.forEach { it.release() }
                 pool.release()
+            }
+        }
+    }
+
+    private fun awaitLoading(scope: CoroutineScope) {
+        runBlocking {
+            withTimeout(5_000) {
+                scope.coroutineContext.job.children
+                    .toList()
+                    .joinAll()
             }
         }
     }

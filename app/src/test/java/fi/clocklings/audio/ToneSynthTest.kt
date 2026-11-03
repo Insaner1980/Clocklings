@@ -11,7 +11,6 @@ class ToneSynthTest {
     @Test
     fun `tones match the web version`() {
         assertEquals(listOf(880.0), ToneSynth.tones(Sound.POP).map { it.freq })
-        assertEquals(listOf(1760.0, 1320.0), ToneSynth.tones(Sound.TICK).map { it.freq })
     }
 
     @Test

@@ -2,6 +2,7 @@ package fi.clocklings.data
 
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import fi.clocklings.domain.CompanionColor
 import fi.clocklings.domain.CompanionKind.CAT
@@ -13,10 +14,13 @@ import fi.clocklings.domain.Outfit
 import fi.clocklings.domain.Progress
 import fi.clocklings.domain.Settings
 import fi.clocklings.domain.Slot
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -26,6 +30,50 @@ class ProgressRepositoryTest {
     private val scope = TestScope(StandardTestDispatcher())
     private val store = InMemoryPreferencesStore()
     private val repository = ProgressRepository(store)
+
+    @Test
+    fun invalidStarAndBestValuesAreClampedWithoutDroppingValidFields() =
+        scope.runTest {
+            store.edit { preferences ->
+                listOf(-1, 0, 3, 4, 2).forEachIndexed { index, value ->
+                    preferences[intPreferencesKey("stars_$index")] = value
+                }
+                preferences[intPreferencesKey("challenge_best")] = -1
+                preferences[stringPreferencesKey("doll_name")] = "Mia"
+            }
+            val progress = repository.progress.first()
+            assertEquals(listOf(0, 0, 3, 3, 2), progress.stars)
+            assertEquals(0, progress.challengeBest)
+            assertEquals("Mia", progress.nameFor(HUMAN))
+        }
+
+    @Test
+    fun queuedDisjointTransformsAndResetFollowSerializedCommitOrder() =
+        scope.runTest {
+            val release = CompletableDeferred<Unit>()
+            val first =
+                launch {
+                    store.updateData { preferences ->
+                        release.await()
+                        preferences.toMutablePreferences().apply { this[intPreferencesKey("stars_0")] = 3 }
+                    }
+                }
+            runCurrent()
+            val name = launch { repository.updateProgress { it.withName(CAT, "Mia") } }
+            val settings = launch { repository.updateSettings { it.copy(sound = false) } }
+            runCurrent()
+            assertEquals(Progress(), repository.progress.first())
+            release.complete(Unit)
+            first.join()
+            name.join()
+            settings.join()
+            assertEquals(3, repository.progress.first().totalStars)
+            assertEquals("Mia", repository.progress.first().nameFor(CAT))
+            assertEquals(false, repository.settings.first().sound)
+            repository.resetProgress()
+            assertEquals(Progress(), repository.progress.first())
+            assertEquals(false, repository.settings.first().sound)
+        }
 
     @Test
     fun `empty store gives defaults`() =

@@ -1,6 +1,6 @@
 package fi.clocklings.ui.intro
 
-import fi.clocklings.domain.ClockTime
+import fi.clocklings.ui.companion.CompanionPose
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -10,38 +10,26 @@ class IntroTimelineTest {
     private val eps = 0.001f
 
     @Test
-    fun `hands start on the hour an hour before and make one sweep forward`() {
-        assertEquals(8 * 60, T.spinFrom(9 * 60 + 37))
-        assertEquals(14 * 60, T.spinFrom(15 * 60))
-        // Puolenyön yli: 0.15 alkaa edellisen vuorokauden puolelta.
-        assertEquals(23 * 60, T.spinFrom(15))
-        for (target in 0 until ClockTime.DAY) {
-            val delta = ClockTime.circularDelta(T.spinFrom(target).toFloat(), target.toFloat(), ClockTime.HALF_DAY)
-            assertTrue("$target: $delta", delta >= 60f && delta < 120f)
+    fun `mascot hops waves and blinks but stays still with reduced motion`() {
+        val frames = (0L..T.FADE_START_MS step 10L).map { logoPose(it, reducedMotion = false) }
+        assertTrue(frames.any { it.lift > 5f })
+        assertTrue(frames.any { it.armDeg > 60f })
+        assertTrue(frames.any { it.blink > 0.9f })
+        assertEquals(0f, logoPose(T.TICK_AT_MS, reducedMotion = false).lift, eps)
+        assertTrue(T.TICK_AT_MS < T.FADE_START_MS)
+        for (time in 0L..T.END_MS step 10L) {
+            assertEquals(CompanionPose(), logoPose(time, reducedMotion = true))
         }
     }
 
     @Test
-    fun `clock pops in with a small overshoot and settles`() {
-        assertEquals(T.CLOCK_START_SCALE, T.clockScale(0L), eps)
-        assertTrue((0L..T.CLOCK_IN_MS step 10L).any { T.clockScale(it) > 1f })
-        assertEquals(1f, T.clockScale(T.CLOCK_IN_MS), eps)
-        assertEquals(1f, T.clockScale(T.END_MS), eps)
-        assertEquals(0f, T.clockAlpha(0L), eps)
-        assertEquals(1f, T.clockAlpha(T.CLOCK_FADE_MS), eps)
-    }
-
-    @Test
-    fun `hands stop well before the fade`() {
-        assertTrue(T.SPIN_START_MS + T.SPIN_MS < T.FADE_START_MS)
-    }
-
-    @Test
-    fun `doll rises into place before it starts jumping`() {
-        assertEquals(T.DOLL_RISE, T.dollDrop(0L), eps)
-        assertEquals(0f, T.dollAlpha(T.DOLL_IN_START_MS), eps)
-        assertEquals(0f, T.dollDrop(T.DOLL_JUMP_AT_MS), eps)
-        assertEquals(1f, T.dollAlpha(T.DOLL_JUMP_AT_MS), eps)
+    fun `mascot pops in with a small overshoot and settles`() {
+        assertEquals(T.MASCOT_START_SCALE, T.mascotScale(0L), eps)
+        assertTrue((0L..T.MASCOT_IN_MS step 10L).any { T.mascotScale(it) > 1f })
+        assertEquals(1f, T.mascotScale(T.MASCOT_IN_MS), eps)
+        assertEquals(1f, T.mascotScale(T.END_MS), eps)
+        assertEquals(0f, T.mascotAlpha(0L), eps)
+        assertEquals(1f, T.mascotAlpha(T.MASCOT_FADE_MS), eps)
     }
 
     @Test

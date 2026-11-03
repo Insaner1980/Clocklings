@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -30,6 +31,25 @@ class GameViewModelTest {
 
     private val scope = TestScope(mainDispatcher.dispatcher)
     private val services = FakeServices()
+
+    @Test
+    fun repeatedAnswerCannotAdvanceBefore1500MillisecondsOrSkipATask() =
+        scope.runTest {
+            val vm = game()
+            val answer = vm.state.value.task.time
+            vm.pick(answer)
+            vm.pick(answer)
+            runCurrent()
+            advanceTimeBy(1499)
+            vm.pick(answer)
+            assertEquals(0, vm.state.value.taskIndex)
+            assertEquals(1, vm.state.value.celebrate)
+            assertEquals(listOf(Sound.OK), services.sounds)
+            advanceTimeBy(1)
+            runCurrent()
+            assertEquals(1, vm.state.value.taskIndex)
+            assertEquals(1, vm.state.value.outcomes.size)
+        }
 
     private fun game(
         level: Int = 0,

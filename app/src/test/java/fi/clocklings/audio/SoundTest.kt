@@ -9,11 +9,10 @@ import org.junit.Test
 
 class SoundTest {
     @Test
-    fun `feedback sounds and companion voices are recorded clips`() {
-        val recorded = Sound.entries - Sound.POP - Sound.TICK
+    fun `intro feedback sounds and companion voices are recorded clips`() {
+        val recorded = Sound.entries - Sound.POP
         for (sound in recorded) assertNotNull("$sound", sound.clip)
         assertNull(Sound.POP.clip)
-        assertNull(Sound.TICK.clip)
     }
 
     @Test

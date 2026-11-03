@@ -40,7 +40,15 @@ internal fun NameField(
     val label = stringResource(R.string.doll_name_label)
     BasicTextField(
         value = text,
-        onValueChange = { onChange(it.take(MAX_NAME)) },
+        onValueChange = {
+            val end =
+                if (it.length > MAX_NAME && it[MAX_NAME - 1].isHighSurrogate() && it[MAX_NAME].isLowSurrogate()) {
+                    MAX_NAME - 1
+                } else {
+                    MAX_NAME
+                }
+            onChange(it.take(end))
+        },
         singleLine = true,
         textStyle = SkType.NameField.copy(textAlign = TextAlign.Center),
         cursorBrush = SolidColor(SkColors.Hour),
