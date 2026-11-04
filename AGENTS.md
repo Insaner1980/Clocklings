@@ -35,3 +35,8 @@
 - Work on a `codex/` feature branch.
 - Do not commit, push, create a remote repository, or create/merge a pull request without a separate explicit request. The owner creates pull requests manually.
 - Report concisely in Finnish: implemented work, checks actually run, and unresolved decisions or verification gaps.
+
+## Offline security scans
+
+- A successful coordinating-agent `sonar analyze secrets` check satisfies the secrets-before-read requirement for the exact unchanged files it covered. Provide the checked scope, Git revision, and successful result to offline workers; they may read those files without rerunning Sonar or accessing the system keychain.
+- Files outside that successful check, or changed afterwards, still require a successful secrets check before reading. Never pass credentials to workers.

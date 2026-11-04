@@ -301,9 +301,11 @@ private fun GameClock(
     onClockChange: (Int) -> Unit,
     clockSize: Dp,
 ) {
+    // Restore the latest answer on recreation without reapplying each drag update to the live clock.
+    val command = remember(state.clock.id) { state.clock }
     ClockBox(clockSize) {
         ClockFace(
-            command = state.clock,
+            command = command,
             modifier = Modifier.sharedClocklingsElement("level-clock-${state.level}"),
             period = ClockTime.period(state.h24),
             step = state.step,

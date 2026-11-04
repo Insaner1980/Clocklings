@@ -15,11 +15,14 @@ import fi.clocklings.ui.theme.ClocklingsTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class ChallengeScreenTest {
-    @get:Rule val compose = createComposeRule()
+    private val compose = createComposeRule()
+
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(EnglishLocaleRule()).around(compose)
 
     @Test
     fun challengeShowsOptionsDisablesAnswersAndOffersReplay() {

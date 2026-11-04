@@ -72,6 +72,7 @@
     <string name="level_viisi">Fem minuter i taget</string>
     <string name="level_minuutit">Exakta minuter</string>
     <string name="challenge_title">Minututmaningen</string>
+    <string name="challenge_time_remaining">Tid kvar</string>
     <string name="challenge_desc">Hur många hinner du svara på en minut?</string>
     <string name="record">Bästa resultat: %1$d</string>
     <string name="question_set">Ställ klockan på</string>

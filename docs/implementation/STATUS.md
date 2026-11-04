@@ -1,6 +1,6 @@
 # Clocklings implementation
 
-Updated: 27 October 2026. Earlier dated checkpoints remain below. This is an internal construction record, not a release or an agreed final feature inventory.
+Updated: 4 November 2026. Earlier dated checkpoints remain below. This is an internal construction record, not a release or an agreed final feature inventory.
 
 ## Authority and decisions
 
@@ -10,10 +10,10 @@ The owner's current instructions override both copied proposals. In particular, 
 | --- | --- |
 | Workspace | Confirmed: `C:\Dev\Clocklings`. Independent local repository; current work is on `codex/localization-settings`. |
 | Identity | Confirmed: app **Clocklings**, Play title **Clocklings: Learn to Tell Time**, application ID and namespace `fi.clocklings`. |
-| Languages | Confirmed: English first, then Finnish and one shared Swedish version. All three completed before the single complete public release. |
+| Languages | Expanded by the owner on 4 November 2026: English, Finnish, shared Swedish, German, French, Spain Spanish (`es-ES`), and Brazilian Portuguese (`pt-BR`). Device `pt` and `pt-PT` also select Brazilian content, as explicitly confirmed by the owner. All languages belong to the single complete public release. |
 | English expressions | Confirmed: shared past/to style, including “quarter past three”, “half past three”, and “quarter to four”; numeric time alongside. No separate British/American modes. |
 | Together | Confirmed: set a time, ask, reveal, and swap turns. No assumed family roles. Cooperative stories, split-screen racing, and other variants remain proposals. |
-| Speech | Confirmed: on-demand speech when an installed offline voice in the content language is available; learning still works without it. Regional English/Swedish voice tags do not create separate content variants. |
+| Speech | Confirmed: on-demand speech when an installed offline voice in the content language is available; learning still works without it. Regional English/Swedish voice tags do not create separate content variants. Brazilian Portuguese requires an installed Brazilian offline voice; European Portuguese is not a voice fallback. |
 | Companions | Confirmed by the owner on 21 October: human, cat, dog, robot, dragon, dinosaur, and no-companion mode. |
 | Clock appearances | Confirmed by the owner on 21 October: classic, rainbow, space, forest, ocean, garden, workshop, and a constrained custom clock. |
 | Exclusions | No curriculum mapping, Teacher Approved work, or partial/MVP publication. |
@@ -24,6 +24,32 @@ The owner's current instructions override both copied proposals. In particular, 
 | Publication | No commits, pushes, remote creation, signing-key setup, uploads, or pull requests authorized. |
 
 Before their dependent implementation, resolve the final activity inventory, profiles, rewards/session rules, everyday timer/routines/widget, commercial model, data transfer, adult controls, and final audience declaration. Existing copied wardrobe/reward behavior remains a development baseline for broader reward decisions. The companion and clock inventory above is now explicitly approved.
+
+## German, French, Spanish and Brazilian Portuguese — 4 November 2026
+
+- Added all four languages to the app language picker, device-language resolution, and Android locale configuration. Each new language supplies all 483 translatable resource entries, including lessons, accessibility text, settings, companion items, and personalization.
+- Added separate clock-language formatters and fixtures for German, French, Spain Spanish, and Brazilian Portuguese. They cover hour/minute agreement, quarter/half-hour expressions, midnight/noon, day context, numeric readings, and all minute values. The half-hour lesson names the following hour in German and the current hour in French, Spanish, and Portuguese; clock values and saved lesson identifiers are unchanged.
+- The owner's Portuguese decision applies to `pt`, `pt-PT`, and `pt-BR` UI settings. Speech accepts only installed offline Brazilian Portuguese voices; learning remains available without one. Spanish and Portuguese full-sentence speech uses the appropriate singular/plural wording.
+- The supplied [language research](../localization/de-fr-es-pt-br-language-research.md) informed implementation; its proposals do not independently authorize product changes. Existing architecture, dependencies, and toolchain are unchanged.
+
+Validation actually run:
+
+- `:app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest :app:ktlintCheck` passed: 375 JVM tests, zero failures/errors/skips. After the final UI checks prompted shorter tab labels, debug assembly passed again; the targeted resource-adapter suite also passed all five tests after the Spanish/Portuguese label changes.
+- `tools/check-localization.ps1` passed for all seven languages, including resource keys, types, argument signatures, plural branches, and array sizes. All ten checker self-tests passed. Final resource parity and `git diff --check` passed.
+- On the dedicated API 36 `ClocklingsReview20261030` emulator, the baseline localization, language settings, clock surfaces, and save-failure suite passed 16 tests. Independent content fixtures cover 63 lesson answers across seven languages, locale selection/recreation, half-hour references, and Spanish/Portuguese sentence agreement.
+- Settings/reset and exact-minute/half-hour controls passed at 360 dp and 320 dp with both 100% and 200% font scale, including 320 dp / 200%. Save-failure layouts also passed their seven-language, four-size/font matrix. The appearance-tab word-boundary check exposed long translated labels; the labels were shortened and the final APK was checked again in all four display configurations.
+- The final 360 dp / 100% tab-check invocation stalled without a test result. Only the test app was force-stopped; the identical isolated retry passed in 17.6 seconds. The cause of that stall was not established. The other three final configurations passed on their first invocation.
+- These are automated emulator layout and interaction checks, not a manual visual, TalkBack, native-speaker, or real TTS listening review. Those reviews remain unverified; owner-run `lc` and `sc` were not run. No physical device was targeted.
+
+Current debug deliverable: `app/build/outputs/apk/debug/app-debug.apk`. Existing uncommitted work is preserved; no commit, push, or pull request was made.
+
+## Dependency security and commit validation — 4 November 2026
+
+- Verified Dependabot alert 21 ([GHSA-rmxm-3fg6-px4f](https://github.com/honojs/node-server/security/advisories/GHSA-rmxm-3fg6-px4f)): the pending `@hono/node-server` override to 2.1.6 removes the affected 2.1.1 dependency. The fresh DeepSec audit also found [minimatch pattern amplification](https://github.com/advisories/GHSA-g3hv-75wg-m249) and [glob cancellation bypass](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4). Pinned minimatch 11.0.4 and glob 14.0.3 and regenerated the pnpm lockfile. Android dependencies and source behavior were not changed by this security follow-up.
+- Frozen-lockfile installation, all 10 DeepSec tests, CLI startup, and `pnpm audit --prod` passed; the audit reports no known vulnerabilities. Added compatibility coverage for the actual consumers' minimatch imports, glob discovery options, and cancelled traversal.
+- The complete JVM suite was explicitly rerun: **375 tests, zero failures/errors/skips**. Debug app/test APK builds, `ktlintCheck`, `detekt`, `lintDebug`, and debug/release `stabilityCheck` passed; Gradle reused unchanged outputs where applicable. Resource parity across all seven languages and all 10 checker self-tests passed. Existing Robolectric UI tests include 320 dp, 200% font scale, and their combination. No emulator/device tests, manual visual review, real TTS listening, TalkBack, or owner `lc`/`sc` ran in this follow-up.
+- Sonar secrets checks passed for the repository source/configuration files. A separate scan of installed DeepSec flagged its bundled Terraform rule example in `dist/config.mjs`; with owner authorization, redacted context confirmed example content rather than an application credential. Installed packages remain excluded from Git.
+- The GitHub alert still requires the corrected lockfile to reach the repository's default branch through the owner's pull request. Feature-branch validation does not claim that the remote alert is closed or that post-push CI has passed.
 
 ## Source import and preservation
 

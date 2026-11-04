@@ -107,8 +107,10 @@ fun AppearanceScreen(
         bottomBar =
             save.retry?.let { retry ->
                 {
-                    Text(stringResource(R.string.settings_save_error), style = SkType.Body)
-                    SkButton(stringResource(R.string.settings_retry), retry, Modifier.fillMaxWidth())
+                    Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapS)) {
+                        Text(stringResource(R.string.settings_save_error), style = SkType.Body)
+                        SkButton(stringResource(R.string.settings_retry), retry, Modifier.fillMaxWidth())
+                    }
                 }
             },
     ) { clockSize ->
@@ -147,14 +149,13 @@ private fun CompanionChoices(
     val currentOnChange by rememberUpdatedState(onChange)
     val pager = rememberPagerState(initialPage = kind.ordinal) { CompanionKind.entries.size }
     LaunchedEffect(pager) {
+        // Restore the committed choice once. Older saves must not move the pager after a newer user choice.
+        if (pager.settledPage != kind.ordinal) pager.scrollToPage(kind.ordinal)
         snapshotFlow { pager.settledPage }.drop(1).collect { page ->
             val chosen = CompanionKind.entries[page]
             currentOnChange { it.copy(companion = chosen) }
             companionVoice(chosen)?.let(app::play)
         }
-    }
-    LaunchedEffect(kind) {
-        if (!pager.isScrollInProgress && pager.settledPage != kind.ordinal) pager.scrollToPage(kind.ordinal)
     }
     Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapM)) {
         CompanionPager(pager, progress, previewHeight)

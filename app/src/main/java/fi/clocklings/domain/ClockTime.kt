@@ -16,6 +16,9 @@ data class ClockReading(
     val minute: Int,
 ) {
     val nextHour: Int get() = hour % ClockTime.HOURS_PER_HALF_DAY + 1
+
+    /** Teaching sun indicator for a reading made with 24-hour context. */
+    val isSun: Boolean get() = hour in SUNRISE_HOUR until SUNSET_HOUR
 }
 
 /**
@@ -173,6 +176,8 @@ object ClockTime {
 }
 
 private const val HALF = 0.5f
+private const val SUNRISE_HOUR = 6
+private const val SUNSET_HOUR = 18
 private const val EASING_MULTIPLIER = 2f
 private const val MIN_ANIMATION_MS = 200
 private const val MS_PER_MINUTE = 3f

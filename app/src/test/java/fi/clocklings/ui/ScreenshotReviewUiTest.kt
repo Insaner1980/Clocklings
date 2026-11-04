@@ -4,7 +4,12 @@ import android.content.res.Configuration
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -17,21 +22,32 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.emptyPreferences
+import androidx.lifecycle.viewModelScope
 import androidx.test.core.app.ApplicationProvider
+import fi.clocklings.AppServices
 import fi.clocklings.ClocklingsApplication
+import fi.clocklings.R
+import fi.clocklings.data.ProgressRepository
 import fi.clocklings.domain.AppLanguage
 import fi.clocklings.domain.CompanionColor
 import fi.clocklings.domain.CompanionKind
+import fi.clocklings.domain.Personalization
 import fi.clocklings.domain.Progress
 import fi.clocklings.domain.Wardrobe
 import fi.clocklings.domain.slots
+import fi.clocklings.ui.appearance.AppearanceScreen
 import fi.clocklings.ui.companion.WardrobeScreen
 import fi.clocklings.ui.components.OptionButton
 import fi.clocklings.ui.lesson.LessonCatalog
@@ -40,12 +56,19 @@ import fi.clocklings.ui.lesson.LessonScreen
 import fi.clocklings.ui.lesson.LessonUiState
 import fi.clocklings.ui.locale.LocalAppLanguage
 import fi.clocklings.ui.theme.ClocklingsTheme
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import java.io.IOException
 import java.util.Locale
 
 @RunWith(RobolectricTestRunner::class)
@@ -53,11 +76,46 @@ class ScreenshotReviewUiTest {
     @get:Rule val compose = createComposeRule()
 
     @Test
-    fun lockedItemDescriptionsUseTheThresholdQuantityInEveryLanguageAndDisplaySize() {
+    fun personalizationSaveErrorsStayAboveTheirRetryActionsInEveryLanguageAndDisplaySize() {
         val app = ApplicationProvider.getApplicationContext<ClocklingsApplication>()
-        val model = AppViewModel(FakeServices())
+        val store =
+            object : DataStore<Preferences> {
+                override val data = MutableStateFlow(emptyPreferences())
+
+                override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences =
+                    throw IOException("Synthetic personalization write failure")
+            }
+        val services =
+            object : AppServices by FakeServices() {
+                override val repository = ProgressRepository(store)
+            }
+        val model = AppViewModel(services)
+        val wardrobe = mutableStateOf(false)
         val language = mutableStateOf("en")
         val viewport = mutableStateOf(411 to 1f)
+        setLocalizedContent(model, language, viewport) {
+            key(wardrobe.value) {
+                if (wardrobe.value) {
+                    WardrobeScreen(CompanionKind.CAT, Progress(), CompanionColor.ORIGINAL, {})
+                } else {
+                    AppearanceScreen(Personalization(), Progress(), {}, {})
+                }
+            }
+        }
+        try {
+            assertPersonalizationSaveErrorLayouts(app, wardrobe, language, viewport)
+        } finally {
+            model.viewModelScope.cancel()
+        }
+    }
+
+    private fun setLocalizedContent(
+        model: AppViewModel,
+        language: MutableState<String>,
+        viewport: MutableState<Pair<Int, Float>>,
+        content: @Composable () -> Unit,
+    ) {
+        val app = ApplicationProvider.getApplicationContext<ClocklingsApplication>()
         compose.setContent {
             val context =
                 app.createConfigurationContext(
@@ -73,10 +131,127 @@ class ScreenshotReviewUiTest {
             ) {
                 ClocklingsTheme {
                     Box(Modifier.requiredSize(viewport.value.first.dp, 640.dp)) {
-                        WardrobeScreen(CompanionKind.CAT, Progress(), CompanionColor.ORIGINAL, {})
+                        content()
                     }
                 }
             }
+        }
+    }
+
+    private fun assertPersonalizationSaveErrorLayouts(
+        app: ClocklingsApplication,
+        wardrobe: MutableState<Boolean>,
+        language: MutableState<String>,
+        viewport: MutableState<Pair<Int, Float>>,
+    ) {
+        for (showWardrobe in listOf(false, true)) {
+            compose.runOnIdle {
+                wardrobe.value = showWardrobe
+                language.value = "en"
+                viewport.value = 411 to 1f
+            }
+            if (showWardrobe) {
+                compose
+                    .onNodeWithContentDescription("Companion name")
+                    .performScrollTo()
+                    .performTextReplacement("Draft")
+            } else {
+                compose.onNodeWithText("Clock styles").performClick()
+                compose.onNodeWithTag("choose_clock_SPACE").performScrollTo().performClick()
+            }
+            compose.waitUntil(10_000) {
+                compose
+                    .onAllNodesWithText(app.getString(R.string.settings_save_error))
+                    .fetchSemanticsNodes()
+                    .isNotEmpty()
+            }
+            for (tag in listOf("en", "fi", "sv")) {
+                for (cell in listOf(411 to 1f, 320 to 1f, 411 to 2f, 320 to 2f)) {
+                    compose.runOnIdle {
+                        language.value = tag
+                        viewport.value = cell
+                    }
+                    val context =
+                        app.createConfigurationContext(
+                            Configuration(app.resources.configuration).apply {
+                                setLocale(Locale.forLanguageTag(tag))
+                            },
+                        )
+                    val error = compose.onNodeWithText(context.getString(R.string.settings_save_error))
+                    val retry = compose.onNodeWithText(context.getString(R.string.settings_retry))
+                    error.assertIsDisplayed()
+                    retry.assertIsDisplayed()
+                    val errorBottom = error.fetchSemanticsNode().boundsInRoot.bottom
+                    val retryTop = retry.fetchSemanticsNode().boundsInRoot.top
+                    assertTrue("$showWardrobe / $tag / $cell: error overlaps Retry", errorBottom <= retryTop)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun olderCompanionSaveDoesNotReplaceTheLaterSettledChoice() {
+        val pending = Channel<CompletableDeferred<Unit>>(Channel.UNLIMITED)
+        val mutex = Mutex()
+        var writes = 0
+        val store =
+            object : DataStore<Preferences> {
+                override val data = MutableStateFlow(emptyPreferences())
+
+                override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences {
+                    writes++
+                    return mutex.withLock {
+                        val release = CompletableDeferred<Unit>()
+                        pending.send(release)
+                        release.await()
+                        transform(data.value).also { data.value = it }
+                    }
+                }
+            }
+        val services =
+            object : AppServices by FakeServices() {
+                override val repository = ProgressRepository(store)
+            }
+        val model = AppViewModel(services)
+        compose.setContent {
+            val settings by model.settings.collectAsState()
+            CompositionLocalProvider(LocalAppViewModel provides model) {
+                ClocklingsTheme {
+                    AppearanceScreen(settings?.personalization ?: Personalization(), Progress(), {}, {})
+                }
+            }
+        }
+        try {
+            compose.onNodeWithTag("choose_companion_CAT").performScrollTo().performClick()
+            compose.waitUntil(10_000) { writes == 1 }
+            val first = pending.tryReceive().getOrThrow()
+            compose.onNodeWithTag("choose_companion_DOG").performScrollTo().performClick()
+            compose.waitUntil(10_000) { writes == 2 }
+            compose.runOnIdle { first.complete(Unit) }
+            compose.waitForIdle()
+            compose.runOnIdle {
+                assertEquals("An old committed selection must not enqueue a new pager selection", 2, writes)
+                pending.tryReceive().getOrThrow().complete(Unit)
+            }
+            compose.waitUntil(10_000) {
+                model.settings.value
+                    ?.personalization
+                    ?.companion == CompanionKind.DOG
+            }
+            compose.runOnIdle { assertEquals(2, writes) }
+        } finally {
+            model.viewModelScope.cancel()
+            pending.cancel()
+        }
+    }
+
+    @Test
+    fun lockedItemDescriptionsUseTheThresholdQuantityInEveryLanguageAndDisplaySize() {
+        val model = AppViewModel(FakeServices())
+        val language = mutableStateOf("en")
+        val viewport = mutableStateOf(411 to 1f)
+        setLocalizedContent(model, language, viewport) {
+            WardrobeScreen(CompanionKind.CAT, Progress(), CompanionColor.ORIGINAL, {})
         }
         val descriptions =
             mapOf(

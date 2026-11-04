@@ -224,6 +224,10 @@ private fun languageName(language: AppLanguage?): String =
             AppLanguage.ENGLISH -> R.string.language_english
             AppLanguage.FINNISH -> R.string.language_finnish
             AppLanguage.SWEDISH -> R.string.language_swedish
+            AppLanguage.GERMAN -> R.string.language_german
+            AppLanguage.FRENCH -> R.string.language_french
+            AppLanguage.SPANISH -> R.string.language_spanish
+            AppLanguage.PORTUGUESE_BRAZIL -> R.string.language_portuguese_brazil
         },
     )
 

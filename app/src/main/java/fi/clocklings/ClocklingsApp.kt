@@ -92,19 +92,19 @@ fun ClocklingsApp(
                         val nav = remember(backStack) { Navigator(backStack) }
                         // Ignore repeated or delayed callbacks from a destination that has already left.
                         val go = { from: Screen, screen: Screen ->
-                            if (backStack.last() == from) {
+                            nav.ifCurrent(from) {
                                 app.play(Sound.POP)
                                 nav.push(screen)
                             }
                         }
                         val back = { from: Screen ->
-                            if (backStack.last() == from) {
+                            nav.ifCurrent(from) {
                                 app.play(Sound.POP)
                                 nav.pop()
                             }
                         }
                         val playLevel = { from: Screen, level: Int, replaceTop: Boolean ->
-                            if (backStack.last() == from) {
+                            nav.ifCurrent(from) {
                                 app.play(Sound.POP)
                                 nav.startLevel(level, app.startLevel(level), replaceTop)
                             }
@@ -201,9 +201,11 @@ fun ClocklingsApp(
                                                 LessonRoute(
                                                     key = key,
                                                     speechAvailable = speech,
-                                                    onLeave = { nav.pop() },
+                                                    onLeave = { nav.ifCurrent(key) { nav.pop() } },
                                                     onStartGame = { level ->
-                                                        nav.replace(Screen.Game(level, round = System.nanoTime()))
+                                                        nav.ifCurrent(key) {
+                                                            nav.replace(Screen.Game(level, round = System.nanoTime()))
+                                                        }
                                                     },
                                                 )
                                             }
@@ -224,7 +226,9 @@ fun ClocklingsApp(
                                                     s.h24,
                                                     s.help,
                                                     onBack = { back(key) },
-                                                    onFinish = { nav.replace(it) },
+                                                    onFinish = { result ->
+                                                        nav.ifCurrent(key) { nav.replace(result) }
+                                                    },
                                                 )
                                             }
                                             entry<Screen.Result> { key ->
@@ -232,17 +236,25 @@ fun ClocklingsApp(
                                                     result = key,
                                                     outfit = p.outfitFor(s.personalization.companion),
                                                     onPlayAgain = {
-                                                        app.play(Sound.POP)
-                                                        nav.replace(Screen.Game(key.level, round = System.nanoTime()))
+                                                        nav.ifCurrent(key) {
+                                                            app.play(Sound.POP)
+                                                            nav.replace(
+                                                                Screen.Game(key.level, round = System.nanoTime()),
+                                                            )
+                                                        }
                                                     },
                                                     onNextLevel = { playLevel(key, key.level + 1, true) },
                                                     onDress = {
-                                                        app.play(Sound.POP)
-                                                        nav.replace(Screen.Wardrobe)
+                                                        nav.ifCurrent(key) {
+                                                            app.play(Sound.POP)
+                                                            nav.replace(Screen.Wardrobe)
+                                                        }
                                                     },
                                                     onLevels = {
-                                                        app.play(Sound.POP)
-                                                        nav.popTo(Screen.Levels)
+                                                        nav.ifCurrent(key) {
+                                                            app.play(Sound.POP)
+                                                            nav.popTo(Screen.Levels)
+                                                        }
                                                     },
                                                     onSound = app::play,
                                                 )

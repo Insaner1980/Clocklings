@@ -48,6 +48,7 @@ import fi.clocklings.ui.theme.ClocklingsTheme
 import fi.clocklings.ui.theme.SkColors
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.RuleChain
 import java.io.File
 
 /** Deterministic, actual Compose renders for visual review at the default test viewport. */
@@ -63,7 +64,9 @@ class PersonalizationGalleryTest {
             Outfit.default(kind)
         }
 
-    @get:Rule val compose = createComposeRule()
+    private val compose = createComposeRule()
+
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(EnglishLocaleRule()).around(compose)
 
     @Test
     fun companionArtwork() {

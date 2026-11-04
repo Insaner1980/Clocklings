@@ -22,4 +22,8 @@
     <string name="settings_retry">Yritä uudelleen</string>
     <string name="settings_speech_info_available">Ääneen lukeminen on käytössä tällä kielellä. Puhe alkaa vain, kun napautat kaiutinta.</string>
     <string name="settings_speech_info_unavailable">Ääneen lukeminen ei ole käytössä tällä kielellä.</string>
+    <string name="language_german">Deutsch</string>
+    <string name="language_french">Français</string>
+    <string name="language_spanish">Español (España)</string>
+    <string name="language_portuguese_brazil">Português (Brasil)</string>
 </resources>

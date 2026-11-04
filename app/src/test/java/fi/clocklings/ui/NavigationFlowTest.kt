@@ -36,6 +36,23 @@ class NavigationFlowTest {
     private val viewport = mutableStateOf(411 to 1f)
 
     @Test
+    fun repeatedLessonBackReturnsOnlyToTheLessonList() {
+        compose.setContent { App() }
+        awaitHome()
+        val openLearn = clickAction("Learn")
+        compose.runOnIdle { openLearn() }
+        val openLesson = clickAction("Two hands.")
+        compose.runOnIdle { openLesson() }
+        val leaveLesson = clickAction("Back")
+        compose.runOnIdle {
+            leaveLesson()
+            leaveLesson()
+        }
+        clickAction("Two hands.")
+        compose.onNodeWithText("My Companion").assertDoesNotExist()
+    }
+
+    @Test
     fun repeatedAndStaleCallbacksDoNotDuplicateOrSkipDestinations() {
         compose.setContent { App() }
         awaitHome()

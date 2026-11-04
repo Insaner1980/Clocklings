@@ -20,6 +20,11 @@ class MainActivity : ComponentActivity() {
         setContent { ClocklingsApp() }
     }
 
+    override fun onResume() {
+        super.onResume()
+        (application as ClocklingsApplication).container.resume()
+    }
+
     override fun onPause() {
         super.onPause()
         (application as ClocklingsApplication).container.pause()

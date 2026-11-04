@@ -62,6 +62,7 @@
     <string name="level_viisi">Five-minute steps</string>
     <string name="level_minuutit">Exact minutes</string>
     <string name="challenge_title">Minute Challenge</string>
+    <string name="challenge_time_remaining">Time remaining</string>
     <string name="challenge_desc">How many can you answer in one minute?</string>
     <string name="record">Best score: %1$d</string>
     <string name="question_set">Set the clock to</string>

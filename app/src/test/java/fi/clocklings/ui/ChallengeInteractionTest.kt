@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
@@ -48,6 +49,57 @@ import android.provider.Settings as SystemSettings
 @RunWith(RobolectricTestRunner::class)
 class ChallengeInteractionTest {
     @get:Rule val compose = createComposeRule()
+
+    @Test
+    fun remainingTimeIsExposedToAccessibilityAcrossLanguagesAndDisplaySizes() {
+        val cell = mutableStateOf(Triple(360, 1f, AppLanguage.ENGLISH))
+        val state = mutableStateOf(ChallengeUiState())
+        compose.mainClock.autoAdvance = false
+        compose.setContent {
+            LocalizedTestViewport(cell.value) {
+                ChallengeScreen(state.value, false, false, {}, {}, {})
+            }
+        }
+        val timer = compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo))
+        for (language in AppLanguage.entries) {
+            for ((width, fontScale) in listOf(360 to 1f, 320 to 1f, 360 to 2f, 320 to 2f)) {
+                compose.runOnIdle {
+                    cell.value = Triple(width, fontScale, language)
+                    state.value = ChallengeUiState()
+                }
+                compose.waitUntil(10_000) {
+                    compose.mainClock.advanceTimeByFrame()
+                    timer.fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo].current == 1f
+                }
+                val initial = timer.assertIsDisplayed().fetchSemanticsNode().config
+                assertTrue(initial[SemanticsProperties.ContentDescription].single().isNotBlank())
+                assertEquals(1f, initial[SemanticsProperties.ProgressBarRangeInfo].current)
+                compose.runOnIdle {
+                    state.value =
+                        ChallengeUiState(
+                            phase = ChallengePhase.RUN,
+                            deadlineNanos = System.nanoTime() + 30_000_000_000L,
+                        )
+                }
+                compose.waitUntil(10_000) {
+                    compose.mainClock.advanceTimeByFrame()
+                    timer.fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo].current < 1f
+                }
+                val running = timer.fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo]
+                val latestFraction = state.value.remainingFraction(System.nanoTime())
+                assertTrue(
+                    "$language / $width / $fontScale: ${running.current} must be within $latestFraction..0.5",
+                    running.current in latestFraction..0.5f,
+                )
+                compose.runOnIdle { state.value = state.value.copy(phase = ChallengePhase.END) }
+                compose.waitUntil(10_000) {
+                    compose.mainClock.advanceTimeByFrame()
+                    timer.fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo].current == 0f
+                }
+                assertEquals(0f, timer.fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo].current)
+            }
+        }
+    }
 
     @Test
     fun challengeStartActionStaysVisibleWithoutScrollingAtNarrowWidthAndLargeFont() {
@@ -181,7 +233,7 @@ class ChallengeInteractionTest {
             options.map { t ->
                 val node =
                     compose
-                        .onNode(hasClickAction() and hasText(timeLabel(cell.value.third, t, false), substring = true))
+                        .onNode(hasClickAction() and hasText(timeLabel(cell.value.third, t, false)))
                         .fetchSemanticsNode()
                 node.positionInRoot.y to node.positionInRoot.y + node.size.height
             }
@@ -285,8 +337,8 @@ class ChallengeInteractionTest {
                 compose.onNodeWithText(back).performClick()
             }
         }
-        compose.runOnIdle { assertEquals(12, played) }
-        compose.runOnIdle { assertEquals(12, left) }
+        compose.runOnIdle { assertEquals(AppLanguage.entries.size * 4, played) }
+        compose.runOnIdle { assertEquals(AppLanguage.entries.size * 4, left) }
     }
 
     @Test

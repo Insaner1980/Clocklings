@@ -18,10 +18,14 @@ import fi.clocklings.domain.Settings
 import fi.clocklings.domain.Slot
 import fi.clocklings.domain.Wardrobe
 import fi.clocklings.domain.slots
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.retryWhen
 import java.io.IOException
 
 /**
@@ -35,13 +39,20 @@ class ProgressRepository(
     private val store: DataStore<Preferences>,
 ) {
     private val data: Flow<Preferences> =
-        store.data.catch { e ->
-            if (e is IOException) {
-                Log.w(TAG, "Tallennusta ei voitu lukea", e)
-                emit(emptyPreferences())
-            } else {
-                throw e
-            }
+        flow {
+            var hasRead = false
+            emitAll(
+                store.data
+                    .onEach { hasRead = true }
+                    .retryWhen { error, _ ->
+                        if (error !is IOException) return@retryWhen false
+                        Log.w(TAG, "Tallennusta ei voitu lukea", error)
+                        // Keep startup usable and retain the last known values after a later read failure.
+                        if (!hasRead) emit(emptyPreferences())
+                        delay(READ_RETRY_MS)
+                        true
+                    },
+            )
         }
 
     val progress: Flow<Progress> = data.map { it.toProgress() }.distinctUntilChanged()
@@ -152,6 +163,7 @@ class ProgressRepository(
 
     private companion object {
         const val TAG = "ProgressRepository"
+        const val READ_RETRY_MS = 1_000L
         val STARS = List(Progress.LEVEL_COUNT) { intPreferencesKey("stars_$it") }
         val BEST = intPreferencesKey("challenge_best")
         val DONE = stringSetPreferencesKey("lessons_done")

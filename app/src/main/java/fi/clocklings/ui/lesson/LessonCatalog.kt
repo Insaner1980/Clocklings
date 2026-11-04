@@ -557,7 +557,11 @@ object LessonCatalog {
             }
         }
 
-    fun all(language: AppLanguage): List<Lesson> = if (language == AppLanguage.ENGLISH) authored else nextHourReferences
+    fun all(language: AppLanguage): List<Lesson> =
+        when (language) {
+            AppLanguage.FINNISH, AppLanguage.SWEDISH, AppLanguage.GERMAN -> nextHourReferences
+            else -> authored
+        }
 
     fun lesson(
         id: String,

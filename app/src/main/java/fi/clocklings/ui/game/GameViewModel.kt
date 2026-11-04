@@ -150,7 +150,9 @@ class GameViewModel(
     }
 
     fun onClockChange(value: Int) {
+        if (!_state.value.interactive) return
         clockValue = value
+        _state.update { it.copy(clock = it.clock.copy(time = value, ms = 0)) }
     }
 
     fun pick(time: Int) {

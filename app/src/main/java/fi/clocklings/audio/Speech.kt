@@ -219,7 +219,7 @@ private class AndroidSpeechEngine(
     override fun shutdown() = tts.shutdown()
 }
 
-/** Regional variants share content; prefer an exact locale when one is requested. */
+/** Prefer the requested locale; Brazilian Portuguese requires a Brazilian offline voice. */
 internal fun selectOfflineVoice(
     voices: Set<Voice>,
     locale: Locale,
@@ -227,6 +227,7 @@ internal fun selectOfflineVoice(
     voices
         .filter {
             it.locale.language == locale.language &&
+                (locale.toLanguageTag() != "pt-BR" || it.locale.country == "BR") &&
                 !it.isNetworkConnectionRequired &&
                 TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED !in it.features.orEmpty()
         }.sortedWith(compareBy<Voice> { it.locale != locale }.thenBy { it.name })
