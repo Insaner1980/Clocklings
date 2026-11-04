@@ -17,8 +17,12 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -242,6 +246,63 @@ class ScreenshotReviewUiTest {
         } finally {
             model.viewModelScope.cancel()
             pending.cancel()
+        }
+    }
+
+    @Test
+    fun companionRetryKeepsThePreviewAfterSwitchingTabsAcrossDisplaySizes() {
+        var reject = true
+        var writes = 0
+        val store =
+            object : DataStore<Preferences> {
+                override val data = MutableStateFlow(emptyPreferences())
+
+                override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences {
+                    writes++
+                    if (reject) throw IOException("Synthetic companion write failure")
+                    return transform(data.value).also { data.value = it }
+                }
+            }
+        val services =
+            object : AppServices by FakeServices() {
+                override val repository = ProgressRepository(store)
+            }
+        val model = AppViewModel(services)
+        val viewport = mutableStateOf(411 to 1f)
+        setLocalizedContent(model, mutableStateOf("en"), viewport) {
+            val settings by model.settings.collectAsState()
+            AppearanceScreen(settings?.personalization ?: Personalization(), Progress(), {}, {})
+        }
+        try {
+            for ((index, cell) in listOf(411 to 1f, 320 to 1f, 411 to 2f, 320 to 2f).withIndex()) {
+                compose.runOnIdle {
+                    viewport.value = cell
+                    reject = true
+                }
+                val kind = if (index % 2 == 0) CompanionKind.CAT else CompanionKind.DOG
+                val name = if (kind == CompanionKind.CAT) "Cat" else "Dog"
+                compose.onNodeWithTag("choose_companion_${kind.name}").performScrollTo().performClick()
+                compose.onNodeWithText("Try again").assertIsDisplayed()
+                compose.onNodeWithText("Clock styles").performScrollTo().performClick()
+                compose.onNodeWithText("Companions").performClick()
+                compose.runOnIdle { reject = false }
+                compose.onNodeWithText("Try again").performClick()
+                compose.waitUntil(10_000) {
+                    model.settings.value
+                        ?.personalization
+                        ?.companion == kind
+                }
+                compose.onNodeWithTag("choose_companion_${kind.name}").assertIsSelected()
+                compose
+                    .onNode(hasText(name) and hasAnyAncestor(hasTestTag("companion_pager")))
+                    .performScrollTo()
+                    .assertIsDisplayed()
+                compose.runOnIdle {
+                    assertEquals("$cell: retry must not trigger another write", (index + 1) * 2, writes)
+                }
+            }
+        } finally {
+            model.viewModelScope.cancel()
         }
     }
 

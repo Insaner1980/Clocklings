@@ -99,6 +99,18 @@ fun AppearanceScreen(
     val onChange: ((Personalization) -> Personalization) -> Unit = { transform ->
         save.run { app.personalize(it, transform) }
     }
+    // Keep the requested preview and its observer alive across tab switches, including failed writes.
+    val pager = rememberPagerState(initialPage = appearance.companion.ordinal) { CompanionKind.entries.size }
+    val currentOnChange by rememberUpdatedState(onChange)
+    LaunchedEffect(pager) {
+        // Restore once; an older completed save must not replace a newer requested choice.
+        if (pager.settledPage != appearance.companion.ordinal) pager.scrollToPage(appearance.companion.ordinal)
+        snapshotFlow { pager.settledPage }.drop(1).collect { page ->
+            val chosen = CompanionKind.entries[page]
+            currentOnChange { it.copy(companion = chosen) }
+            companionVoice(chosen)?.let(app::play)
+        }
+    }
     var clocks by rememberSaveable { mutableStateOf(false) }
     ScreenScaffold(
         modifier,
@@ -130,7 +142,7 @@ fun AppearanceScreen(
                 progress,
                 max(SkDimens.CompanionPreview, clockSize * PREVIEW_GROWTH),
                 onOutfits,
-                onChange,
+                pager,
             )
         }
     }
@@ -142,21 +154,9 @@ private fun CompanionChoices(
     progress: Progress,
     previewHeight: Dp,
     onOutfits: () -> Unit,
-    onChange: ((Personalization) -> Personalization) -> Unit,
+    pager: PagerState,
 ) {
-    val app = LocalAppViewModel.current
     val kind = appearance.companion
-    val currentOnChange by rememberUpdatedState(onChange)
-    val pager = rememberPagerState(initialPage = kind.ordinal) { CompanionKind.entries.size }
-    LaunchedEffect(pager) {
-        // Restore the committed choice once. Older saves must not move the pager after a newer user choice.
-        if (pager.settledPage != kind.ordinal) pager.scrollToPage(kind.ordinal)
-        snapshotFlow { pager.settledPage }.drop(1).collect { page ->
-            val chosen = CompanionKind.entries[page]
-            currentOnChange { it.copy(companion = chosen) }
-            companionVoice(chosen)?.let(app::play)
-        }
-    }
     Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapM)) {
         CompanionPager(pager, progress, previewHeight)
         CompanionThumbnails(pager, kind, progress)
