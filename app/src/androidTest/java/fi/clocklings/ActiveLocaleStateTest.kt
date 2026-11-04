@@ -108,6 +108,42 @@ class ActiveLocaleStateTest {
     }
 
     @Test
+    fun adjustedPracticeClockSurvivesActivityRecreation() {
+        home()
+        click("Play")
+        click("Whole hours")
+        waitText("What time is it?")
+        val labels =
+            compose.onAllNodes(hasClickAction()).fetchSemanticsNodes().mapNotNull { node ->
+                node.config
+                    .getOrElse(SemanticsProperties.Text) { emptyList() }
+                    .firstOrNull { DIGITAL.matches(it.text) }
+                    ?.text
+            }
+        for (label in labels) {
+            click(label)
+            if (!shown("What time is it?") || shown("Clock face:")) break
+        }
+        if (shown("Next")) click("Next")
+        waitText("Set the clock to")
+        val clock = compose.onNode(hasContentDescription("Clock face:", substring = true))
+        val before = clock.fetchSemanticsNode().config[SemanticsProperties.ContentDescription]
+        val addTime =
+            clock
+                .fetchSemanticsNode()
+                .config[SemanticsActions.CustomActions]
+                .first()
+                .action
+        compose.runOnIdle { addTime() }
+        compose.waitForIdle()
+        val adjusted = clock.fetchSemanticsNode().config[SemanticsProperties.ContentDescription]
+        assertTrue("Clock did not change", before != adjusted)
+        compose.activityRule.scenario.recreate()
+        waitText("Set the clock to")
+        assertEquals(adjusted, clock.fetchSemanticsNode().config[SemanticsProperties.ContentDescription])
+    }
+
+    @Test
     fun unfinishedLessonQuizKeepsChoiceOrderMistakeAndCompletionAcrossLocales() {
         home()
         click("Learn")

@@ -6,12 +6,16 @@ enum class AppLanguage(
     ENGLISH("en"),
     FINNISH("fi"),
     SWEDISH("sv"),
+    GERMAN("de"),
+    FRENCH("fr"),
+    SPANISH("es-ES"),
+    PORTUGUESE_BRAZIL("pt-BR"),
     ;
 
     companion object {
         fun fromTag(tag: String?): AppLanguage? {
             val primary = tag?.substringBefore('-')?.lowercase()
-            return entries.firstOrNull { it.tag == primary }
+            return entries.firstOrNull { it.tag.substringBefore('-') == primary }
         }
     }
 }

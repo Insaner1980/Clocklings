@@ -68,7 +68,7 @@ class SaveFailureUiTest {
     @Test
     fun saveErrorsAndRetryControlsRemainReadableInEveryLanguageAndDisplaySize() {
         compose.setContent { FailureContent() }
-        for (selectedLanguage in listOf(AppLanguage.ENGLISH, AppLanguage.FINNISH, AppLanguage.SWEDISH)) {
+        for (selectedLanguage in AppLanguage.entries) {
             for (cell in listOf(411 to 1f, 320 to 1f, 411 to 2f, 320 to 2f)) {
                 for (selectedScreen in 0..2) {
                     compose.runOnIdle {

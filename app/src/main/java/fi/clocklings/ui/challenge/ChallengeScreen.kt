@@ -32,7 +32,10 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -279,6 +282,7 @@ private fun RecordCelebrationEffect(
 /** Sateenkaaren väreillä täyttyvä ajastinpalkki, joka tyhjenee minuutissa (web: .timer). */
 @Composable
 private fun TimerBar(state: ChallengeUiState) {
+    val label = stringResource(R.string.challenge_time_remaining)
     // Ajastin on tietoa eikä koristetta, joten se lasketaan ruutujen ajasta (ei animaatioasetuksen mukaan).
     var fraction by remember(
         state.runId,
@@ -296,7 +300,10 @@ private fun TimerBar(state: ChallengeUiState) {
             .height(SkDimens.TimerHeight)
             .clip(SkShapes.Timer)
             .background(SkColors.DotEmpty)
-            .clearAndSetSemantics { },
+            .clearAndSetSemantics {
+                contentDescription = label
+                progressBarRangeInfo = ProgressBarRangeInfo(fraction, 0f..1f)
+            },
     ) {
         Box(
             Modifier

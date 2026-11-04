@@ -29,6 +29,26 @@ import java.util.concurrent.atomic.AtomicBoolean
 @Config(sdk = [33])
 class SpeechTest {
     @Test
+    fun brazilianSpeechRejectsEuropeanGenericNetworkAndMissingVoices() {
+        withSpeech { speech, engine ->
+            engine.voices = setOf(voice("european", "pt-PT"), voice("generic", "pt"))
+            speech.setLanguage(AppLanguage.PORTUGUESE_BRAZIL)
+            assertFalse(speech.available.value)
+            speech.speak("ignored")
+            assertTrue(engine.spoken.isEmpty())
+            engine.voices = setOf(voice("network", "pt-BR", network = true), voice("missing", "pt-BR", missing = true))
+            speech.refresh()
+            assertFalse(speech.available.value)
+            engine.voices = setOf(voice("brazilian", "pt-BR"), voice("european", "pt-PT"))
+            speech.refresh()
+            assertTrue(speech.available.value)
+            assertEquals("brazilian", selectOfflineVoice(engine.voices, Locale.forLanguageTag("pt-BR"))?.name)
+            speech.speak("É uma hora")
+            assertEquals(listOf("É uma hora"), engine.spoken)
+        }
+    }
+
+    @Test
     fun queuedSpeechIsDiscardedByStopLanguageRefreshAndShutdown() =
         runTest {
             val cancellations: List<(Speech) -> Unit> =

@@ -10,12 +10,14 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.platform.LocalResources
 import fi.clocklings.R
 import fi.clocklings.domain.AppLanguage
+import fi.clocklings.domain.BrazilianPortugueseTime
 import fi.clocklings.domain.ClockTime
 import fi.clocklings.domain.Greeting
 import fi.clocklings.domain.Hint
 import fi.clocklings.domain.HourPosition
 import fi.clocklings.domain.MinutePosition
 import fi.clocklings.domain.Slot
+import fi.clocklings.domain.SpanishTime
 import fi.clocklings.domain.Text
 import fi.clocklings.domain.capitalizeFirst
 import fi.clocklings.domain.timeLanguage
@@ -67,6 +69,12 @@ fun spokenTime(
     h24: Boolean,
 ): String {
     val wording = timeLanguage(resourceLanguage(res))
+    val phrase =
+        when (wording) {
+            SpanishTime -> SpanishTime.timeSentence(t, h24)
+            BrazilianPortugueseTime -> BrazilianPortugueseTime.timeSentence(t, h24)
+            else -> wording.fullWords(t, h24)
+        }
     return when {
         h24 && ClockTime.mod(t, ClockTime.DAY) == 0 -> {
             res.getString(R.string.speak_midnight_24, wording.numericWords(t, true))
@@ -77,11 +85,11 @@ fun spokenTime(
         }
 
         h24 -> {
-            res.getString(R.string.speak_time_24, wording.fullWords(t, true), wording.numericWords(t, true))
+            res.getString(R.string.speak_time_24, phrase, wording.numericWords(t, true))
         }
 
         else -> {
-            res.getString(R.string.speak_time, wording.fullWords(t, false))
+            res.getString(R.string.speak_time, phrase)
         }
     }
 }

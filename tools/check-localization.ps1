@@ -86,7 +86,7 @@ function Test-ResourceParity([string]$Root) {
             $problems.Add("UNREVIEWED_EXCEPTION values/$key")
         }
     }
-    foreach ($language in @('fi', 'sv')) {
+    foreach ($language in @('fi', 'sv', 'de', 'fr', 'es', 'pt-rBR')) {
         $translated = Read-TextResources (Join-Path $Root "values-$language") $problems
         foreach ($key in $base.Keys | Sort-Object) {
             $source = $base[$key]
@@ -101,7 +101,7 @@ function Test-ResourceParity([string]$Root) {
             if ($source.Type -eq 'string-array' -and $source.Count -ne $target.Count) {
                 $problems.Add("ARRAY_COUNT $language/$key ($($source.Count) != $($target.Count))")
             }
-            # All first-release languages use one/other. Extra valid branches are allowed,
+            # All authored languages include one/other. Extra valid branches are allowed,
             # but must accept the same arguments as the source other branch.
             if ($source.Type -eq 'plurals') {
                 foreach ($part in $source.Signatures.Keys) {
@@ -125,7 +125,7 @@ function Test-ResourceParity([string]$Root) {
 function Invoke-SelfTest {
     $fixture = Join-Path $PSScriptRoot ('.localization-fixture-' + [guid]::NewGuid().ToString('N'))
     try {
-        foreach ($folder in @('values', 'values-fi', 'values-sv')) {
+        foreach ($folder in @('values', 'values-fi', 'values-sv', 'values-de', 'values-fr', 'values-es', 'values-pt-rBR')) {
             $null = New-Item -ItemType Directory -Path (Join-Path $fixture $folder) -Force
         }
         $valid = @'
@@ -137,7 +137,7 @@ function Invoke-SelfTest {
   <string-array name="praise"><item>Good</item><item>%1$s</item></string-array>
 </resources>
 '@
-        foreach ($folder in @('values', 'values-fi', 'values-sv')) {
+        foreach ($folder in @('values', 'values-fi', 'values-sv', 'values-de', 'values-fr', 'values-es', 'values-pt-rBR')) {
             Set-Content -LiteralPath (Join-Path $fixture "$folder/strings.xml") -Value $valid -Encoding utf8
         }
         $basePath = Join-Path $fixture 'values/strings.xml'
@@ -181,4 +181,4 @@ if ($problems.Count) {
     Write-Output "FAIL: $($problems.Count) localization issue(s)."
     exit 1
 }
-Write-Output 'PASS: English/Finnish/Swedish resource keys, types, plurals, arrays and argument signatures match.'
+Write-Output 'PASS: All seven languages have matching resource keys, types, plurals, arrays and argument signatures.'

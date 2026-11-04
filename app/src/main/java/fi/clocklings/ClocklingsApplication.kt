@@ -31,7 +31,8 @@ interface AppServices {
     val speechAvailable: StateFlow<Boolean>
 
     /**
-     * Soittaa äänen, jos äänet ovat päällä. [force] soittaa aina (äänten kytkeminen päälle).
+     * Plays a sound while the app is resumed and sound effects are enabled.
+     * [force] bypasses the sound setting when previewing enabled sound effects.
      * [rate] changes the speed and pitch of a recorded clip (1 = original).
      */
     fun play(
@@ -60,16 +61,19 @@ class AppContainer(
     private val soundOn = repository.settings.map { it.sound }.stateIn(scope, SharingStarted.Eagerly, true)
     private val speech = Speech(context)
     override val speechAvailable: StateFlow<Boolean> = speech.available
+    private var resumed = false
 
     override fun play(
         sound: Sound,
         force: Boolean,
         rate: Float,
     ) {
-        if (force || soundOn.value) sfx.play(sound, rate)
+        if (resumed && (force || soundOn.value)) sfx.play(sound, rate)
     }
 
-    override fun speak(text: String) = speech.speak(text)
+    override fun speak(text: String) {
+        if (resumed) speech.speak(text)
+    }
 
     override fun stopSpeech() = speech.stop()
 
@@ -77,8 +81,13 @@ class AppContainer(
 
     override fun refreshSpeech() = speech.refresh()
 
+    fun resume() {
+        resumed = true
+    }
+
     /** Äänet ja puhe pysähtyvät, kun sovellus menee taustalle. */
     fun pause() {
+        resumed = false
         sfx.stopAll()
         speech.stop()
     }

@@ -109,6 +109,10 @@ class LanguageSettingsTest {
         for ((autonym, language) in listOf(
             "Suomi" to AppLanguage.FINNISH,
             "Svenska" to AppLanguage.SWEDISH,
+            "Deutsch" to AppLanguage.GERMAN,
+            "Français" to AppLanguage.FRENCH,
+            "Español (España)" to AppLanguage.SPANISH,
+            "Português (Brasil)" to AppLanguage.PORTUGUESE_BRAZIL,
             "English" to AppLanguage.ENGLISH,
         )) {
             click(autonym)
@@ -229,7 +233,7 @@ class LanguageSettingsTest {
     }
 
     @Test
-    fun settingsLanguageAndResetLayoutsAreReadableInAllThreeLanguages() {
+    fun settingsLanguageAndResetLayoutsAreReadableInAllLanguages() {
         openSettings()
         click("Language: English")
         for (language in AppLanguage.entries) {
@@ -238,6 +242,10 @@ class LanguageSettingsTest {
                     AppLanguage.ENGLISH -> "English"
                     AppLanguage.FINNISH -> "Suomi"
                     AppLanguage.SWEDISH -> "Svenska"
+                    AppLanguage.GERMAN -> "Deutsch"
+                    AppLanguage.FRENCH -> "Français"
+                    AppLanguage.SPANISH -> "Español (España)"
+                    AppLanguage.PORTUGUESE_BRAZIL -> "Português (Brasil)"
                 }
             click(autonym)
             waitText(string(language, R.string.language_title))
@@ -355,6 +363,10 @@ class LanguageSettingsTest {
             R.string.language_english,
             R.string.language_finnish,
             R.string.language_swedish,
+            R.string.language_german,
+            R.string.language_french,
+            R.string.language_spanish,
+            R.string.language_portuguese_brazil,
         )) {
             val text = string(language, key)
             assertReadable(text)

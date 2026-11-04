@@ -106,24 +106,25 @@ fun WardrobeScreen(
         bottomBar =
             retry?.let { retrySave ->
                 {
-                    Text(stringResource(R.string.settings_save_error), style = SkType.Body)
-                    SkButton(stringResource(R.string.settings_retry), retrySave, Modifier.fillMaxWidth())
+                    Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapS)) {
+                        Text(stringResource(R.string.settings_save_error), style = SkType.Body)
+                        SkButton(stringResource(R.string.settings_retry), retrySave, Modifier.fillMaxWidth())
+                    }
                 }
             },
     ) {
-        val starInfo =
-            if (Wardrobe.lockedCount(kind, total) > 0) {
-                pluralStringResource(R.plurals.doll_info, total, total)
-            } else {
-                stringResource(R.string.doll_all_open)
-            }
         WardrobeStage(
             kind,
             outfit,
             color,
             name,
             stars = stringResource(R.string.home_star_total, total, Wardrobe.MAX_STARS),
-            starInfo = starInfo,
+            starInfo =
+                if (Wardrobe.lockedCount(kind, total) > 0) {
+                    pluralStringResource(R.plurals.doll_info, total, total)
+                } else {
+                    stringResource(R.string.doll_all_open)
+                },
             onNameChange = {
                 name = it
                 val requestedName = it.trim()

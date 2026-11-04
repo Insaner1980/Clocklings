@@ -145,7 +145,7 @@ class RunOptionReservationTest {
         language: AppLanguage,
         h24: Boolean,
         t: Int,
-    ) = compose.onNode(hasClickAction() and hasText(timeLabel(language, t, h24), substring = true)).fetchSemanticsNode()
+    ) = compose.onNode(hasClickAction() and hasText(timeLabel(language, t, h24))).fetchSemanticsNode()
 
     private fun clockWidth() =
         compose

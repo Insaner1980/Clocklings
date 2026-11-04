@@ -16,7 +16,7 @@ interface TimeLanguage {
     fun digital(
         total: Int,
         h24: Boolean = false,
-    ): String
+    ): String = EnglishTime.digital(total, h24)
 
     fun numericWords(
         total: Int,
@@ -25,14 +25,20 @@ interface TimeLanguage {
 
     fun dayPart(total: Int): DayPart
 
+    /** The period of the hour named in an analog phrase, which may be the following hour. */
+    fun referencedDayPart(total: Int): DayPart = dayPart(total)
+
     fun fullWords(
         total: Int,
         h24: Boolean,
     ): String {
         if (!h24) return timeWords(total)
         val time = ClockTime.mod(total, ClockTime.DAY)
-        val part = dayPart(time)
-        return if (time == 0 || time == ClockTime.HALF_DAY) part.name else "${timeWords(time)} ${part.adverb}"
+        return if (time == 0 || time == ClockTime.HALF_DAY) {
+            dayPart(time).name
+        } else {
+            "${timeWords(time)} ${referencedDayPart(time).adverb}"
+        }
     }
 
     fun greeting(total: Int): Greeting
@@ -43,4 +49,8 @@ fun timeLanguage(language: AppLanguage): TimeLanguage =
         AppLanguage.ENGLISH -> EnglishTime
         AppLanguage.FINNISH -> FinnishTime
         AppLanguage.SWEDISH -> SwedishTime
+        AppLanguage.GERMAN -> GermanTime
+        AppLanguage.FRENCH -> FrenchTime
+        AppLanguage.SPANISH -> SpanishTime
+        AppLanguage.PORTUGUESE_BRAZIL -> BrazilianPortugueseTime
     }

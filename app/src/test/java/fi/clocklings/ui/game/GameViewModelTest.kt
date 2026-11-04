@@ -33,6 +33,21 @@ class GameViewModelTest {
     private val services = FakeServices()
 
     @Test
+    fun recreatedClockUsesTheSameTimeAsTheSubmittedAnswer() =
+        scope.runTest {
+            val vm = game()
+            vm.pick(vm.state.value.task.time)
+            advanceTimeBy(1_600)
+            runCurrent()
+            assertEquals(TaskType.SET, vm.state.value.task.type)
+            val target = vm.state.value.task.time
+            vm.onClockChange(target)
+            assertEquals(target, vm.state.value.clock.time)
+            vm.done()
+            assertEquals(0, vm.state.value.mistakes)
+        }
+
+    @Test
     fun repeatedAnswerCannotAdvanceBefore1500MillisecondsOrSkipATask() =
         scope.runTest {
             val vm = game()

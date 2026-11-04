@@ -8,6 +8,14 @@ import androidx.navigation3.runtime.NavKey
 class Navigator(
     private val stack: MutableList<NavKey>,
 ) {
+    /** Ignore callbacks from a destination that has already left the top of the stack. */
+    fun ifCurrent(
+        screen: Screen,
+        action: () -> Unit,
+    ) {
+        if (stack.last() == screen) action()
+    }
+
     fun push(screen: Screen) {
         stack.add(screen)
     }

@@ -113,7 +113,12 @@ class LessonCatalogTest {
                     .filterIsInstance<DemoStep.Under>()
                     .single()
             assertEquals(
-                listOf(if (language == AppLanguage.ENGLISH) 3 else 4),
+                listOf(
+                    when (language) {
+                        AppLanguage.FINNISH, AppLanguage.SWEDISH, AppLanguage.GERMAN -> 4
+                        else -> 3
+                    },
+                ),
                 reference.marks.filterIsInstance<fi.clocklings.domain.Mark.NumberGlow>().map { it.n },
             )
             assertEquals(listOf(180, 210, 210, 210), lesson.pages.map { it.time })

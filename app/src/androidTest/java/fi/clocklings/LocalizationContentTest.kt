@@ -82,6 +82,54 @@ class LocalizationContentTest {
                     "Sju minuter över tre",
                     "Sju på kvällen: 19.00",
                 ),
+            AppLanguage.GERMAN to
+                listOf(
+                    "Der kurze rosa Zeiger",
+                    "Eine Stunde",
+                    "Neun Uhr",
+                    "Halb sechs",
+                    "Viertel vor sieben",
+                    "Zehn nach vier",
+                    "Zwanzig vor neun",
+                    "Drei Uhr sieben",
+                    "Sieben Uhr abends: 19:00",
+                ),
+            AppLanguage.FRENCH to
+                listOf(
+                    "La petite aiguille rose",
+                    "Une heure",
+                    "Neuf heures",
+                    "Cinq heures et demie",
+                    "Sept heures moins le quart",
+                    "Quatre heures dix",
+                    "Neuf heures moins vingt",
+                    "Trois heures sept",
+                    "Sept heures du soir : 19:00",
+                ),
+            AppLanguage.SPANISH to
+                listOf(
+                    "La aguja corta y rosa",
+                    "Una hora",
+                    "Las nueve",
+                    "Las cinco y media",
+                    "Las siete menos cuarto",
+                    "Las cuatro y diez",
+                    "Las nueve menos veinte",
+                    "Las tres y siete",
+                    "Las siete de la tarde: 19:00",
+                ),
+            AppLanguage.PORTUGUESE_BRAZIL to
+                listOf(
+                    "O ponteiro pequeno e rosa",
+                    "Uma hora",
+                    "Nove horas",
+                    "Cinco e meia",
+                    "Quinze para as sete",
+                    "Quatro e dez",
+                    "Vinte para as nove",
+                    "Três horas e sete minutos",
+                    "Sete da noite: 19:00",
+                ),
         )
 
     @Test
@@ -115,43 +163,7 @@ class LocalizationContentTest {
 
     @Test
     fun resourceAdaptersKeepTimeDigitsNarrationAndContextInTheSameLanguage() {
-        val fixtures =
-            listOf(
-                AdapterFixture(
-                    "en",
-                    "Twenty-five past three",
-                    "Twenty-five to four",
-                    "3:07",
-                    "15:30",
-                    "It is midnight. On a 24-hour clock, zero zero zero.",
-                    "It is noon. On a 24-hour clock, twelve zero zero.",
-                    "midnight",
-                    "noon",
-                ),
-                AdapterFixture(
-                    "fi",
-                    "Viittä vaille puoli neljä",
-                    "Viittä yli puoli neljä",
-                    "3.07",
-                    "15.30",
-                    "On keskiyö. Numeroina nolla nolla nolla.",
-                    "On keskipäivä. Numeroina kaksitoista nolla nolla.",
-                    "keskiyö",
-                    "keskipäivä",
-                ),
-                AdapterFixture(
-                    "sv",
-                    "Fem i halv fyra",
-                    "Fem över halv fyra",
-                    "3.07",
-                    "15.30",
-                    "Det är midnatt. Med siffror noll noll noll.",
-                    "Klockan är tolv på dagen. Med siffror tolv noll noll.",
-                    "midnatt",
-                    "middag",
-                ),
-            )
-        for (fixture in fixtures) {
+        for (fixture in adapterFixtures) {
             val resources = resources(fixture.tag)
             assertEquals(fixture.past, Text.Time(205).resolve(resources))
             assertEquals(fixture.to, Text.Time(215).resolve(resources))
@@ -167,6 +179,50 @@ class LocalizationContentTest {
     }
 
     @Test
+    fun newLanguageNarrationUsesCompleteSentencesWithHourAndConstructionAgreement() {
+        val fixtures =
+            mapOf(
+                "de" to
+                    listOf(
+                        Triple(60, false, "Es ist ein Uhr"),
+                        Triple(
+                            930,
+                            true,
+                            "Es ist halb vier nachmittags. Im 24-Stunden-Format: fünfzehn Uhr dreißig",
+                        ),
+                    ),
+                "fr" to
+                    listOf(
+                        Triple(60, false, "Il est une heure"),
+                        Triple(750, true, "Il est midi et demi. Au format 24 heures, douze heures trente"),
+                    ),
+                "es-ES" to
+                    listOf(
+                        Triple(775, false, "Es la una menos cinco"),
+                        Triple(120, false, "Son las dos"),
+                        Triple(
+                            930,
+                            true,
+                            "Son las tres y media de la tarde. " +
+                                "En formato de 24 horas: las quince horas y treinta minutos",
+                        ),
+                    ),
+                "pt-BR" to
+                    listOf(
+                        Triple(61, false, "É uma hora e um minuto"),
+                        Triple(122, false, "São duas horas e dois minutos"),
+                        Triple(215, false, "Faltam vinte e cinco minutos para as quatro"),
+                        Triple(750, true, "É meio-dia e meia. No formato de 24 horas: doze horas e trinta minutos"),
+                    ),
+            )
+        for ((tag, examples) in fixtures) {
+            for ((time, h24, expected) in examples) {
+                assertEquals("$tag/$time/$h24", expected, spokenTime(resources(tag), time, h24))
+            }
+        }
+    }
+
+    @Test
     fun fiveMinuteLessonExplainsBothSidesOfHalfInEachLanguage() {
         val expected =
             mapOf(
@@ -178,6 +234,17 @@ class LocalizationContentTest {
                             "Numeron 7 kohdalla sanomme viittä yli puoli. Nimeä seuraava tunti."
                     ),
                 AppLanguage.SWEDISH to "Vid 5 säger vi fem i halv. Vid 7 säger vi fem över halv. Nämn nästa timme.",
+                AppLanguage.GERMAN to
+                    (
+                        "Bei der 5 sagen wir fünf vor halb, bei der 7 fünf nach halb. " +
+                            "Nach halb nennen wir die nächste Stunde."
+                    ),
+                AppLanguage.FRENCH to
+                    "Au 5, on lit trois heures vingt-cinq. Au 7, quatre heures moins vingt-cinq.",
+                AppLanguage.SPANISH to
+                    "En el número 5, decimos las tres y veinticinco. En el número 7, las cuatro menos veinticinco.",
+                AppLanguage.PORTUGUESE_BRAZIL to
+                    "No 5, diga três e vinte e cinco. No 7, diga vinte e cinco para as quatro.",
             )
         for (language in AppLanguage.entries) {
             val page = LessonCatalog.all(language).single { it.id == "viisi" }.pages[2]
@@ -192,6 +259,10 @@ class LocalizationContentTest {
                 "en" to "Near half past, it is near the halfway point between this hour and the next.",
                 "fi" to "Puolen tunnin lähellä viisari on lähellä tämän tunnin ja seuraavan tunnin puoliväliä.",
                 "sv" to "Nära halv är visaren nära mitten mellan den här timmen och nästa.",
+                "de" to "Zur halben Stunde steht er etwa in der Mitte zwischen dieser und der nächsten Stunde.",
+                "fr" to "Vers la demi-heure, elle se trouve à mi-chemin entre cette heure et la suivante.",
+                "es-ES" to "Cerca de la media hora, está casi a mitad de camino entre esta hora y la siguiente.",
+                "pt-BR" to "Perto da meia hora, ele fica perto do meio do caminho entre uma hora e a seguinte.",
             )
         for ((tag, tip) in expected) {
             for (minute in 20..40) {
@@ -214,17 +285,21 @@ class LocalizationContentTest {
             }
             assertEquals("Fem i halv fyra", Text.Time(205).resolve(regional))
         }
-        assertEquals("Settings", resources("de-DE").getString(R.string.settings_title))
-        assertEquals("Twenty-five past three", Text.Time(205).resolve(resources("de-DE")))
+        assertEquals("Settings", resources("ja-JP").getString(R.string.settings_title))
+        assertEquals("Twenty-five past three", Text.Time(205).resolve(resources("ja-JP")))
     }
 
     @Test
     fun appResourceBoundaryResolvesSupportedSecondaryBeforeLoadingUiAndClockWords() {
         val fixtures =
             mapOf(
-                "de-DE,sv-FI" to "sv|Inställningar|Fem i halv fyra",
-                "de-DE,fi-FI" to "fi|Asetukset|Viittä vaille puoli neljä",
-                "de-DE" to "en|Settings|Twenty-five past three",
+                "ja-JP,sv-FI" to "sv|Inställningar|Fem i halv fyra",
+                "ja-JP,fi-FI" to "fi|Asetukset|Viittä vaille puoli neljä",
+                "ja-JP,de-DE" to "de|Einstellungen|Fünf vor halb vier",
+                "ja-JP,fr-FR" to "fr|Paramètres|Trois heures vingt-cinq",
+                "ja-JP,es-ES" to "es-ES|Ajustes|Las tres y veinticinco",
+                "ja-JP,pt-BR" to "pt-BR|Configurações|Três e vinte e cinco",
+                "ja-JP" to "en|Settings|Twenty-five past three",
             )
         val contexts = fixtures.keys.associateWith(::localizedContext)
         val tags = mutableStateOf(fixtures.keys.first())
@@ -277,6 +352,87 @@ class LocalizationContentTest {
         configuration.setLocales(LocaleList(*tags.split(',').map(Locale::forLanguageTag).toTypedArray()))
         return context.createConfigurationContext(configuration)
     }
+
+    private val adapterFixtures =
+        listOf(
+            AdapterFixture(
+                "en",
+                "Twenty-five past three",
+                "Twenty-five to four",
+                "3:07",
+                "15:30",
+                "It is midnight. On a 24-hour clock, zero zero zero.",
+                "It is noon. On a 24-hour clock, twelve zero zero.",
+                "midnight",
+                "noon",
+            ),
+            AdapterFixture(
+                "fi",
+                "Viittä vaille puoli neljä",
+                "Viittä yli puoli neljä",
+                "3.07",
+                "15.30",
+                "On keskiyö. Numeroina nolla nolla nolla.",
+                "On keskipäivä. Numeroina kaksitoista nolla nolla.",
+                "keskiyö",
+                "keskipäivä",
+            ),
+            AdapterFixture(
+                "sv",
+                "Fem i halv fyra",
+                "Fem över halv fyra",
+                "3.07",
+                "15.30",
+                "Det är midnatt. Med siffror noll noll noll.",
+                "Klockan är tolv på dagen. Med siffror tolv noll noll.",
+                "midnatt",
+                "middag",
+            ),
+            AdapterFixture(
+                "de",
+                "Fünf vor halb vier",
+                "Fünf nach halb vier",
+                "3:07",
+                "15:30",
+                "Es ist Mitternacht. Im 24-Stunden-Format: null Uhr.",
+                "Es ist Mittag. Im 24-Stunden-Format: zwölf Uhr.",
+                "Mitternacht",
+                "Mittag",
+            ),
+            AdapterFixture(
+                "fr",
+                "Trois heures vingt-cinq",
+                "Quatre heures moins vingt-cinq",
+                "3:07",
+                "15:30",
+                "Il est minuit. Au format 24 heures, zéro heure.",
+                "Il est midi. Au format 24 heures, douze heures.",
+                "minuit",
+                "midi",
+            ),
+            AdapterFixture(
+                "es-ES",
+                "Las tres y veinticinco",
+                "Las cuatro menos veinticinco",
+                "3:07",
+                "15:30",
+                "Es medianoche. En formato de 24 horas: las cero horas.",
+                "Es mediodía. En formato de 24 horas: las doce horas.",
+                "medianoche",
+                "mediodía",
+            ),
+            AdapterFixture(
+                "pt-BR",
+                "Três e vinte e cinco",
+                "Vinte e cinco para as quatro",
+                "3:07",
+                "15:30",
+                "É meia-noite. No formato de 24 horas: zero hora.",
+                "É meio-dia. No formato de 24 horas: doze horas.",
+                "meia-noite",
+                "meio-dia",
+            ),
+        )
 
     private data class AdapterFixture(
         val tag: String,

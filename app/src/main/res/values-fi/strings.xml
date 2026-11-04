@@ -72,6 +72,7 @@
     <string name="level_viisi">Viiden minuutin välein</string>
     <string name="level_minuutit">Tarkat minuutit</string>
     <string name="challenge_title">Minuuttihaaste</string>
+    <string name="challenge_time_remaining">Aikaa jäljellä</string>
     <string name="challenge_desc">Kuinka monta ehdit vastata minuutissa?</string>
     <string name="record">Paras tulos: %1$d</string>
     <string name="question_set">Aseta kelloon aika</string>
