@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { readdir, realpathSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, readdir, readdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, isAbsolute, resolve } from "node:path";
 import { test } from "node:test";
@@ -20,6 +21,48 @@ for (const [consumer, consumerRequire] of [["DeepSec", deepsecRequire], ["agent"
     assert.equal(minimatch("provider/Model-Large", "provider/model-*", { nocase: true }), true);
   });
 }
+
+test("shipped DeepSec CLI includes Kotlin files and honors Java exclusions", () => {
+  const scratch = realpathSync(mkdtempSync(resolve(dirname(fileURLToPath(import.meta.url)), "cli-glob-")));
+  try {
+    mkdirSync(resolve(scratch, "source/src"), { recursive: true });
+    for (const extension of ["kt", "java"]) {
+      writeFileSync(resolve(scratch, `source/src/Clock.${extension}`), '@Path("/clock")\n');
+    }
+    writeFileSync(
+      resolve(scratch, "deepsec.config.mjs"),
+      'export default { projects: [{ id: "glob-test", root: "./source" }] };\n',
+    );
+    for (const excludeJava of [false, true]) {
+      const dataRoot = resolve(scratch, excludeJava ? "excluded" : "baseline");
+      mkdirSync(resolve(dataRoot, "glob-test"), { recursive: true });
+      writeFileSync(
+        resolve(dataRoot, "glob-test/config.json"),
+        JSON.stringify({ ignorePaths: excludeJava ? ["**/*.java"] : [] }),
+      );
+      const env = Object.fromEntries(Object.entries(process.env).filter(([key]) =>
+        /^(PATH|SYSTEMROOT|WINDIR|COMSPEC|PATHEXT|TEMP|TMP|HOME|USERPROFILE)$/i.test(key),
+      ));
+      const result = spawnSync(process.execPath, [
+        deepsecEntry, "scan", "--project-id", "glob-test", "--matchers", "jvm-jaxrs-resource",
+      ], {
+        cwd: scratch,
+        env: { ...env, DEEPSEC_DATA_ROOT: dataRoot, NO_COLOR: "1" },
+        encoding: "utf8",
+        timeout: 30_000,
+        windowsHide: true,
+      });
+      assert.ifError(result.error);
+      assert.equal(result.status, 0, result.stderr || result.stdout);
+      assert.deepEqual(
+        readdirSync(resolve(dataRoot, "glob-test/files/src")).sort(),
+        excludeJava ? ["Clock.kt.json"] : ["Clock.java.json", "Clock.kt.json"],
+      );
+    }
+  } finally {
+    rmSync(scratch, { recursive: true, force: true });
+  }
+});
 
 test("agent glob supports its absolute package discovery options", () => {
   const { globSync } = agentRequire("glob");

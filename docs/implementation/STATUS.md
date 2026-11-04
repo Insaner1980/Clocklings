@@ -68,6 +68,12 @@ Current debug deliverable: `app/build/outputs/apk/debug/app-debug.apk`. Existing
 - The save-error layout test now derives its languages from `AppLanguage.entries`, covering all seven supported languages. Aligned `PROJECT.md` with the existing `AGENTS.md` rule permitting offline workers to reuse an unchanged-file secrets check with its checked scope, Git revision and successful result; no scanning requirement was removed.
 - Validation: **11 focused JVM tests passed**. The Robolectric save-error test covered 56 combinations: two screens, all seven languages, and 411/320 dp at 100%/200% font scale, including 320 dp / 200%. Debug assembly, `ktlintCheck`, `detekt`, `lintDebug`, debug/release `stabilityCheck` and localization resource parity passed without baseline changes. No full JVM suite, device/emulator execution, manual visual review, TalkBack, audible speech checks or owner `lc`/`sc` ran for this scoped correction.
 
+## PR 10 bundled CLI test coverage — 4 November 2026
+
+- Checked the latest reviews on `7ab449c`: CodeRabbit reported one new coverage gap, and both Android CI runs passed. Greptile and Codex still had no reviews newer than `f4ed6e0`.
+- Confirmed that DeepSec 2.3.9 bundles minimatch separately from the installed dependency tested through `createRequire`. Added a real CLI scan regression with Kotlin and Java fixtures: both produce records without exclusions, then `**/*.java` leaves only the Kotlin record. The existing case-insensitive model-pattern assertion remains in the dependency unit test. This checks bundled matching behavior, not the absence of vulnerabilities in bundled dependencies.
+- Validation: all **11 DeepSec tests passed**, including the new CLI regression. Scans used isolated local fixtures and data roots without AI processing; temporary directories were removed and the CLI processes exited. Secrets checks and `git diff --check` passed. No Android source or dependencies changed, so Android/device tests and owner `lc`/`sc` were not rerun.
+
 ## Source import and preservation
 
 - Source: `C:\Dev\Sateenkaarikello-Android`, branch `feature/splash-intro`, commit `cfed3a417047255d3930cc005f1785616f6233d8`.
