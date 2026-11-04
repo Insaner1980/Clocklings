@@ -39,6 +39,10 @@ class ExpandedLocaleContentTest {
             "Il est minuit et demi. Au format 24 heures, zéro heure trente",
             spokenTime(french, 30, true),
         )
+        assertEquals(
+            "Il est six heures moins cinq du soir. Au format 24 heures, dix-sept heures cinquante-cinq",
+            spokenTime(french, 1075, true),
+        )
     }
 
     @Test

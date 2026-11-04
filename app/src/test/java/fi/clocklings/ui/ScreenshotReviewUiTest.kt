@@ -169,7 +169,7 @@ class ScreenshotReviewUiTest {
                     .fetchSemanticsNodes()
                     .isNotEmpty()
             }
-            for (tag in listOf("en", "fi", "sv")) {
+            for (tag in AppLanguage.entries.map { it.tag }) {
                 for (cell in listOf(411 to 1f, 320 to 1f, 411 to 2f, 320 to 2f)) {
                     compose.runOnIdle {
                         language.value = tag

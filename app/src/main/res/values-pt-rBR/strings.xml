@@ -289,7 +289,7 @@
     <string name="l_vrk_say_first">Primeira volta: da meia-noite ao meio-dia</string>
     <string name="l_vrk_say_second">Segunda volta: do meio-dia à meia-noite</string>
     <string name="l_vrk_say_day">Passou um dia completo.</string>
-    <string name="l_vrk_p2a">Para as horas da tarde e da noite de 1 a 11, some 12 para obter o número no formato de 24 horas.</string>
+    <string name="l_vrk_p2a">Entre o meio-dia e a meia-noite, some 12 às horas de 1 a 11 para escrevê-las no formato de 24 horas.</string>
     <string name="l_vrk_p2b">Três da tarde: 3 + 12 = 15. Escrevemos 15:00.</string>
     <string name="l_vrk_say_night">Três da madrugada: 03:00</string>
     <string name="l_vrk_say_sum">3 + 12 = 15: são 15:00.</string>

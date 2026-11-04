@@ -17,7 +17,11 @@ object FrenchTime : TimeLanguage {
                 hourWords(if (analogHour == 0) ClockTime.HOURS_PER_HALF_DAY else analogHour)
             }
         val phrase = minutePhrase(hour, time.minute, specialHour)
-        return if (contextual && !specialHour) "$phrase ${dayPart(total).adverb}" else phrase
+        return if (contextual && !specialHour) {
+            "$phrase ${dayPart(referenceHour * ClockTime.MINUTES_PER_HOUR).adverb}"
+        } else {
+            phrase
+        }
     }
 
     override fun timeWords(total: Int): String = clockPhrase(total, contextual = false)
