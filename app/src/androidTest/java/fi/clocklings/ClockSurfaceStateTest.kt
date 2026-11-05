@@ -93,7 +93,18 @@ class ClockSurfaceStateTest {
             compose.waitForIdle()
             LocalizationScreenshots.capture("$evidencePrefix-clock-daypart")
             game.options.forEach { assertTextFits(timeLabel(value, it, true)) }
-            for (case in listOf("puoli" to 2, "puoli" to 3, "viisi" to 2, "puoli" to 4)) {
+            val lessonCases =
+                listOf(
+                    "puoli" to 2,
+                    "puoli" to 3,
+                    "viisi" to 2,
+                    "puoli" to 4,
+                    "viisarit" to 2,
+                    "ylivaille" to 0,
+                    "ylivaille" to 1,
+                    "ylivaille" to 2,
+                )
+            for (case in lessonCases) {
                 compose.runOnIdle { surface.value = case }
                 evidencePrefix = "${value.tag}-${case.first}-page-${case.second}"
                 val state = lessonLayoutState(case, value)

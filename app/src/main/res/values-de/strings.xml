@@ -188,7 +188,7 @@
     <string name="l_viisarit_p1b">Der kurze rosa Zeiger ist der Stundenzeiger. Er zeigt, in welcher Stunde wir sind.</string>
     <string name="l_viisarit_p2a">Der lange blaue Zeiger ist der Minutenzeiger. Er zeigt die Minuten.</string>
     <string name="l_viisarit_p3a">Die Zeiger bewegen sich mit der Zeit von der 1 zur 2, dann zur 3 und immer weiter im Kreis.</string>
-    <string name="l_viisarit_p3b">Diese Richtung nennen wir im Uhrzeigersinn.</string>
+    <string name="l_viisarit_p3b">Die Zeiger bewegen sich im Uhrzeigersinn.</string>
     <string name="l_viisarit_q">Welcher Zeiger zeigt die Stunde?</string>
     <string name="l_viisarit_c1">Der kurze rosa Zeiger</string>
     <string name="l_viisarit_c2">Der lange blaue Zeiger</string>
@@ -261,12 +261,12 @@
 
     <string name="l_ylivaille_title">Nach und vor</string>
     <string name="l_ylivaille_desc">Zwei Seiten der Uhr</string>
-    <string name="l_ylivaille_p1a">Auf der rechten Seite können wir nach sagen.</string>
+    <string name="l_ylivaille_p1a">Auf der rechten Seite sagen wir zum Beispiel zwanzig nach.</string>
     <string name="l_ylivaille_p1b">Wir zählen die Minuten seit der vollen Stunde.</string>
-    <string name="l_ylivaille_p2a">Auf der linken Seite können wir vor sagen.</string>
+    <string name="l_ylivaille_p2a">Auf der linken Seite sagen wir zum Beispiel zwanzig vor.</string>
     <string name="l_ylivaille_p2b">Wir zählen die Minuten bis zur nächsten vollen Stunde.</string>
-    <string name="l_ylivaille_p3a">Bei nach nennen wir die Stunde, an der der kurze Zeiger schon vorbei ist.</string>
-    <string name="l_ylivaille_p3b">Bei vor nennen wir die Stunde, die als Nächstes kommt.</string>
+    <string name="l_ylivaille_p3a">Bei zehn nach nennen wir die Stunde, an der der kurze Zeiger schon vorbei ist.</string>
+    <string name="l_ylivaille_p3b">Bei zehn vor nennen wir die nächste Stunde. Nahe der halben Stunde können wir auch die Minuten vor oder nach halb zählen.</string>
     <string name="l_ylivaille_q">Wie spät ist es?</string>
     <string name="l_ylivaille_c1">Zehn nach vier</string>
     <string name="l_ylivaille_c2">Zehn vor vier</string>

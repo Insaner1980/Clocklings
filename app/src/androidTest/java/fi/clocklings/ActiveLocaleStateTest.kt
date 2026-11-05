@@ -202,7 +202,7 @@ class ActiveLocaleStateTest {
             val elapsed = SystemClock.elapsedRealtime() - started
             assertTrue("Challenge ended too early: $elapsed ms", elapsed >= 55_000)
             assertTrue("Challenge restarted its minute: $elapsed ms", elapsed < 72_000)
-            waitText("Vastasit oikein 0 kertaa. Paras tuloksesi on 0.")
+            waitText("Oikeita vastauksia: 0. Paras tuloksesi on 0.")
             assertEquals(seed, runBlocking { locale.repository.progress.first() })
             assertNoIntro(AppLanguage.FINNISH)
         } finally {

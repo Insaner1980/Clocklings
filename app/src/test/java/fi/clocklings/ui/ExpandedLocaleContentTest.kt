@@ -17,6 +17,37 @@ import java.util.Locale
 @Config(sdk = [33])
 class ExpandedLocaleContentTest {
     @Test
+    fun challengeResultsUseGrammaticalLabelsForOneCorrectAnswer() {
+        val expected =
+            listOf(
+                Triple(
+                    AppLanguage.FINNISH,
+                    "Uusi ennätys! Oikeita vastauksia: 1.",
+                    "Oikeita vastauksia: 1. Paras tuloksesi on 1.",
+                ),
+                Triple(
+                    AppLanguage.SWEDISH,
+                    "Nytt rekord! Rätta svar: 1.",
+                    "Rätta svar: 1. Ditt bästa resultat är 1.",
+                ),
+                Triple(
+                    AppLanguage.SPANISH,
+                    "¡Nuevo récord! Aciertos: 1.",
+                    "Aciertos: 1. Tu mejor resultado es 1.",
+                ),
+            )
+        for ((language, record, result) in expected) {
+            val resources = localizedContext(language).resources
+            assertEquals(language.tag, record, resources.getString(R.string.challenge_new_record, 1))
+            assertEquals(language.tag, result, resources.getString(R.string.challenge_result, 1, 1))
+        }
+        assertEquals(
+            "Mejor resultado: 1",
+            localizedContext(AppLanguage.SPANISH).getString(R.string.challenge_best, 1),
+        )
+    }
+
+    @Test
     fun germanAndFrenchResourcesWrapTheirOwnClockGrammar() {
         val german = localizedContext(AppLanguage.GERMAN).resources
         assertEquals("Lernen", german.getString(R.string.menu_koulu))

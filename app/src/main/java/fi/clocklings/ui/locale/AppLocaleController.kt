@@ -45,7 +45,7 @@ class AppLocaleController(
         if (mutableSelection.value.pending) return
         update {
             if (platform.supported) {
-                val legacy = repository.legacyLanguage.first()
+                val legacy = repository.readLegacyLanguageForMigration()
                 val platformChoice = platform.read()
                 if (!handoffAttempted && platformChoice == null) {
                     AppLanguage.fromTag(legacy)?.let(platform::write)

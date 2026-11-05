@@ -103,6 +103,25 @@ class AppSettingsTest {
             assertEquals("sv", repository.legacyLanguage.first())
         }
 
+    @Test
+    fun startingLevelsBeforeProgressRefreshPreservesBothIntroMarkers() =
+        runTest(main.dispatcher) {
+            val repository = ProgressRepository(InMemoryPreferencesStore())
+            val original = Progress(introShown = setOf("4")).withLevelResult(0, 3)
+            repository.updateProgress { original }
+            val app = AppViewModel(services(repository))
+            advanceUntilIdle()
+
+            assertEquals(listOf("viisarit", "kierros", "tasan"), app.startLevel(0))
+            assertEquals(listOf("puoli"), app.startLevel(1))
+            advanceUntilIdle()
+
+            assertEquals(original.copy(introShown = setOf("0", "1", "4")), repository.progress.first())
+            assertTrue(app.startLevel(0).isEmpty())
+            assertTrue(app.startLevel(1).isEmpty())
+            advanceUntilIdle()
+        }
+
     private fun services(repository: ProgressRepository): AppServices =
         object : AppServices by FakeServices() {
             override val repository = repository

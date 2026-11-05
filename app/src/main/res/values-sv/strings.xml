@@ -73,7 +73,7 @@
     <string name="level_minuutit">Exakta minuter</string>
     <string name="challenge_title">Minututmaningen</string>
     <string name="challenge_time_remaining">Tid kvar</string>
-    <string name="challenge_desc">Hur många hinner du svara på en minut?</string>
+    <string name="challenge_desc">Hur många frågor hinner du besvara på en minut?</string>
     <string name="record">Bästa resultat: %1$d</string>
     <string name="question_set">Ställ klockan på</string>
     <string name="praise_with_time">%1$s %2$s.</string>
@@ -127,8 +127,8 @@
     <string name="challenge_go">Starta!</string>
     <string name="challenge_over">Tiden är ute!</string>
     <string name="challenge_new_best">Nytt rekord!</string>
-    <string name="challenge_new_record" tools:ignore="PluralsCandidate">Nytt rekord! Du svarade rätt %1$d gånger.</string>
-    <string name="challenge_result" tools:ignore="PluralsCandidate">Du svarade rätt %1$d gånger. Ditt bästa resultat är %2$d.</string>
+    <string name="challenge_new_record" tools:ignore="PluralsCandidate">Nytt rekord! Rätta svar: %1$d.</string>
+    <string name="challenge_result" tools:ignore="PluralsCandidate">Rätta svar: %1$d. Ditt bästa resultat är %2$d.</string>
     <string name="ask_title">Spela tillsammans</string>
     <string name="ask_big_eyebrow" tools:ignore="PluralsCandidate">Spelare %1$d ställer tiden</string>
     <string name="ask_big_question">Välj en tid</string>

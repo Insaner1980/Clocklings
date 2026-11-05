@@ -22,7 +22,7 @@
     <string name="item_dog_neck_bandana">Bandana</string>
     <string name="item_dog_head_cap">Casquette</string>
     <string name="item_dog_extra_ball">Balle de tennis</string>
-    <string name="item_dog_neck_bone_collar">Collier à médaille en os</string>
+    <string name="item_dog_neck_bone_collar">Collier à médaille en forme d’os</string>
     <string name="item_dog_head_sun_hat">Chapeau de soleil</string>
     <string name="item_dog_extra_frisbee">Frisbee</string>
     <string name="item_dog_neck_bow_tie">Nœud papillon</string>
@@ -110,7 +110,7 @@
 
     <!-- Unicorn -->
     <string name="item_unicorn_neck_lei">Guirlande de fleurs</string>
-    <string name="item_unicorn_head_horn_rings">Anneaux de corne</string>
+    <string name="item_unicorn_head_horn_rings">Anneaux pour la corne</string>
     <string name="item_unicorn_extra_cloud">Coussin nuage</string>
     <string name="item_unicorn_neck_stars">Collier d’étoiles</string>
     <string name="item_unicorn_head_flower_crown">Couronne de fleurs</string>

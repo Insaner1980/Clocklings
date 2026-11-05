@@ -8,7 +8,9 @@ import fi.clocklings.domain.AppLanguage
 import fi.clocklings.domain.Progress
 import fi.clocklings.ui.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -17,9 +19,12 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import java.io.IOException
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class AppLocaleControllerTest {
     @get:Rule val main = MainDispatcherRule()
 
@@ -100,6 +105,33 @@ class AppLocaleControllerTest {
         }
 
     @Test
+    fun handoffReadFailureRetainsLegacyLanguageUntilSuccessfulImport() =
+        runTest(main.dispatcher) {
+            val store = FailingPreferencesStore()
+            val repository = ProgressRepository(store)
+            repository.setLegacyLanguage("fi")
+            store.failRead = true
+            val platform = FakeLocalePlatform(true)
+            val controller = AppLocaleController(repository, platform)
+            advanceUntilIdle()
+            val readFailed = controller.selection.value.failed
+            assertNull(platform.choice)
+            assertEquals(0, platform.writes)
+
+            store.failRead = false
+            assertEquals("fi", repository.legacyLanguage.first())
+            controller.refresh()
+            advanceUntilIdle()
+
+            assertEquals(AppLanguage.FINNISH, platform.choice)
+            assertEquals(AppLanguage.FINNISH, controller.selection.value.choice)
+            assertNull(repository.legacyLanguage.first())
+            assertEquals(1, platform.writes)
+            assertTrue(readFailed)
+            assertFalse(controller.selection.value.failed)
+        }
+
+    @Test
     fun existingPlatformChoiceAndNoOpNeverWriteAnAlternative() =
         runTest(main.dispatcher) {
             val repository = ProgressRepository(InMemoryPreferencesStore())
@@ -174,7 +206,12 @@ private class FakeLocalePlatform(
 private class FailingPreferencesStore : DataStore<Preferences> {
     private val delegate = InMemoryPreferencesStore()
     var fail = false
-    override val data = delegate.data
+    var failRead = false
+    override val data =
+        flow {
+            if (failRead) throw IOException("Synthetic read failure")
+            emitAll(delegate.data)
+        }
 
     override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences {
         if (fail) throw IOException("Synthetic storage failure")
