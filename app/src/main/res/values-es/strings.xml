@@ -102,13 +102,13 @@
     <plurals name="result_stars_description"><item quantity="one">%1$d\u00A0estrella de tres</item><item quantity="other">%1$d\u00A0estrellas de tres</item></plurals>
     <string name="challenge_score" tools:ignore="PluralsCandidate">Aciertos: %1$d</string>
     <string name="challenge_intro">Tienes un minuto. Intenta acertar todas las que puedas. Si te equivocas, el reloj muestra la hora y el juego continúa.</string>
-    <string name="challenge_best" tools:ignore="PluralsCandidate">Mejor resultado: %1$d aciertos</string>
+    <string name="challenge_best" tools:ignore="PluralsCandidate">Mejor resultado: %1$d</string>
     <string name="challenge_no_best">Aún no hay resultados</string>
     <string name="challenge_go">¡Empezar!</string>
     <string name="challenge_over">¡Se acabó el tiempo!</string>
     <string name="challenge_new_best">¡Nuevo récord!</string>
-    <string name="challenge_new_record" tools:ignore="PluralsCandidate">¡Nuevo récord! Has conseguido %1$d aciertos.</string>
-    <string name="challenge_result" tools:ignore="PluralsCandidate">Has conseguido %1$d aciertos. Tu mejor resultado es %2$d.</string>
+    <string name="challenge_new_record" tools:ignore="PluralsCandidate">¡Nuevo récord! Aciertos: %1$d.</string>
+    <string name="challenge_result" tools:ignore="PluralsCandidate">Aciertos: %1$d. Tu mejor resultado es %2$d.</string>
     <string name="ask_title">Jugar juntos</string>
     <string name="ask_big_eyebrow" tools:ignore="PluralsCandidate">Jugador %1$d: poner la hora</string>
     <string name="ask_big_question">Elige una hora</string>

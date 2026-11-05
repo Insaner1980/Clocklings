@@ -49,6 +49,17 @@ import org.junit.runner.RunWith
 class ClockSurfaceStateTest {
     @get:Rule val compose = createComposeRule()
     private var evidencePrefix = "clock-surface"
+    private val lessonLayoutCases =
+        listOf(
+            "puoli" to 2,
+            "puoli" to 3,
+            "viisi" to 2,
+            "puoli" to 4,
+            "viisarit" to 2,
+            "ylivaille" to 0,
+            "ylivaille" to 1,
+            "ylivaille" to 2,
+        )
 
     private fun localizedContexts(): Map<AppLanguage, android.content.Context> {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -93,7 +104,7 @@ class ClockSurfaceStateTest {
             compose.waitForIdle()
             LocalizationScreenshots.capture("$evidencePrefix-clock-daypart")
             game.options.forEach { assertTextFits(timeLabel(value, it, true)) }
-            for (case in listOf("puoli" to 2, "puoli" to 3, "viisi" to 2, "puoli" to 4)) {
+            for (case in lessonLayoutCases) {
                 compose.runOnIdle { surface.value = case }
                 evidencePrefix = "${value.tag}-${case.first}-page-${case.second}"
                 val state = lessonLayoutState(case, value)

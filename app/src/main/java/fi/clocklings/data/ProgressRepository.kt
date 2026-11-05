@@ -61,6 +61,9 @@ class ProgressRepository(
     // Only API 26–32 persists a language here. Newer Android owns its app locale.
     val legacyLanguage: Flow<String?> = data.map { it[APP_LANGUAGE] }.distinctUntilChanged()
 
+    // Migration must distinguish an unreadable store from an absent saved language.
+    internal val legacyLanguageForMigration: Flow<String?> = store.data.map { it[APP_LANGUAGE] }
+
     suspend fun setLegacyLanguage(tag: String?) {
         store.edit { prefs ->
             if (tag == null) prefs.remove(APP_LANGUAGE) else prefs[APP_LANGUAGE] = tag

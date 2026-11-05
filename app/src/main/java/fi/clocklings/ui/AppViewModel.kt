@@ -158,7 +158,7 @@ class AppViewModel(
     /** Pelaa-napin painallus: palauttaa ennen tasoa näytettävät oppitunnit ja merkitsee ne näytetyiksi. */
     fun startLevel(level: Int): List<String> {
         val plan = Lessons.introPlan(level, currentSettings.h24, currentProgress)
-        updateProgress { it.copy(introShown = plan.introShown) }
+        updateProgress { it.copy(introShown = it.introShown + plan.introShown) }
         return plan.queue
     }
 }

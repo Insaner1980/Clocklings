@@ -73,7 +73,7 @@
     <string name="level_minuutit">Tarkat minuutit</string>
     <string name="challenge_title">Minuuttihaaste</string>
     <string name="challenge_time_remaining">Aikaa jäljellä</string>
-    <string name="challenge_desc">Kuinka monta ehdit vastata minuutissa?</string>
+    <string name="challenge_desc">Kuinka moneen kysymykseen ehdit vastata minuutissa?</string>
     <string name="record">Paras tulos: %1$d</string>
     <string name="question_set">Aseta kelloon aika</string>
     <string name="praise_with_time">%1$s %2$s.</string>
@@ -127,8 +127,8 @@
     <string name="challenge_go">Aloita!</string>
     <string name="challenge_over">Aika loppui!</string>
     <string name="challenge_new_best">Uusi ennätys!</string>
-    <string name="challenge_new_record" tools:ignore="PluralsCandidate">Uusi ennätys! Vastasit oikein %1$d kertaa.</string>
-    <string name="challenge_result" tools:ignore="PluralsCandidate">Vastasit oikein %1$d kertaa. Paras tuloksesi on %2$d.</string>
+    <string name="challenge_new_record" tools:ignore="PluralsCandidate">Uusi ennätys! Oikeita vastauksia: %1$d.</string>
+    <string name="challenge_result" tools:ignore="PluralsCandidate">Oikeita vastauksia: %1$d. Paras tuloksesi on %2$d.</string>
     <string name="ask_title">Pelaa yhdessä</string>
     <string name="ask_big_eyebrow" tools:ignore="PluralsCandidate">Pelaaja %1$d asettaa ajan</string>
     <string name="ask_big_question">Valitse aika</string>
