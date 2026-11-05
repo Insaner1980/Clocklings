@@ -45,13 +45,19 @@ class AppLocaleController(
         if (mutableSelection.value.pending) return
         update {
             if (platform.supported) {
-                val legacy = repository.readLegacyLanguageForMigration()
                 val platformChoice = platform.read()
-                if (!handoffAttempted && platformChoice == null) {
+                if (platformChoice != null || handoffAttempted) {
+                    // Android's choice remains usable even when legacy cleanup cannot read the store.
+                    handoffAttempted = true
+                    mutableSelection.value = mutableSelection.value.copy(choice = platformChoice, ready = true)
+                }
+                val legacy = repository.legacyLanguageForMigration.first()
+                if (!handoffAttempted) {
                     AppLanguage.fromTag(legacy)?.let(platform::write)
                 }
                 // A failed cleanup must not re-import over a subsequent system selection.
                 handoffAttempted = true
+                mutableSelection.value = mutableSelection.value.copy(choice = platform.read(), ready = true)
                 if (legacy != null) repository.setLegacyLanguage(null)
                 platform.read()
             } else {

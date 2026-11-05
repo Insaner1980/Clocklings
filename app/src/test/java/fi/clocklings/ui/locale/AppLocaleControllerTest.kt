@@ -115,6 +115,7 @@ class AppLocaleControllerTest {
             val controller = AppLocaleController(repository, platform)
             advanceUntilIdle()
             val readFailed = controller.selection.value.failed
+            assertFalse(controller.selection.value.ready)
             assertNull(platform.choice)
             assertEquals(0, platform.writes)
 
@@ -129,6 +130,43 @@ class AppLocaleControllerTest {
             assertEquals(1, platform.writes)
             assertTrue(readFailed)
             assertFalse(controller.selection.value.failed)
+        }
+
+    @Test
+    fun existingPlatformChoiceAllowsStartupAndCleanupRetryAfterReadFailure() =
+        runTest(main.dispatcher) {
+            for (legacy in listOf(null, "fi")) {
+                val store = FailingPreferencesStore()
+                val repository = ProgressRepository(store)
+                repository.setLegacyLanguage(legacy)
+                store.failRead = true
+                val platform = FakeLocalePlatform(true, AppLanguage.SWEDISH)
+                val controller = AppLocaleController(repository, platform)
+                advanceUntilIdle()
+
+                assertTrue(controller.selection.value.ready)
+                assertTrue(controller.selection.value.failed)
+                assertFalse(controller.selection.value.pending)
+                assertEquals(AppLanguage.SWEDISH, controller.selection.value.choice)
+                store.failRead = false
+                assertEquals(legacy, repository.legacyLanguage.first())
+
+                store.failRead = true
+                platform.choice = null
+                controller.refresh()
+                advanceUntilIdle()
+                assertTrue(controller.selection.value.ready)
+                assertTrue(controller.selection.value.failed)
+                assertNull(controller.selection.value.choice)
+
+                store.failRead = false
+                controller.refresh()
+                advanceUntilIdle()
+                assertFalse(controller.selection.value.failed)
+                assertNull(controller.selection.value.choice)
+                assertNull(repository.legacyLanguage.first())
+                assertEquals(0, platform.writes)
+            }
         }
 
     @Test
@@ -157,6 +195,8 @@ class AppLocaleControllerTest {
             val controller = AppLocaleController(repository, platform)
             advanceUntilIdle()
             assertTrue(controller.selection.value.failed)
+            assertTrue(controller.selection.value.ready)
+            assertEquals(AppLanguage.FINNISH, controller.selection.value.choice)
             assertEquals(AppLanguage.FINNISH, platform.choice)
             platform.choice = null
             store.fail = false

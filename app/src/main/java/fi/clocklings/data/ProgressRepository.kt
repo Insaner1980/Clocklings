@@ -22,7 +22,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -63,7 +62,7 @@ class ProgressRepository(
     val legacyLanguage: Flow<String?> = data.map { it[APP_LANGUAGE] }.distinctUntilChanged()
 
     // Migration must distinguish an unreadable store from an absent saved language.
-    suspend fun readLegacyLanguageForMigration(): String? = store.data.first()[APP_LANGUAGE]
+    internal val legacyLanguageForMigration: Flow<String?> = store.data.map { it[APP_LANGUAGE] }
 
     suspend fun setLegacyLanguage(tag: String?) {
         store.edit { prefs ->
