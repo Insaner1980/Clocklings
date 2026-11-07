@@ -47,6 +47,7 @@ import fi.clocklings.ui.components.RoundIconButton
 import fi.clocklings.ui.components.ScreenScaffold
 import fi.clocklings.ui.components.SkIcons
 import fi.clocklings.ui.components.adaptiveGridColumns
+import fi.clocklings.ui.components.hasSideBySideRoom
 import fi.clocklings.ui.theme.Section
 import fi.clocklings.ui.theme.SkColors
 import fi.clocklings.ui.theme.SkDimens
@@ -68,7 +69,7 @@ fun HomeScreen(
 ) {
     val now = rememberHomeTime()
     val time = if (settings.h24) now else now % ClockTime.HALF_DAY
-    ScreenScaffold(modifier, section = Section.HOME, scroll = false) {
+    ScreenScaffold(modifier, section = Section.HOME, scroll = false, wideContent = true) {
         BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
             val viewport = maxHeight
             val compact = adaptiveGridColumns(maxWidth, LocalDensity.current.fontScale) == 1
@@ -119,14 +120,26 @@ private fun FillHeightLayout(
         val loose = Constraints(maxWidth = width)
         val gap = SkDimens.Gap.roundToPx()
         val headerP = headerM.map { it.measure(loose) }
-        val footerP = footerM.map { it.measure(loose) }
+        val sideBySide = hasSideBySideRoom(width.toDp(), density.fontScale)
+        val bodyWidth = if (sideBySide) (width - gap) / 2 else width
+        val footerP = footerM.map { it.measure(Constraints.fixedWidth(bodyWidth)) }
         // The footer tiles' ledges draw below their bounds; reserve that room so scrolling never clips them.
-        val fixed =
-            headerP.sumOf { it.height } + footerP.sumOf { it.height } + gap * 2 + SkDimens.BigButtonDepth.roundToPx()
+        val headerHeight = headerP.sumOf { it.height } + gap
+        val footerHeight = footerP.sumOf { it.height } + SkDimens.BigButtonDepth.roundToPx()
+        val fixed = headerHeight + if (sideBySide) 0 else footerHeight + gap
         val stageMin = if (compact) 0 else SkDimens.StageMinHeight.roundToPx()
-        val free = maxOf(with(density) { viewport.roundToPx() } - fixed, stageMin)
+        val free =
+            maxOf(
+                with(density) { viewport.roundToPx() } - fixed,
+                stageMin,
+                if (sideBySide) footerHeight else 0,
+            )
         val stageP =
-            stageM.map { it.measure(Constraints(width, width, free, if (compact) Constraints.Infinity else free)) }
+            stageM.map {
+                it.measure(
+                    Constraints(bodyWidth, bodyWidth, free, if (compact) Constraints.Infinity else free),
+                )
+            }
         val stageHeight = stageP.maxOfOrNull { it.height } ?: free
         layout(width, fixed + stageHeight) {
             var y = 0
@@ -136,8 +149,8 @@ private fun FillHeightLayout(
             }
             y += gap
             stageP.forEach { it.place(0, y) }
-            y += stageHeight + gap
-            footerP.forEach { it.place(0, y) }
+            y += if (sideBySide) (stageHeight - footerHeight) / 2 else stageHeight + gap
+            footerP.forEach { it.place(if (sideBySide) bodyWidth + gap else 0, y) }
         }
     }
 }

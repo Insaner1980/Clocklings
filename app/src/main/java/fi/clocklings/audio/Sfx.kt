@@ -55,7 +55,11 @@ class Sfx(
         scope.launch(ioDispatcher) {
             // Opening APK resource descriptors is synchronous even though SoundPool decoding is asynchronous.
             for (sound in Sound.entries) {
-                sound.clip?.let { samples = samples + (sound to pool.load(context, it, 1)) }
+                sound.clip?.let { clip ->
+                    runCatching { pool.load(context, clip, 1) }
+                        .onSuccess { samples = samples + (sound to it) }
+                        .onFailure { Log.w(TAG, "Could not load sound $sound", it) }
+                }
             }
         }
         scope.launch {
@@ -82,8 +86,14 @@ class Sfx(
                 ).setTransferMode(AudioTrack.MODE_STATIC)
                 .setBufferSizeInBytes(pcm.size * 2)
                 .build()
-        track.write(pcm, 0, pcm.size)
-        return track
+        var loaded = false
+        try {
+            loaded = track.write(pcm, 0, pcm.size) == pcm.size
+            check(loaded) { "Incomplete sound buffer" }
+            return track
+        } finally {
+            if (!loaded) track.release()
+        }
     }
 
     /** Plays [sound]; a recorded clip plays at [rate] (1 = original pitch), a synthesized tone ignores it. */

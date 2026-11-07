@@ -9,16 +9,19 @@ import fi.clocklings.data.ProgressRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.shadows.ShadowLog
 import java.io.IOException
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -30,6 +33,36 @@ class StorageReadRecoveryTest {
     private val services =
         object : AppServices by FakeServices() {
             override val repository = this@StorageReadRecoveryTest.repository
+        }
+
+    @Test
+    fun persistentReadFailureBacksOffItsAttemptsAndLogsThenRecovers() =
+        runTest(main.dispatcher) {
+            store.readable.value = false
+            ShadowLog.clear()
+            val app = AppViewModel(services)
+            try {
+                runCurrent()
+                advanceTimeBy(60_000)
+                runCurrent()
+                val attempts = store.readAttempts
+                val logs = ShadowLog.getLogsForTag("ProgressRepository").size
+                assertTrue("60 seconds caused $attempts reads and $logs warnings", attempts <= 16 && logs <= 16)
+                assertEquals(attempts, logs)
+                store.readable.value = true
+                repository.updateProgress { it.withLevelResult(0, 3) }
+                advanceTimeBy(30_000)
+                runCurrent()
+                assertEquals(3, app.progress.value!!.totalStars)
+                store.readable.value = false
+                runCurrent()
+                val before = store.readAttempts
+                advanceTimeBy(1_000)
+                runCurrent()
+                assertTrue("Successful reads reset the short retry delay", store.readAttempts > before)
+            } finally {
+                app.viewModelScope.cancel()
+            }
         }
 
     @Test
@@ -82,9 +115,16 @@ class StorageReadRecoveryTest {
 private class RecoveringReadStore : DataStore<Preferences> {
     private val delegate = InMemoryPreferencesStore()
     val readable = MutableStateFlow(true)
+    var readAttempts = 0
+        private set
     override val data =
-        readable.flatMapLatest { ready ->
-            if (ready) delegate.data else flow { throw IOException("Synthetic read failure") }
+        flow {
+            readAttempts++
+            emitAll(
+                readable.flatMapLatest { ready ->
+                    if (ready) delegate.data else flow { throw IOException("Synthetic read failure") }
+                },
+            )
         }
 
     override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences =

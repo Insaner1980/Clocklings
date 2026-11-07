@@ -2,11 +2,21 @@ package fi.clocklings.ui
 
 import android.content.Context
 import android.content.res.Configuration
+import android.icu.text.PluralRules
+import android.icu.util.VersionInfo
+import android.os.Build
 import androidx.test.core.app.ApplicationProvider
 import fi.clocklings.R
 import fi.clocklings.domain.AppLanguage
+import fi.clocklings.domain.DemoStep
+import fi.clocklings.domain.Levels
+import fi.clocklings.domain.Progress
+import fi.clocklings.domain.Text
+import fi.clocklings.domain.Wardrobe
+import fi.clocklings.ui.lesson.LessonCatalog
 import fi.clocklings.ui.locale.resourceLanguage
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -16,6 +26,72 @@ import java.util.Locale
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])
 class ExpandedLocaleContentTest {
+    @Test
+    @Config(sdk = [26, 33, 37])
+    fun boundedPluralResourcesUseOnlyAuthoredQuantities() {
+        val levelStars = 0..(0..Levels.TASK_COUNT).maxOf(Levels::stars)
+        val totalStars = 0..levelStars.last * Progress.LEVEL_COUNT
+        for (language in listOf(AppLanguage.FRENCH, AppLanguage.SPANISH, AppLanguage.PORTUGUESE_BRAZIL)) {
+            val minutes =
+                LessonCatalog.all(language).flatMap { lesson ->
+                    lesson.pages.flatMap { page ->
+                        page.demo.filterIsInstance<DemoStep.Say>().mapNotNull { (it.text as? Text.Plural)?.count }
+                    }
+                }
+            assertTrue(minutes.isNotEmpty())
+            val steps = Levels.all.map { it.step } + 5 // Free clock and Together also use five-minute steps.
+            val countsByResource =
+                mapOf(
+                    R.plurals.stars_count to levelStars.toList(),
+                    R.plurals.minutes_count to minutes,
+                    R.plurals.clock_add to steps,
+                    R.plurals.clock_subtract to steps,
+                    R.plurals.result_text to levelStars.toList(),
+                    R.plurals.result_previous_best to levelStars.toList(),
+                    R.plurals.result_stars_description to levelStars.toList(),
+                    R.plurals.doll_info to totalStars.toList(),
+                    R.plurals.doll_item_locked to Wardrobe.items.map { it.star },
+                )
+            val resources = localizedContext(language).resources
+            val rules = PluralRules.forLocale(Locale.forLanguageTag(language.tag))
+            println("API ${Build.VERSION.SDK_INT} ICU ${VersionInfo.ICU_VERSION} ${language.tag}: $rules")
+            for ((id, counts) in countsByResource) {
+                for (count in counts) {
+                    val category = rules.select(count.toDouble())
+                    val label = "${language.tag}/${resources.getResourceEntryName(id)}/$count: $category"
+                    assertTrue(label, category in setOf("one", "other"))
+                    assertEquals(
+                        label,
+                        resources.getQuantityText(id, if (category == "one") 1 else 2),
+                        resources.getQuantityText(id, count),
+                    )
+                }
+            }
+        }
+    }
+
+    @Test
+    @Config(sdk = [26, 33, 37])
+    fun pluralResourcesKeepZeroOneAndOtherAgreement() {
+        val expected =
+            mapOf(
+                AppLanguage.FRENCH to listOf("0\u00a0minute", "1\u00a0minute", "2\u00a0minutes", "60\u00a0minutes"),
+                AppLanguage.SPANISH to listOf("0\u00a0minutos", "1\u00a0minuto", "2\u00a0minutos", "60\u00a0minutos"),
+                AppLanguage.PORTUGUESE_BRAZIL to
+                    listOf("0\u00a0minuto", "1\u00a0minuto", "2\u00a0minutos", "60\u00a0minutos"),
+            )
+        for ((language, phrases) in expected) {
+            val resources = localizedContext(language).resources
+            for ((index, count) in listOf(0, 1, 2, 60).withIndex()) {
+                assertEquals(
+                    language.tag,
+                    phrases[index],
+                    resources.getQuantityString(R.plurals.minutes_count, count, count),
+                )
+            }
+        }
+    }
+
     @Test
     fun challengeResultsUseGrammaticalLabelsForOneCorrectAnswer() {
         val expected =

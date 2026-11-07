@@ -10,7 +10,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -59,6 +64,36 @@ class ReviewRegressionTest {
             override val repository = this@ReviewRegressionTest.repository
         }
     private val model = AppViewModel(services)
+
+    @Test
+    fun failedNameDraftKeepsItsRetryAfterSavedStateRestoration() {
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            Viewport {
+                val progress by model.progress.collectAsStateWithLifecycle()
+                WardrobeScreen(CompanionKind.CAT, progress ?: Progress(), CompanionColor.ORIGINAL, {})
+            }
+        }
+        store.fail = true
+        compose.onNodeWithContentDescription("Companion name").scrollIfNeeded().performTextReplacement("Draft")
+        compose.onNodeWithText(retryText()).assertIsDisplayed()
+        restoration.emulateSavedInstanceStateRestore()
+        forEachCell {
+            compose.onNodeWithText(errorText()).assertIsDisplayed()
+            compose.onNodeWithText(retryText()).assertIsDisplayed()
+            assertEquals(errorText(), nameError())
+        }
+        compose
+            .onNodeWithContentDescription(localizedContext(language.value).getString(R.string.doll_name_label))
+            .scrollIfNeeded()
+            .assertTextEquals("Draft")
+        assertEquals("", model.progress.value!!.nameFor(CompanionKind.CAT))
+        store.fail = false
+        compose.onNodeWithText(retryText()).performClick()
+        compose.runOnIdle { assertEquals("Draft", model.progress.value!!.nameFor(CompanionKind.CAT)) }
+        compose.onNodeWithText(retryText()).assertDoesNotExist()
+        assertEquals(null, nameError())
+    }
 
     @Test
     fun failedNameRemainsRetryableAfterAnotherChangeSucceeds() {
@@ -137,6 +172,7 @@ class ReviewRegressionTest {
         compose.onNodeWithText(itemText).scrollIfNeeded().performClick()
         val headText = localizedContext(language.value).getString(itemName(headItem.id))
         compose.onNodeWithText(headText).scrollIfNeeded().performClick()
+        assertEquals(null, nameError())
         store.fail = false
         compose.onNodeWithContentDescription("Companion name").scrollIfNeeded().performTextReplacement("Mia")
         forEachCell {
@@ -238,6 +274,13 @@ class ReviewRegressionTest {
     }
 
     private fun errorText() = localizedContext(language.value).getString(R.string.settings_save_error)
+
+    private fun nameError() =
+        compose
+            .onNode(hasSetTextAction())
+            .fetchSemanticsNode()
+            .config
+            .getOrNull(SemanticsProperties.Error)
 
     private fun retryText() = localizedContext(language.value).getString(R.string.settings_retry)
 

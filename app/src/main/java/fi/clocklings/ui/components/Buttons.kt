@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -82,6 +83,7 @@ fun DepthSurface(
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
+    val focused by interaction.collectIsFocusedAsState()
     val reduced = rememberReduceMotion()
     val scale by animateFloatAsState(
         if (pressed && enabled && !reduced) pressScale else 1f,
@@ -89,6 +91,7 @@ fun DepthSurface(
         label = "press",
     )
     val shift = if (pressed && enabled) depth - pressedDepth else 0.dp
+    val visibleBorder = if (focused && enabled) BorderStroke(SkDimens.Border, SkColors.Ink) else border
     Box(
         modifier
             .graphicsLayer {
@@ -100,7 +103,7 @@ fun DepthSurface(
                 val outline = shape.createOutline(size, layoutDirection, this)
                 translate(0f, (depth - shift).toPx()) { drawOutline(outline, shadow) }
             }.background(fill, shape)
-            .then(if (border != null) Modifier.border(border, shape) else Modifier)
+            .then(if (visibleBorder != null) Modifier.border(visibleBorder, shape) else Modifier)
             .clickable(interaction, indication = null, enabled = enabled, role = role, onClick = onClick)
             // Inside the click semantics, so it clears only the content's and keeps the click, role and label.
             .then(if (decorativeContent) Modifier.clearAndSetSemantics { } else Modifier),

@@ -138,6 +138,18 @@ class ConfettiState internal constructor(
 
     internal val isActive: Boolean get() = particles.isNotEmpty() || flights.isNotEmpty()
 
+    internal fun advance(
+        elapsedNanos: Long,
+        height: Float,
+    ): Long {
+        var pending = elapsedNanos
+        while (pending >= FRAME_NANOS && isActive) {
+            step(height)
+            pending -= FRAME_NANOS
+        }
+        return pending % FRAME_NANOS
+    }
+
     private fun shapeScale(shape: ConfettiShape): Float = if (shape == ConfettiShape.RECT) 1f else SHAPE_SCALE
 
     internal fun step(height: Float) {
@@ -198,10 +210,7 @@ fun ConfettiHost(
                     withFrameNanos { now ->
                         pending += now - last
                         last = now
-                        while (pending >= FRAME_NANOS) {
-                            state.step(height[0])
-                            pending -= FRAME_NANOS
-                        }
+                        pending = state.advance(pending, height[0])
                         state.frame++
                     }
                 }

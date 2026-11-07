@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -249,7 +250,7 @@ private fun CompactCompanionStage(
     stageWidth: Dp,
     onOpen: (HomeDestination) -> Unit,
 ) {
-    val clockSize = stageWidth * CLOCK_WIDTH_SHARE
+    val clockSize = min(stageWidth * CLOCK_WIDTH_SHARE, SkDimens.HomeStageMaxHeight)
     // The row never grows past the stage, so the companion leaves room for the button and the clock.
     val companionMaxWidth = max(stageWidth - SkDimens.GapS * 2 - clockSize - SkDimens.IconButton, 0.dp)
     Column(
@@ -268,6 +269,7 @@ private fun CompactCompanionStage(
                 Modifier
                     .sharedClocklingsElement("companion")
                     .widthIn(max = companionMaxWidth)
+                    .heightIn(max = SkDimens.HomeStageMaxHeight)
                     .aspectRatio(companionAspectRatio(kind), matchHeightConstraintsFirst = true),
             )
             HangerButton(onOpen)

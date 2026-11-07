@@ -29,6 +29,7 @@ import fi.clocklings.domain.Levels
 import fi.clocklings.ui.LocalAppViewModel
 import fi.clocklings.ui.clock.ClockCommand
 import fi.clocklings.ui.clock.ClockFace
+import fi.clocklings.ui.components.AdaptiveContent
 import fi.clocklings.ui.components.ClockBox
 import fi.clocklings.ui.components.CompanionTip
 import fi.clocklings.ui.components.FlatPanel
@@ -71,6 +72,8 @@ fun FreeClockScreen(
     }
     ScreenScaffold(
         modifier,
+        wideContent = true,
+        centerContent = true,
         section = Section.EXPLORE,
         topBar = {
             HelpTopBar(
@@ -81,22 +84,25 @@ fun FreeClockScreen(
             )
         },
     ) { clockSize ->
-        ClockBox(clockSize) {
-            ClockFace(
-                command = command,
-                modifier = Modifier.sharedClocklingsElement("clock"),
-                period = period,
-                step = STEP,
-                interactive = true,
-                help = help,
-                onChange = { time = it },
-            )
-        }
-        ExplorePanel(time, h24, speechAvailable) {
-            val t = Levels.randomClockTime(period, time, Random.Default)
-            time = t
-            command = ClockCommand(t, RANDOM_MOVE_MS)
-            app.play(Sound.POP)
+        AdaptiveContent(clockSize, controlsAlignment = Alignment.CenterVertically, visual = { size ->
+            ClockBox(size) {
+                ClockFace(
+                    command = command,
+                    modifier = Modifier.sharedClocklingsElement("clock"),
+                    period = period,
+                    step = STEP,
+                    interactive = true,
+                    help = help,
+                    onChange = { time = it },
+                )
+            }
+        }) {
+            ExplorePanel(time, h24, speechAvailable) {
+                val t = Levels.randomClockTime(period, time, Random.Default)
+                time = t
+                command = ClockCommand(t, RANDOM_MOVE_MS)
+                app.play(Sound.POP)
+            }
         }
     }
 }

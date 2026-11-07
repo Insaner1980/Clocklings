@@ -1,6 +1,8 @@
 package fi.clocklings.ui.ask
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
@@ -34,15 +36,17 @@ import fi.clocklings.ui.clock.ClockCommand
 import fi.clocklings.ui.clock.ClockFace
 import fi.clocklings.ui.components.ButtonKind
 import fi.clocklings.ui.components.ClockBox
+import fi.clocklings.ui.components.ClockTaskScaffold
 import fi.clocklings.ui.components.CompanionTip
 import fi.clocklings.ui.components.FlatPanel
 import fi.clocklings.ui.components.HelpTopBar
 import fi.clocklings.ui.components.LocalConfetti
-import fi.clocklings.ui.components.ScreenScaffold
 import fi.clocklings.ui.components.SkButton
 import fi.clocklings.ui.components.SkIcons
+import fi.clocklings.ui.components.TaskActionFocus
 import fi.clocklings.ui.components.TimeReadout
 import fi.clocklings.ui.components.confettiAnchor
+import fi.clocklings.ui.components.taskActionFocus
 import fi.clocklings.ui.theme.Section
 import fi.clocklings.ui.theme.SkDimens
 import fi.clocklings.ui.theme.SkType
@@ -66,18 +70,33 @@ fun AskScreen(
     var time by rememberSaveable { mutableIntStateOf(ClockTime.start(h24)) }
     var command by remember { mutableStateOf(ClockCommand(time)) }
     val scrollState = rememberScrollState()
-    LaunchedEffect(phase) {
-        if (phase == AskPhase.SET) scrollState.scrollTo(0)
+    val compactScrollState = rememberScrollState()
+    var previousPhase by rememberSaveable { mutableStateOf(phase) }
+    val onRandom = {
+        time = Levels.randomClockTime(ClockTime.period(h24), time, Random.Default)
+        command = ClockCommand(time, RANDOM_MOVE_MS)
+        app.play(Sound.POP)
     }
-    ScreenScaffold(
-        modifier,
+    LaunchedEffect(phase) {
+        if (previousPhase != phase && phase == AskPhase.SET) {
+            scrollState.scrollTo(0)
+            compactScrollState.scrollTo(0)
+        }
+        previousPhase = phase
+    }
+    ClockTaskScaffold(
+        modifier = modifier,
         scrollState = scrollState,
+        compactScrollState = compactScrollState,
         clockHeightShare = SkDimens.PLAY_CLOCK_HEIGHT_SHARE,
         section = Section.TOGETHER,
         topBar = { HelpTopBar(stringResource(R.string.ask_title), help, onBack, app::toggleHelp) },
-        bottomBar = {
+        actions = { focus, compact ->
             AskActions(
                 phase,
+                focus,
+                compact,
+                onRandom,
                 onAsk = {
                     app.play(Sound.POP)
                     phase = AskPhase.ASK
@@ -89,30 +108,39 @@ fun AskScreen(
                 },
             )
         },
-    ) { clockSize ->
-        ClockBox(clockSize) {
-            ClockFace(
-                command = command,
-                period = ClockTime.period(h24),
-                step = STEP,
-                interactive = phase == AskPhase.SET,
-                help = help,
-                describeTime = phase != AskPhase.ASK,
-                onChange = { time = it },
-            )
-        }
+        visual = { size -> AskClock(command, phase, h24, help, size) { time = it } },
+    ) { compact ->
         val role = askRoleDescription(phase, setter)
-        FlatPanel(Modifier.semantics { contentDescription = role }) {
+        val padding = if (compact) SkDimens.GapS else SkDimens.PanelPadding
+        FlatPanel(Modifier.semantics { contentDescription = role }, padding = padding) {
             if (phase == AskPhase.SET) {
-                AskSetup {
-                    time = Levels.randomClockTime(ClockTime.period(h24), time, Random.Default)
-                    command = ClockCommand(time, RANDOM_MOVE_MS)
-                    app.play(Sound.POP)
-                }
+                AskSetup(compact, onRandom)
             } else {
                 AskQuestion(phase == AskPhase.REVEALED, time, h24, speechAvailable)
             }
         }
+    }
+}
+
+@Composable
+private fun AskClock(
+    command: ClockCommand,
+    phase: AskPhase,
+    h24: Boolean,
+    help: Boolean,
+    size: androidx.compose.ui.unit.Dp,
+    onChange: (Int) -> Unit,
+) {
+    ClockBox(size) {
+        ClockFace(
+            command = command,
+            period = ClockTime.period(h24),
+            step = STEP,
+            interactive = phase == AskPhase.SET,
+            help = help,
+            describeTime = phase != AskPhase.ASK,
+            onChange = onChange,
+        )
     }
 }
 
@@ -122,10 +150,24 @@ private const val REVEAL_CONFETTI = 40
 private const val PLAYER_NUMBER_SUM = 3
 
 @Composable
-private fun ColumnScope.AskSetup(onRandom: () -> Unit) {
+private fun ColumnScope.AskSetup(
+    compact: Boolean,
+    onRandom: () -> Unit,
+) {
     Text(stringResource(R.string.ask_big_question), style = SkType.Question)
-    CompanionTip(stringResource(R.string.ask_big_text))
-    SkButton(stringResource(R.string.random_time), onRandom, Modifier.fillMaxWidth(), icon = SkIcons.Shuffle)
+    if (compact) {
+        Text(stringResource(R.string.ask_big_text), style = SkType.Body)
+    } else {
+        CompanionTip(stringResource(R.string.ask_big_text))
+    }
+    if (!compact) {
+        SkButton(
+            stringResource(R.string.random_time),
+            onRandom,
+            Modifier.fillMaxWidth(),
+            icon = SkIcons.Shuffle,
+        )
+    }
 }
 
 /**
@@ -166,6 +208,9 @@ private fun ColumnScope.AskQuestion(
 @Composable
 private fun AskActions(
     phase: AskPhase,
+    focus: TaskActionFocus,
+    compact: Boolean,
+    onRandom: () -> Unit,
     onAsk: () -> Unit,
     onReveal: () -> Unit,
     onSwap: () -> Unit,
@@ -174,43 +219,43 @@ private fun AskActions(
     val confetti = LocalConfetti.current
     val haptic = LocalHapticFeedback.current
     val revealAnchor = remember { mutableStateOf(Offset.Zero) }
-    when (phase) {
-        AskPhase.SET -> {
-            SkButton(
-                stringResource(R.string.ask_go),
-                onAsk,
-                Modifier.fillMaxWidth(),
-                kind = ButtonKind.PRIMARY,
-                icon = SkIcons.Pass,
-            )
+    val label =
+        when (phase) {
+            AskPhase.SET -> R.string.ask_go
+            AskPhase.ASK -> R.string.ask_reveal
+            AskPhase.REVEALED -> R.string.ask_new
         }
+    // Keep the same focus target when its action changes; replacing it can leave focus on a scrolled-away header.
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM)) {
+        if (compact && phase == AskPhase.SET) {
+            SkButton(stringResource(R.string.random_time), onRandom, Modifier.weight(1f), icon = SkIcons.Shuffle)
+        }
+        SkButton(
+            stringResource(label),
+            {
+                when (phase) {
+                    AskPhase.SET -> {
+                        onAsk()
+                    }
 
-        AskPhase.ASK -> {
-            SkButton(
-                stringResource(R.string.ask_reveal),
-                {
-                    onReveal()
-                    haptic.performHapticFeedback(HapticFeedbackType.Confirm)
-                    app.play(Sound.OK)
-                    confetti?.burst(revealAnchor.value, REVEAL_CONFETTI)
-                },
-                Modifier.fillMaxWidth().confettiAnchor { revealAnchor.value = it },
-                kind = ButtonKind.PRIMARY,
-            )
-        }
+                    AskPhase.ASK -> {
+                        onReveal()
+                        haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+                        app.play(Sound.OK)
+                        confetti?.burst(revealAnchor.value, REVEAL_CONFETTI)
+                    }
 
-        AskPhase.REVEALED -> {
-            SkButton(
-                stringResource(R.string.ask_new),
-                {
-                    app.stopSpeech()
-                    app.play(Sound.POP)
-                    onSwap()
-                },
-                Modifier.fillMaxWidth(),
-                kind = ButtonKind.GREEN,
-            )
-        }
+                    AskPhase.REVEALED -> {
+                        app.stopSpeech()
+                        app.play(Sound.POP)
+                        onSwap()
+                    }
+                }
+            },
+            Modifier.weight(1f).taskActionFocus(focus).confettiAnchor { revealAnchor.value = it },
+            kind = if (phase == AskPhase.REVEALED) ButtonKind.GREEN else ButtonKind.PRIMARY,
+            icon = if (phase == AskPhase.SET) SkIcons.Pass else null,
+        )
     }
 }
 

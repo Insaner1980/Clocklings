@@ -26,7 +26,30 @@ import org.robolectric.util.ReflectionHelpers
 @Config(sdk = [33])
 class AppAudioLifecycleTest {
     @Test
+    fun pausingOneOfTwoResumedActivitiesKeepsSoundAvailableToTheOther() {
+        withReadyAudio { container, shadow ->
+            container.resume()
+            container.resume()
+            container.pause()
+            container.play(Sound.WIN, force = true, rate = 1f)
+            assertTrue("The remaining resumed activity can still play", shadow.wasResourcePlayed(R.raw.success))
+        }
+    }
+
+    @Test
     fun delayedGameResultCannotStartSoundAfterTheActivityPauses() {
+        withReadyAudio { container, shadow ->
+            container.resume()
+            container.pause()
+            container.play(Sound.WIN, force = true, rate = 1f)
+            assertFalse(shadow.wasResourcePlayed(R.raw.success))
+            container.resume()
+            container.play(Sound.WIN, force = true, rate = 1f)
+            assertTrue(shadow.wasResourcePlayed(R.raw.success))
+        }
+    }
+
+    private fun withReadyAudio(block: (AppContainer, ShadowSoundPool) -> Unit) {
         val container = AppContainer(ApplicationProvider.getApplicationContext(), InMemoryPreferencesStore())
         val sfx = ReflectionHelpers.getField<Sfx>(container, "sfx")
         val pool = ReflectionHelpers.getField<SoundPool>(sfx, "pool")
@@ -41,13 +64,7 @@ class AppAudioLifecycleTest {
                 }
             }
             shadow.notifyResourceLoaded(R.raw.success, true)
-            container.resume()
-            container.pause()
-            container.play(Sound.WIN, force = true, rate = 1f)
-            assertFalse(shadow.wasResourcePlayed(R.raw.success))
-            container.resume()
-            container.play(Sound.WIN, force = true, rate = 1f)
-            assertTrue(shadow.wasResourcePlayed(R.raw.success))
+            block(container, shadow)
         } finally {
             ReflectionHelpers.getField<CoroutineScope>(container, "scope").cancel()
             ReflectionHelpers.getField<Speech>(container, "speech").shutdown()

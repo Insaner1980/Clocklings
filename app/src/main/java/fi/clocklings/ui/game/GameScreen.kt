@@ -12,10 +12,12 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshots.SnapshotStateMap
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -30,6 +32,7 @@ import fi.clocklings.domain.timeLanguage
 import fi.clocklings.ui.AppViewModel
 import fi.clocklings.ui.LocalAppViewModel
 import fi.clocklings.ui.clock.ClockFace
+import fi.clocklings.ui.components.AdaptiveContent
 import fi.clocklings.ui.components.ButtonKind
 import fi.clocklings.ui.components.ClockBox
 import fi.clocklings.ui.components.CompanionTip
@@ -138,7 +141,9 @@ fun GameScreen(
     val confetti = LocalConfetti.current
     LaunchedEffect(state.taskIndex) { confetti?.clear() }
     ScreenScaffold(
-        modifier,
+        modifier.testTag("game_task_${state.taskIndex}"),
+        wideContent = true,
+        centerContent = true,
         clockHeightShare = SkDimens.GAME_CLOCK_HEIGHT_SHARE,
         section = Section.PLAY,
         topBar = {
@@ -158,31 +163,52 @@ fun GameScreen(
             onDotCenter = { i, c -> dots[i] = c },
             outcomes = dotOutcomes(state, currentDone),
         )
-        GameClock(state, help, onClockChange, clockSize)
-        FlatPanel {
-            if (state.task.type == TaskType.READ) {
-                GameOptions(state, anchors, onPick)
-            } else {
-                SetTarget(state.task.time, state.h24)
-            }
-            if (state.showDone) {
-                SkButton(
-                    stringResource(R.string.done),
-                    onDone,
-                    kind = ButtonKind.PRIMARY,
-                    modifier = Modifier.fillMaxWidth().confettiAnchor { anchors[DONE_ANCHOR] = it },
-                )
-            }
-            GameFeedbackMessage(state.feedback, state.h24)
-            if (state.showNext) {
-                val label = if (state.feedback == GameFeedback.SaveFailed) R.string.settings_retry else R.string.next
-                SkButton(
-                    stringResource(label),
-                    onNext,
-                    kind = ButtonKind.GREEN,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
+        AdaptiveContent(clockSize, controlsAlignment = Alignment.CenterVertically, visual = { size ->
+            GameClock(state, help, onClockChange, size)
+        }) {
+            GameAnswerPanel(state, anchors, onPick, onDone, onNext)
+        }
+    }
+}
+
+@Composable
+private fun GameAnswerPanel(
+    state: GameUiState,
+    anchors: SnapshotStateMap<Int, Offset>,
+    onPick: (Int) -> Unit,
+    onDone: () -> Unit,
+    onNext: () -> Unit,
+) {
+    FlatPanel {
+        if (state.task.type == TaskType.READ) {
+            GameOptions(state, anchors, onPick)
+        } else {
+            SetTarget(state.task.time, state.h24)
+        }
+        if (state.showDone) {
+            SkButton(
+                stringResource(R.string.done),
+                onDone,
+                kind = ButtonKind.PRIMARY,
+                modifier = Modifier.fillMaxWidth().confettiAnchor { anchors[DONE_ANCHOR] = it },
+            )
+        }
+        GameFeedbackMessage(state.feedback, state.h24)
+        if (state.showNext) {
+            val label =
+                if (state.feedback ==
+                    GameFeedback.SaveFailed
+                ) {
+                    R.string.settings_retry
+                } else {
+                    R.string.next
+                }
+            SkButton(
+                stringResource(label),
+                onNext,
+                kind = ButtonKind.GREEN,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }

@@ -61,18 +61,18 @@ class AppContainer(
     private val soundOn = repository.settings.map { it.sound }.stateIn(scope, SharingStarted.Eagerly, true)
     private val speech = Speech(context)
     override val speechAvailable: StateFlow<Boolean> = speech.available
-    private var resumed = false
+    private var resumedActivities = 0
 
     override fun play(
         sound: Sound,
         force: Boolean,
         rate: Float,
     ) {
-        if (resumed && (force || soundOn.value)) sfx.play(sound, rate)
+        if (resumedActivities > 0 && (force || soundOn.value)) sfx.play(sound, rate)
     }
 
     override fun speak(text: String) {
-        if (resumed) speech.speak(text)
+        if (resumedActivities > 0) speech.speak(text)
     }
 
     override fun stopSpeech() = speech.stop()
@@ -82,12 +82,13 @@ class AppContainer(
     override fun refreshSpeech() = speech.refresh()
 
     fun resume() {
-        resumed = true
+        resumedActivities++
     }
 
     /** Äänet ja puhe pysähtyvät, kun sovellus menee taustalle. */
     fun pause() {
-        resumed = false
+        resumedActivities = (resumedActivities - 1).coerceAtLeast(0)
+        if (resumedActivities > 0) return
         sfx.stopAll()
         speech.stop()
     }

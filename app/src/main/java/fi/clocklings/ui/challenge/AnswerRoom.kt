@@ -58,13 +58,14 @@ internal fun rememberAnswerRoomKey(h24: Boolean): (width: Int) -> AnswerRoomKey 
 }
 
 /**
- * The room a run keeps for its answers, shared by the whole process so that a new visit or a recreated screen
- * measures nothing. Per [AnswerRoomKey] it holds the text estimate of every answer ranked so far, then the
+ * The room a run keeps for its answers, shared by the process for the last 16 configurations so that a recent
+ * visit or recreated screen can reuse its measurements. Per [AnswerRoomKey] it holds the text estimates, then the
  * [ROOM_CANDIDATES] answers whose text lays out tallest, then their real row heights, tallest first. The
  * candidates and heights are snapshot state, so a layout that reads them measures again when they arrive. All of
  * it is read and written only in layout and effects, on the main thread.
  */
 internal object AnswerRooms {
+    private val recentKeys = LinkedHashSet<AnswerRoomKey>()
     private val estimates = HashMap<AnswerRoomKey, MutableMap<Int, Int>>()
     private val candidates = mutableStateMapOf<AnswerRoomKey, List<Int>>()
     private val heights = mutableStateMapOf<AnswerRoomKey, List<Int>>()
@@ -81,6 +82,7 @@ internal object AnswerRooms {
         key: AnswerRoomKey,
         rows: List<Int>,
     ) {
+        retain(key)
         heights[key] = rows.sortedDescending()
     }
 
@@ -121,7 +123,22 @@ internal object AnswerRooms {
         rank(key, known)
     }
 
-    private fun estimatesFor(key: AnswerRoomKey) = estimates.getOrPut(key) { HashMap() }
+    private fun estimatesFor(key: AnswerRoomKey): MutableMap<Int, Int> {
+        retain(key)
+        return estimates.getOrPut(key) { HashMap() }
+    }
+
+    private fun retain(key: AnswerRoomKey) {
+        recentKeys.remove(key)
+        recentKeys.add(key)
+        if (recentKeys.size > MAX_CACHED_ROOMS) {
+            val oldest = recentKeys.first()
+            recentKeys.remove(oldest)
+            estimates.remove(oldest)
+            candidates.remove(oldest)
+            heights.remove(oldest)
+        }
+    }
 
     private fun rank(
         key: AnswerRoomKey,
@@ -131,7 +148,10 @@ internal object AnswerRooms {
             .sortedWith(compareByDescending<Map.Entry<Int, Int>> { it.value }.thenBy { it.key })
             .take(ROOM_CANDIDATES)
             .map { it.key }
-            .also { candidates[key] = it }
+            .also {
+                retain(key)
+                candidates[key] = it
+            }
 
     private fun TextMeasurer.estimate(
         key: AnswerRoomKey,
@@ -149,12 +169,15 @@ internal object AnswerRooms {
 
     /** Forgets everything; for tests that need a first visit. */
     fun clear() {
+        recentKeys.clear()
         estimates.clear()
         candidates.clear()
         heights.clear()
         estimatesMade = 0
     }
 }
+
+private const val MAX_CACHED_ROOMS = 16
 
 /**
  * Answers ranked tallest by their text that are measured as real rows. A few more than a question shows, as the

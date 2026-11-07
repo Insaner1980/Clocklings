@@ -12,6 +12,9 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import fi.clocklings.domain.AppLanguage
 import fi.clocklings.domain.Levels
@@ -43,6 +46,40 @@ class AnswerRoomCostTest {
     private val firstPick =
         run.copy(optionStates = mapOf(run.options.first() to OptionState.CORRECT), busy = true)
     private val allAnswers = Levels.challengeTimes(H24).count()
+
+    @Test
+    fun continuousResizeRetainsOnlyRecentRoomsAndCanRebuildEvictedEstimates() {
+        lateinit var measurer: TextMeasurer
+        compose.setContent { measurer = rememberTextMeasurer() }
+        val density = Density(2f, 1f)
+        val keys = (640..839).map { AnswerRoomKey(AppLanguage.ENGLISH, false, 2f, 1f, 0, it) }
+        compose.runOnIdle {
+            AnswerRooms.clear()
+            try {
+                for (key in keys) {
+                    AnswerRooms.rankNow(key, measurer, density)
+                    AnswerRooms.storeHeights(key, listOf(48, 24))
+                }
+                val retained = keys.count { AnswerRooms.heights(it) != null }
+                val candidates = keys.count { AnswerRooms.candidates(it) != null }
+                assertTrue(
+                    "200 resize keys retain $retained heights and $candidates candidate sets",
+                    retained <= 16 && candidates <= 16,
+                )
+                val before = AnswerRooms.estimatesMade
+                AnswerRooms.rankNow(keys.last(), measurer, density)
+                assertEquals("Recent estimates are reused", before, AnswerRooms.estimatesMade)
+                AnswerRooms.rankNow(keys.first(), measurer, density)
+                assertEquals(
+                    "Evicted estimates are recomputed",
+                    before + Levels.challengeTimes(false).count(),
+                    AnswerRooms.estimatesMade,
+                )
+            } finally {
+                AnswerRooms.clear()
+            }
+        }
+    }
 
     private fun show() {
         AnswerRooms.clear()

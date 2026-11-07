@@ -53,6 +53,7 @@ import fi.clocklings.ui.components.ActionPair
 import fi.clocklings.ui.components.ButtonKind
 import fi.clocklings.ui.components.ClockBox
 import fi.clocklings.ui.components.ClockFit
+import fi.clocklings.ui.components.ClockTaskScaffold
 import fi.clocklings.ui.components.Eyebrow
 import fi.clocklings.ui.components.FlatPanel
 import fi.clocklings.ui.components.LocalConfetti
@@ -60,10 +61,11 @@ import fi.clocklings.ui.components.OptionButton
 import fi.clocklings.ui.components.OptionState
 import fi.clocklings.ui.components.Pill
 import fi.clocklings.ui.components.ReadOptions
-import fi.clocklings.ui.components.ScreenScaffold
 import fi.clocklings.ui.components.SkButton
+import fi.clocklings.ui.components.TaskActionFocus
 import fi.clocklings.ui.components.TopBar
 import fi.clocklings.ui.components.confettiAnchor
+import fi.clocklings.ui.components.taskActionFocus
 import fi.clocklings.ui.locale.LocalAppLanguage
 import fi.clocklings.ui.theme.Section
 import fi.clocklings.ui.theme.SkColors
@@ -129,8 +131,8 @@ fun ChallengeScreen(
         // A fully clipped score has empty bounds; celebrate from the visible result bar instead.
         finalAnchor.value.takeUnless { it == Offset.Zero } ?: barAnchor.value
     }
-    ScreenScaffold(
-        modifier,
+    ClockTaskScaffold(
+        modifier = modifier,
         clockHeightShare = SkDimens.PLAY_CLOCK_HEIGHT_SHARE,
         section = Section.PLAY,
         topBar = {
@@ -142,28 +144,13 @@ fun ChallengeScreen(
         },
         // The start action and the result actions stay reachable below a narrow or large-font intro or result
         // without scrolling.
-        bottomBar =
-            when (state.phase) {
-                ChallengePhase.START -> {
-                    {
-                        SkButton(
-                            stringResource(R.string.challenge_go),
-                            onStart,
-                            Modifier.fillMaxWidth(),
-                            kind = ButtonKind.PRIMARY,
-                        )
-                    }
-                }
-
-                ChallengePhase.RUN -> {
-                    null
-                }
-
-                ChallengePhase.END -> {
-                    {
-                        Box(Modifier.fillMaxWidth().confettiAnchor { barAnchor.value = it }) {
-                            ResultActions(state, onStart, onBack)
-                        }
+        actions =
+            if (state.phase == ChallengePhase.RUN) {
+                null
+            } else {
+                { focus, _ ->
+                    Box(Modifier.fillMaxWidth().confettiAnchor { barAnchor.value = it }) {
+                        ChallengeActions(state, onStart, onBack, focus)
                     }
                 }
             },
@@ -179,10 +166,17 @@ fun ChallengeScreen(
         animateClock = true,
         // Each phase opens at the top, so a run never starts with the clock scrolled away.
         scrollState = rememberSaveable(state.phase, saver = ScrollState.Saver) { ScrollState(0) },
-    ) { clockSize ->
-        TimerBar(state)
-        ChallengeClock(state, h24, help, clockSize)
-        ChallengePanel(state, h24, onPick, onAnchorChange = { finalAnchor.value = it })
+        compactScrollState = rememberSaveable(state.phase, saver = ScrollState.Saver) { ScrollState(0) },
+        status = { TimerBar(state) },
+        visual = { size -> ChallengeClock(state, h24, help, size) },
+    ) { compact ->
+        ChallengePanel(
+            state,
+            h24,
+            onPick,
+            onAnchorChange = { finalAnchor.value = it },
+            compact = compact,
+        )
     }
 }
 
@@ -338,20 +332,38 @@ private fun ColumnScope.ChallengeResult(
     if (state.saveFailed) Text(stringResource(R.string.settings_save_error), style = SkType.Body)
 }
 
-/** Back and Play again (Retry after a failed save) in the result's bottom bar; Play again is the primary one. */
+/** Start, or Back and Play again (Retry after a failed save), in the current layout's action area. */
 @Composable
-private fun ResultActions(
+private fun ChallengeActions(
     state: ChallengeUiState,
     onStart: () -> Unit,
     onBack: () -> Unit,
+    focus: TaskActionFocus,
 ) {
+    if (state.phase == ChallengePhase.START) {
+        SkButton(
+            stringResource(R.string.challenge_go),
+            onStart,
+            Modifier.fillMaxWidth().taskActionFocus(focus),
+            kind = ButtonKind.PRIMARY,
+        )
+        return
+    }
     val back = stringResource(R.string.back_description)
     val again = stringResource(if (state.saveFailed) R.string.settings_retry else R.string.play_again)
     ActionPair(
         back,
         again,
-        start = { SkButton(back, onBack, it) },
-        end = { SkButton(again, onStart, it, kind = ButtonKind.PRIMARY, enabled = !state.savePending) },
+        start = { SkButton(back, onBack, it.taskActionFocus(focus)) },
+        end = {
+            SkButton(
+                again,
+                onStart,
+                it.taskActionFocus(focus),
+                kind = ButtonKind.PRIMARY,
+                enabled = !state.savePending,
+            )
+        },
     )
 }
 
@@ -361,8 +373,9 @@ private fun ChallengePanel(
     h24: Boolean,
     onPick: (Int) -> Unit,
     onAnchorChange: (Offset) -> Unit,
+    compact: Boolean,
 ) {
-    FlatPanel {
+    FlatPanel(padding = if (compact) SkDimens.GapS else SkDimens.PanelPadding) {
         when (state.phase) {
             ChallengePhase.START -> {
                 Text(stringResource(R.string.challenge_desc), style = SkType.Question)

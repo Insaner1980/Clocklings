@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -44,6 +45,7 @@ import fi.clocklings.ui.clock.ClockFace
 import fi.clocklings.ui.components.ActionPair
 import fi.clocklings.ui.components.ButtonKind
 import fi.clocklings.ui.components.ClockBox
+import fi.clocklings.ui.components.ClockTaskScaffold
 import fi.clocklings.ui.components.CompanionTip
 import fi.clocklings.ui.components.Eyebrow
 import fi.clocklings.ui.components.FeedbackKind
@@ -60,10 +62,12 @@ import fi.clocklings.ui.components.SkButton
 import fi.clocklings.ui.components.SkIcon
 import fi.clocklings.ui.components.SkIcons
 import fi.clocklings.ui.components.StarRow
+import fi.clocklings.ui.components.TaskActionFocus
 import fi.clocklings.ui.components.TopBar
 import fi.clocklings.ui.components.WordSafeText
 import fi.clocklings.ui.components.confettiAnchor
 import fi.clocklings.ui.components.rememberCelebrationAnchors
+import fi.clocklings.ui.components.taskActionFocus
 import fi.clocklings.ui.levelName
 import fi.clocklings.ui.locale.LocalAppLanguage
 import fi.clocklings.ui.praise
@@ -214,8 +218,8 @@ fun LessonScreen(
     val page = state.lesson.pages.getOrNull(state.page)
     val paragraphs = page?.text?.map { it.resolve(res) }.orEmpty()
     val caption = state.caption?.resolve(res).orEmpty()
-    ScreenScaffold(
-        modifier,
+    ClockTaskScaffold(
+        modifier = modifier,
         section = Section.LEARN,
         topBar = {
             TopBar(
@@ -224,27 +228,33 @@ fun LessonScreen(
                 onBack = onBack,
             )
         },
-        bottomBar = { LessonNavigation(state, onPrevious, onNext) },
-    ) { clockSize ->
-        ProgressDots(state.pageCount, state.page)
-        ClockBox(clockSize) {
-            ClockFace(
-                command = state.clock,
-                period = state.period,
-                help = state.help,
-                describeTime = !state.isQuiz || state.quizDone,
-                highlight = state.highlight,
-                under = state.under,
-                over = state.over,
-            )
-        }
-        FlatPanel {
+        actions = { focus, compact ->
+            LessonActions(state, onPrevious, onNext, focus, compact) {
+                if (page != null) LessonPlayback(speechAvailable, paragraphs, caption, onSpeak, onReplay, compact)
+            }
+        },
+        status = { ProgressDots(state.pageCount, state.page) },
+        visual = { size ->
+            ClockBox(size) {
+                ClockFace(
+                    command = state.clock,
+                    period = state.period,
+                    help = state.help,
+                    describeTime = !state.isQuiz || state.quizDone,
+                    highlight = state.highlight,
+                    under = state.under,
+                    over = state.over,
+                )
+            }
+        },
+    ) { compact ->
+        FlatPanel(padding = if (compact) SkDimens.GapS else SkDimens.PanelPadding) {
             if (page != null) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(if (compact) SkDimens.GapS else 10.dp)) {
                     paragraphs.forEach { Text(it, style = SkType.LessonText) }
                 }
                 if (caption.isNotEmpty()) LessonCaption(caption)
-                LessonPlayback(speechAvailable, paragraphs, caption, onSpeak, onReplay)
+                if (!compact) LessonPlayback(speechAvailable, paragraphs, caption, onSpeak, onReplay, compact)
             } else {
                 LessonQuiz(state, anchors, onPick)
             }
@@ -297,7 +307,7 @@ private fun ColumnScope.LessonQuiz(
             CompanionTip(stringResource(R.string.settings_save_error), kind = FeedbackKind.HINT)
         }
 
-        state.quizDone -> {
+        state.quizDone && !state.savePending -> {
             CompanionTip(
                 stringResource(R.string.lesson_learned, praise(res, state.praiseIndex), state.lesson.title.resolve()),
                 kind = FeedbackKind.OK,
@@ -322,17 +332,48 @@ private fun LessonPlayback(
     caption: String,
     onSpeak: (String) -> Unit,
     onReplay: () -> Unit,
+    compact: Boolean,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM)) {
-        if (speechAvailable) {
+    Row(
+        if (compact) Modifier else Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM)) {
+            if (speechAvailable) {
+                RoundIconButton(
+                    SkIcons.Listen,
+                    stringResource(R.string.listen),
+                    { onSpeak((paragraphs + caption).filter { it.isNotEmpty() }.joinToString(" ")) },
+                    large = !compact,
+                )
+            }
             RoundIconButton(
-                SkIcons.Listen,
-                stringResource(R.string.listen),
-                { onSpeak((paragraphs + caption).filter { it.isNotEmpty() }.joinToString(" ")) },
-                large = true,
+                SkIcons.Replay,
+                stringResource(R.string.lesson_replay),
+                onReplay,
+                large = !compact,
             )
         }
-        RoundIconButton(SkIcons.Replay, stringResource(R.string.lesson_replay), onReplay, large = true)
+    }
+}
+
+@Composable
+private fun LessonActions(
+    state: LessonUiState,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    focus: TaskActionFocus,
+    compact: Boolean,
+    playback: @Composable () -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (compact) playback()
+        Box(Modifier.weight(1f)) { LessonNavigation(state, onPrevious, onNext, focus) }
     }
 }
 
@@ -342,6 +383,7 @@ private fun LessonNavigation(
     state: LessonUiState,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
+    focus: TaskActionFocus,
 ) {
     val previous = stringResource(R.string.lesson_prev)
     val next = stringResource(nextLabel(state.nextAction))
@@ -349,7 +391,15 @@ private fun LessonNavigation(
     ActionPair(
         previous,
         next.takeIf { showNext },
-        start = { SkButton(previous, onPrevious, it, enabled = state.page > 0 && !state.savePending) },
-        end = { SkButton(next, onNext, it, kind = ButtonKind.PRIMARY) },
+        start = {
+            SkButton(
+                previous,
+                onPrevious,
+                it.taskActionFocus(focus),
+                enabled =
+                    state.page > 0 && !state.savePending,
+            )
+        },
+        end = { SkButton(next, onNext, it.taskActionFocus(focus), kind = ButtonKind.PRIMARY) },
     )
 }

@@ -17,12 +17,15 @@
         <item>¡Correcto!</item><item>¡Muy bien!</item><item>¡Buen trabajo!</item>
         <item>¡Lo has conseguido!</item><item>¡Bien hecho!</item><item>¡Genial!</item><item>¡Estupendo!</item>
     </string-array>
-    <plurals name="stars_count"><item quantity="one">%1$d\u00A0estrella</item><item quantity="other">%1$d\u00A0estrellas</item></plurals>
-    <plurals name="minutes_count"><item quantity="one">%1$d\u00A0minuto</item><item quantity="other">%1$d\u00A0minutos</item></plurals>
+    <!-- MissingQuantity: these call sites use stars 0..3, totals/unlocks 0..15 and minutes/steps 1..60.
+         ICU many requires nonzero multiples of 1,000,000 for ordinary integer counts.
+         ExpandedLocaleContentTest checks the production ranges and Android selection on API 26/33/37. -->
+    <plurals name="stars_count" tools:ignore="MissingQuantity"><item quantity="one">%1$d\u00A0estrella</item><item quantity="other">%1$d\u00A0estrellas</item></plurals>
+    <plurals name="minutes_count" tools:ignore="MissingQuantity"><item quantity="one">%1$d\u00A0minuto</item><item quantity="other">%1$d\u00A0minutos</item></plurals>
     <string name="clock_description">Esfera del reloj: %1$s</string>
     <string name="clock_question_description">Pregunta sobre el reloj. Pide a la otra persona que describa las agujas o descubrid la hora juntos.</string>
-    <plurals name="clock_add"><item quantity="one">Añadir %1$d\u00A0minuto</item><item quantity="other">Añadir %1$d\u00A0minutos</item></plurals>
-    <plurals name="clock_subtract"><item quantity="one">Restar %1$d\u00A0minuto</item><item quantity="other">Restar %1$d\u00A0minutos</item></plurals>
+    <plurals name="clock_add" tools:ignore="MissingQuantity"><item quantity="one">Añadir %1$d\u00A0minuto</item><item quantity="other">Añadir %1$d\u00A0minutos</item></plurals>
+    <plurals name="clock_subtract" tools:ignore="MissingQuantity"><item quantity="one">Restar %1$d\u00A0minuto</item><item quantity="other">Restar %1$d\u00A0minutos</item></plurals>
     <string name="clock_zone_yli">y</string>
     <string name="clock_zone_vaille">menos</string>
     <string name="intro_greeting_morning">¡Buenos días!</string>
@@ -85,11 +88,11 @@
     <string name="result_title_3">¡Estupendo!</string>
     <string name="result_title_2">¡Muy bien!</string>
     <string name="result_title_1">¡Sigue explorando!</string>
-    <plurals name="result_text">
+    <plurals name="result_text" tools:ignore="MissingQuantity">
         <item quantity="one">¡Has completado %1$s! Has ganado %2$d\u00A0estrella.</item>
         <item quantity="other">¡Has completado %1$s! Has ganado %2$d\u00A0estrellas.</item>
     </plurals>
-    <plurals name="result_previous_best">
+    <plurals name="result_previous_best" tools:ignore="MissingQuantity">
         <item quantity="one">Tu mejor resultado en este nivel es %1$d\u00A0estrella.</item>
         <item quantity="other">Tu mejor resultado en este nivel es %1$d\u00A0estrellas.</item>
     </plurals>
@@ -99,7 +102,7 @@
     <string name="play_again">Volver a jugar</string>
     <string name="next_level">Siguiente nivel</string>
     <string name="dress_doll">Elegir un conjunto</string>
-    <plurals name="result_stars_description"><item quantity="one">%1$d\u00A0estrella de tres</item><item quantity="other">%1$d\u00A0estrellas de tres</item></plurals>
+    <plurals name="result_stars_description" tools:ignore="MissingQuantity"><item quantity="one">%1$d\u00A0estrella de tres</item><item quantity="other">%1$d\u00A0estrellas de tres</item></plurals>
     <string name="challenge_score" tools:ignore="PluralsCandidate">Aciertos: %1$d</string>
     <string name="challenge_intro">Tienes un minuto. Intenta acertar todas las que puedas. Si te equivocas, el reloj muestra la hora y el juego continúa.</string>
     <string name="challenge_best" tools:ignore="PluralsCandidate">Mejor resultado: %1$d</string>
@@ -121,14 +124,14 @@
     <string name="doll_title">Conjuntos</string>
     <string name="doll_name_label">Nombre del acompañante</string>
     <string name="doll_name_placeholder">Elige un nombre</string>
-    <plurals name="doll_info">
+    <plurals name="doll_info" tools:ignore="MissingQuantity">
         <item quantity="one">Tienes %1$d\u00A0estrella. Cada nueva estrella desbloquea un accesorio. Toca un accesorio para ponerlo.</item>
         <item quantity="other">Tienes %1$d\u00A0estrellas. Cada nueva estrella desbloquea un accesorio. Toca un accesorio para ponerlo.</item>
     </plurals>
     <string name="doll_all_open">Todos los accesorios están disponibles. ¡Prueba cualquier combinación!</string>
     <string name="doll_optional_hint">Toca un accesorio para ponerlo. Tócalo otra vez para quitarlo.</string>
     <string name="doll_optional_hint_partial">Toca un accesorio para ponerlo. Toca otra vez los sombreros y los extras para quitarlos.</string>
-    <plurals name="doll_item_locked">
+    <plurals name="doll_item_locked" tools:ignore="MissingQuantity">
         <item quantity="one">Bloqueado. Se abre con %1$d\u00A0estrella. Tienes %2$d.</item>
         <item quantity="other">Bloqueado. Se abre con %1$d\u00A0estrellas. Tienes %2$d.</item>
     </plurals>
@@ -302,4 +305,6 @@
     <string name="l_vrk_c3">Las cinco de la tarde: 17:00</string>
     <string name="l_vrk_hint">En el centro pone tarde. Suma 12 a la hora: 7 + 12 = 19.</string>
     <string name="doll_stars_explained">Las estrellas nunca se gastan. La ropa nueva se desbloquea cuando tienes suficientes estrellas.</string>
+    <string name="answer_correct">Correcto</string>
+    <string name="answer_incorrect">Incorrecto</string>
 </resources>

@@ -3,9 +3,11 @@ package fi.clocklings.audio
 import android.speech.tts.TextToSpeech
 import android.speech.tts.Voice
 import fi.clocklings.domain.AppLanguage
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.job
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runCurrent
@@ -18,6 +20,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.util.ReflectionHelpers
 import java.util.Locale
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CountDownLatch
@@ -139,6 +142,7 @@ class SpeechTest {
                 callback(TextToSpeech.SUCCESS)
                 engine
             }
+        val scope = ReflectionHelpers.getField<CoroutineScope>(speech, "scope")
         try {
             assertTrue(entered.await(5, TimeUnit.SECONDS))
             speech.setLanguage(AppLanguage.FINNISH)
@@ -149,7 +153,8 @@ class SpeechTest {
             runBlocking { withTimeout(5_000) { speech.available.first { it } } }
             speech.speak("active")
             assertTrue(speaking.await(5, TimeUnit.SECONDS))
-            speech.speak("queued")
+            repeat(40) { speech.speak("queued-$it") }
+            println("Queued speech jobs (40 requests): ${scope.coroutineContext.job.children.count()}")
             speech.stop()
             speech.shutdown()
             assertFalse(speech.available.value)
@@ -164,6 +169,16 @@ class SpeechTest {
         assertTrue(calls.isNotEmpty())
         assertTrue(calls.all { it !== caller })
         assertEquals(listOf("active"), engine.spoken)
+        awaitShutdown(scope)
+    }
+
+    private fun awaitShutdown(scope: CoroutineScope) {
+        runBlocking { withTimeout(5_000) { scope.coroutineContext.job.join() } }
+        assertFalse(
+            "Shutdown must finish the queued jobs",
+            scope.coroutineContext.job.children
+                .any(),
+        )
     }
 
     @Test

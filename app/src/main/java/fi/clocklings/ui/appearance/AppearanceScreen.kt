@@ -61,7 +61,9 @@ import fi.clocklings.ui.clock.ClockFace
 import fi.clocklings.ui.companion.CompanionCelebration
 import fi.clocklings.ui.companion.CompanionView
 import fi.clocklings.ui.companion.companionAspectRatio
+import fi.clocklings.ui.components.AdaptiveContent
 import fi.clocklings.ui.components.ButtonKind
+import fi.clocklings.ui.components.ClockBox
 import fi.clocklings.ui.components.CompanionTip
 import fi.clocklings.ui.components.DepthSurface
 import fi.clocklings.ui.components.FlatPanel
@@ -114,6 +116,7 @@ fun AppearanceScreen(
     var clocks by rememberSaveable { mutableStateOf(false) }
     ScreenScaffold(
         modifier,
+        wideContent = true,
         section = Section.COMPANION,
         topBar = { TopBar(stringResource(R.string.appearance_title), onBack) },
         bottomBar =
@@ -134,7 +137,7 @@ fun AppearanceScreen(
             Modifier.fillMaxWidth(),
         )
         if (clocks) {
-            ClockChoices(appearance, onChange)
+            ClockChoices(appearance, clockSize, onChange)
         } else {
             // The preview grows with the screen so the page uses its height instead of leaving it empty.
             CompanionChoices(
@@ -157,8 +160,7 @@ private fun CompanionChoices(
     pager: PagerState,
 ) {
     val kind = appearance.companion
-    Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapM)) {
-        CompanionPager(pager, progress, previewHeight)
+    AdaptiveContent(previewHeight, visual = { size -> CompanionPager(pager, progress, size) }) {
         CompanionThumbnails(pager, kind, progress)
         if (kind == CompanionKind.NONE) {
             Text(stringResource(R.string.no_companion_hint), style = SkType.BodySoft)
@@ -177,15 +179,18 @@ private fun CompanionChoices(
 @Composable
 private fun ClockChoices(
     appearance: Personalization,
+    previewSize: Dp,
     onChange: ((Personalization) -> Personalization) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapL)) {
+    AdaptiveContent(previewSize, visual = { size ->
         Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapS)) {
-            ClockFace(
-                ClockCommand(PREVIEW_TIME),
-                Modifier.fillMaxWidth().testTag("selected_clock"),
-                appearance = appearance.clock,
-            )
+            ClockBox(size) {
+                ClockFace(
+                    ClockCommand(PREVIEW_TIME),
+                    Modifier.testTag("selected_clock"),
+                    appearance = appearance.clock,
+                )
+            }
             // The preview's state description already names the style, so TalkBack skips this caption.
             Text(
                 stringResource(clockThemeName(appearance.clock.theme)),
@@ -194,6 +199,7 @@ private fun ClockChoices(
                 modifier = Modifier.fillMaxWidth().clearAndSetSemantics { },
             )
         }
+    }) {
         ChoiceGrid(ClockTheme.entries) { theme, cell ->
             ChoiceCard(
                 stringResource(clockThemeName(theme)),
