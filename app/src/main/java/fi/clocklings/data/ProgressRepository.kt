@@ -41,15 +41,19 @@ class ProgressRepository(
     private val data: Flow<Preferences> =
         flow {
             var hasRead = false
+            var retryDelay = READ_RETRY_MS
             emitAll(
                 store.data
-                    .onEach { hasRead = true }
-                    .retryWhen { error, _ ->
+                    .onEach {
+                        hasRead = true
+                        retryDelay = READ_RETRY_MS
+                    }.retryWhen { error, _ ->
                         if (error !is IOException) return@retryWhen false
                         Log.w(TAG, "Tallennusta ei voitu lukea", error)
                         // Keep startup usable and retain the last known values after a later read failure.
                         if (!hasRead) emit(emptyPreferences())
-                        delay(READ_RETRY_MS)
+                        delay(retryDelay)
+                        retryDelay = (retryDelay * 2).coerceAtMost(MAX_READ_RETRY_MS)
                         true
                     },
             )
@@ -167,6 +171,7 @@ class ProgressRepository(
     private companion object {
         const val TAG = "ProgressRepository"
         const val READ_RETRY_MS = 1_000L
+        const val MAX_READ_RETRY_MS = 30_000L
         val STARS = List(Progress.LEVEL_COUNT) { intPreferencesKey("stars_$it") }
         val BEST = intPreferencesKey("challenge_best")
         val DONE = stringSetPreferencesKey("lessons_done")

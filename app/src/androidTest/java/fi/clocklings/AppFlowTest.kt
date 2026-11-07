@@ -13,6 +13,7 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -249,8 +250,7 @@ class AppFlowTest {
                 assertTrue("tehtävä $task: kello ${clockWords()} != $target", clockWords() == target)
                 click("Done")
             }
-            // Onnistumisen jälkeen peli jatkuu 1,5 sekunnin kuluttua.
-            Thread.sleep(1_800)
+            if (task < 9) awaitTask(task + 1)
         }
         waitForText("Whole hours complete!", substring = true)
         assertTrue(isShown("You earned", substring = true))
@@ -369,6 +369,15 @@ class AppFlowTest {
         repeat(LEVEL_CARDS - 1) { play[it].scrollToIfScrollable().assertIsEnabled() }
         click("Minute Challenge")
         waitForText("Start!")
+    }
+
+    private fun awaitTask(task: Int) {
+        compose.waitUntil(10_000) {
+            compose
+                .onAllNodesWithTag("game_task_$task", useUnmergedTree = true)
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }
     }
 
     @Test

@@ -106,15 +106,7 @@ class LanguageSettingsTest {
     fun homeLanguagePickerPersistsAllChoicesWithoutChangingLearningData() {
         openSettings()
         click("Language: English")
-        for ((autonym, language) in listOf(
-            "Suomi" to AppLanguage.FINNISH,
-            "Svenska" to AppLanguage.SWEDISH,
-            "Deutsch" to AppLanguage.GERMAN,
-            "Français" to AppLanguage.FRENCH,
-            "Español (España)" to AppLanguage.SPANISH,
-            "Português (Brasil)" to AppLanguage.PORTUGUESE_BRAZIL,
-            "English" to AppLanguage.ENGLISH,
-        )) {
+        for ((autonym, language) in languageTestChoices) {
             click(autonym)
             waitText(string(language, R.string.language_title))
             radio(autonym).assertIsSelected()

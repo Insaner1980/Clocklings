@@ -8,6 +8,20 @@ import org.junit.Test
 
 class ConfettiStateTest {
     @Test
+    fun aLongFrameGapStopsWorkOnceAllParticlesAndFlightsExpire() {
+        val state = ConfettiState(1f, enabled = true)
+        state.burst(Offset(50f, 100f), count = 20)
+        state.flyStar(Offset.Zero, Offset(100f, 100f))
+        val remainder = state.advance(600_000_000_000L, 2_000f)
+        assertFalse(state.isActive)
+        assertTrue("A frame gap must not simulate ${state.frame} empty frames", state.frame <= 200)
+        assertTrue(remainder in 0L until 16_666_667L)
+        val finished = state.frame
+        state.advance(600_000_000_000L, 2_000f)
+        assertEquals("An inactive animation needs no catch-up work", finished, state.frame)
+    }
+
+    @Test
     fun reducedMotionCreatesNoParticlesOrFlights() {
         val state = ConfettiState(2f, enabled = false)
         state.burst(Offset(10f, 20f))

@@ -7,6 +7,14 @@ object SkDimens {
     const val MAX_ROW_FONT_SCALE = 1.3f
 
     val Gutter = 16.dp
+    val ReadingWidth = 640.dp
+    val WideContentWidth = 1120.dp
+    val SideBySideWidth = 720.dp
+    val VisualPaneWidth = 400.dp
+    val ControlsMinWidth = 360.dp
+    val ClockMax = 400.dp
+    val PinnedChromeMinHeight = 360.dp
+    val CompactTaskHeight = 480.dp
     val GapS = 8.dp
     val GapM = 12.dp
 

@@ -59,3 +59,14 @@ internal class LocaleTestEnvironment {
         }
     }
 }
+
+internal val languageTestChoices =
+    listOf(
+        "Suomi" to AppLanguage.FINNISH,
+        "Svenska" to AppLanguage.SWEDISH,
+        "Deutsch" to AppLanguage.GERMAN,
+        "Français" to AppLanguage.FRENCH,
+        "Español (España)" to AppLanguage.SPANISH,
+        "Português (Brasil)" to AppLanguage.PORTUGUESE_BRAZIL,
+        "English" to AppLanguage.ENGLISH,
+    )

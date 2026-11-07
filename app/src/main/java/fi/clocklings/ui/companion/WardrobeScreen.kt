@@ -11,10 +11,12 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -35,6 +37,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -57,6 +60,7 @@ import fi.clocklings.domain.slots
 import fi.clocklings.ui.LocalAppViewModel
 import fi.clocklings.ui.RetryableSave
 import fi.clocklings.ui.appearance.companionColorName
+import fi.clocklings.ui.components.AdaptiveContent
 import fi.clocklings.ui.components.DepthSurface
 import fi.clocklings.ui.components.FlatPanel
 import fi.clocklings.ui.components.Pill
@@ -93,61 +97,56 @@ fun WardrobeScreen(
 ) {
     val app = LocalAppViewModel.current
     var name by rememberSaveable(kind) { mutableStateOf(progress.nameFor(kind)) }
-    val nameSave = remember(app, kind) { RetryableSave() }
+    val (saveName, nameRetry) = rememberNameSave(kind, name)
     val colorSave = remember(app, kind) { RetryableSave() }
     val itemSaves = remember(app, kind) { kind.slots.associateWith { RetryableSave() } }
-    val retry = nameSave.retry ?: colorSave.retry ?: itemSaves.values.firstNotNullOfOrNull { it.retry }
+    val retry = nameRetry ?: colorSave.retry ?: itemSaves.values.firstNotNullOfOrNull { it.retry }
     val total = progress.totalStars
     val outfit = progress.outfitFor(kind)
+    val keyboardOpen = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+    val failureBar: @Composable () -> Unit = {
+        Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapS)) {
+            Text(stringResource(R.string.settings_save_error), style = SkType.Body)
+            SkButton(stringResource(R.string.settings_retry), { retry?.invoke() }, Modifier.fillMaxWidth())
+        }
+    }
     ScreenScaffold(
         modifier,
+        wideContent = true,
         section = Section.COMPANION,
         topBar = { TopBar(stringResource(R.string.doll_title), onBack) },
-        bottomBar =
-            retry?.let { retrySave ->
-                {
-                    Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapS)) {
-                        Text(stringResource(R.string.settings_save_error), style = SkType.Body)
-                        SkButton(stringResource(R.string.settings_retry), retrySave, Modifier.fillMaxWidth())
-                    }
-                }
-            },
-    ) {
-        WardrobeStage(
-            kind,
-            outfit,
-            color,
-            name,
-            stars = stringResource(R.string.home_star_total, total, Wardrobe.MAX_STARS),
-            starInfo =
-                if (Wardrobe.lockedCount(kind, total) > 0) {
-                    pluralStringResource(R.plurals.doll_info, total, total)
-                } else {
-                    stringResource(R.string.doll_all_open)
+        bottomBar = failureBar.takeIf { retry != null && !keyboardOpen },
+    ) { clockSize ->
+        AdaptiveContent(clockSize, visual = {
+            WardrobeStage(
+                kind,
+                outfit,
+                color,
+                name,
+                nameError = if (nameRetry != null) stringResource(R.string.settings_save_error) else null,
+                stars = stringResource(R.string.home_star_total, total, Wardrobe.MAX_STARS),
+                starInfo =
+                    if (Wardrobe.lockedCount(kind, total) > 0) {
+                        pluralStringResource(R.plurals.doll_info, total, total)
+                    } else {
+                        stringResource(R.string.doll_all_open)
+                    },
+                onNameChange = {
+                    name = it
+                    saveName(it)
                 },
-            onNameChange = {
-                name = it
-                val requestedName = it.trim()
-                nameSave.run { result -> app.setName(kind, requestedName, result) }
-            },
-        )
-        if (Wardrobe.lockedCount(kind, total) > 0) {
-            Text(stringResource(R.string.doll_stars_explained), style = SkType.SmallSoft)
-        }
-        // Said once, above the first section for every companion. The doll's required clothes cannot be
-        // taken off, so its hint names only the optional ones.
-        if (kind.slots.isNotEmpty()) {
-            val hint =
-                if (kind.slots.all { it.optional }) R.string.doll_optional_hint else R.string.doll_optional_hint_partial
-            Text(stringResource(hint), style = SkType.SmallSoft)
-        }
-        if (kind != CompanionKind.HUMAN) {
-            WardrobeSection(stringResource(R.string.companion_color)) {
-                CompanionColors(kind, color) { chosen -> colorSave.run { app.setColor(kind, chosen, it) } }
+            )
+        }) {
+            if (retry != null && keyboardOpen) failureBar()
+            WardrobeHints(kind, total)
+            if (kind != CompanionKind.HUMAN) {
+                WardrobeSection(stringResource(R.string.companion_color)) {
+                    CompanionColors(kind, color) { chosen -> colorSave.run { app.setColor(kind, chosen, it) } }
+                }
             }
-        }
-        WardrobeItems(kind, total, outfit, color) { item ->
-            itemSaves.getValue(item.slot).run { app.toggleItem(kind, item, it) }
+            WardrobeItems(kind, total, outfit, color) { item ->
+                itemSaves.getValue(item.slot).run { app.toggleItem(kind, item, it) }
+            }
         }
     }
 }
@@ -204,6 +203,7 @@ private fun WardrobeStage(
     outfit: Outfit,
     color: CompanionColor,
     name: String,
+    nameError: String?,
     stars: String,
     starInfo: String,
     onNameChange: (String) -> Unit,
@@ -225,7 +225,11 @@ private fun WardrobeStage(
                 Modifier.width(SkDimens.DollBigMax).aspectRatio(companionAspectRatio(kind)),
                 color = color,
             )
-            NameField(name, onNameChange)
+            NameField(
+                name,
+                onNameChange,
+                Modifier.semantics { if (nameError != null) error(nameError) },
+            )
         }
         Pill(
             stars,

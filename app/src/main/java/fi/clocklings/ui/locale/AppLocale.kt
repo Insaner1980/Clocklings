@@ -7,7 +7,6 @@ import android.content.res.Resources
 import android.os.Build
 import android.os.LocaleList
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -29,7 +28,12 @@ import fi.clocklings.R
 import fi.clocklings.data.ProgressRepository
 import fi.clocklings.domain.AppLanguage
 import fi.clocklings.domain.resolveLanguage
+import fi.clocklings.ui.components.LoadingScreen
+import fi.clocklings.ui.components.ScreenScaffold
 import fi.clocklings.ui.components.SkButton
+import fi.clocklings.ui.theme.ClocklingsTheme
+import fi.clocklings.ui.theme.Section
+import fi.clocklings.ui.theme.SkType
 import java.util.Locale
 
 val LocalAppLanguage = staticCompositionLocalOf { AppLanguage.ENGLISH }
@@ -95,10 +99,18 @@ fun AppLocaleProvider(
             if (selection.ready) {
                 content()
             } else if (selection.failed) {
-                Column {
-                    Text(stringResource(R.string.language_save_error))
-                    SkButton(stringResource(R.string.settings_retry), controller::refresh, enabled = !selection.pending)
+                ClocklingsTheme {
+                    ScreenScaffold(section = Section.HOME) {
+                        Text(stringResource(R.string.language_save_error), style = SkType.Body)
+                        SkButton(
+                            stringResource(R.string.settings_retry),
+                            controller::refresh,
+                            enabled = !selection.pending,
+                        )
+                    }
                 }
+            } else {
+                ClocklingsTheme { LoadingScreen() }
             }
         }
     }

@@ -324,4 +324,6 @@
     <string name="l_vrk_c3">Fem på eftermiddagen: 17.00</string>
     <string name="l_vrk_hint">Texten i mitten säger kväll. Lägg till 12 till timmen: 7 + 12 = 19.</string>
     <string name="doll_stars_explained">Stjärnorna tar aldrig slut. Nya kläder låses upp när du har tillräckligt med stjärnor.</string>
+    <string name="answer_correct">Rätt</string>
+    <string name="answer_incorrect">Fel</string>
 </resources>

@@ -36,6 +36,7 @@ import fi.clocklings.ui.ask.AskScreen
 import fi.clocklings.ui.challenge.ChallengeRoute
 import fi.clocklings.ui.companion.WardrobeScreen
 import fi.clocklings.ui.components.ConfettiHost
+import fi.clocklings.ui.components.LoadingScreen
 import fi.clocklings.ui.freeclock.FreeClockScreen
 import fi.clocklings.ui.game.GameRoute
 import fi.clocklings.ui.game.ResultScreen
@@ -73,9 +74,12 @@ fun ClocklingsApp(
             Box(modifier.fillMaxSize()) {
                 val progress by app.progress.collectAsStateWithLifecycle()
                 val settings by app.settings.collectAsStateWithLifecycle()
-                // Tallennus luetaan muutamassa millisekunnissa; siihen asti näytetään pelkkä tausta.
-                val p = progress ?: return@Box
-                val s = settings ?: return@Box
+                val p = progress
+                val s = settings
+                if (p == null || s == null) {
+                    LoadingScreen()
+                    return@Box
+                }
                 val speech by app.speechAvailable.collectAsStateWithLifecycle()
                 CompositionLocalProvider(
                     LocalAppViewModel provides app,

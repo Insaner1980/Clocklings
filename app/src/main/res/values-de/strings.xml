@@ -265,13 +265,15 @@
     <string name="l_ylivaille_p1b">Wir zählen die Minuten seit der vollen Stunde.</string>
     <string name="l_ylivaille_p2a">Auf der linken Seite sagen wir zum Beispiel zwanzig vor.</string>
     <string name="l_ylivaille_p2b">Wir zählen die Minuten bis zur nächsten vollen Stunde.</string>
-    <string name="l_ylivaille_p3a">Bei zehn nach nennen wir die Stunde, an der der kurze Zeiger schon vorbei ist.</string>
+    <!-- Correct grammar: "an der" refers to "die Stunde"; the next "der" belongs to "der kurze Zeiger". -->
+    <string name="l_ylivaille_p3a" tools:ignore="Typos">Bei zehn nach nennen wir die Stunde, an der der kurze Zeiger schon vorbei ist.</string>
     <string name="l_ylivaille_p3b">Bei zehn vor nennen wir die nächste Stunde. Nahe der halben Stunde können wir auch die Minuten vor oder nach halb zählen.</string>
     <string name="l_ylivaille_q">Wie spät ist es?</string>
     <string name="l_ylivaille_c1">Zehn nach vier</string>
     <string name="l_ylivaille_c2">Zehn vor vier</string>
     <string name="l_ylivaille_c3">Zehn vor fünf</string>
-    <string name="l_ylivaille_hint">Der lange Zeiger steht rechts. Zähle die Minuten nach der Stunde, an der der kurze Zeiger schon vorbei ist.</string>
+    <!-- Correct grammar: "an der" refers to "die Stunde"; the next "der" belongs to "der kurze Zeiger". -->
+    <string name="l_ylivaille_hint" tools:ignore="Typos">Der lange Zeiger steht rechts. Zähle die Minuten nach der Stunde, an der der kurze Zeiger schon vorbei ist.</string>
 
     <string name="l_viisi_title">Fünf-Minuten-Schritte</string>
     <string name="l_viisi_desc">Zahlen und Minuten</string>
@@ -319,4 +321,6 @@
     <string name="l_vrk_c3">Fünf Uhr nachmittags: 17:00</string>
     <string name="l_vrk_hint">In der Mitte steht Abend. Rechne 12 zur Stunde dazu: 7 + 12 = 19.</string>
     <string name="doll_stars_explained">Sterne werden nie verbraucht. Mit genügend Sternen schaltest du neue Kleidung frei.</string>
+    <string name="answer_correct">Richtig</string>
+    <string name="answer_incorrect">Falsch</string>
 </resources>

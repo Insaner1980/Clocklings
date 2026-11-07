@@ -14,6 +14,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -54,10 +56,14 @@ fun RoundIconButton(
             SkColors.SegmentShadow
         },
         SkShapes.Pill,
-        modifier.size(if (large) SkDimens.ChildTarget else SkDimens.IconButton).semantics {
-            this.contentDescription = contentDescription
-            if (selected != null) this.selected = selected
-        },
+        modifier
+            .pointerHoverIcon(
+                PointerIcon.Hand,
+            ).size(if (large) SkDimens.ChildTarget else SkDimens.IconButton)
+            .semantics {
+                this.contentDescription = contentDescription
+                if (selected != null) this.selected = selected
+            },
         depth = if (large) SkDimens.ButtonDepth else SkDimens.SegmentLift,
         pressedDepth = if (large) SkDimens.ButtonDepthPressed else 0.dp,
     ) {

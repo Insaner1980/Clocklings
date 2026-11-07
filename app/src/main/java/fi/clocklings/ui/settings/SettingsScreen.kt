@@ -2,6 +2,7 @@ package fi.clocklings.ui.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -21,8 +22,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -78,16 +81,7 @@ fun SettingsScreen(
                 app::setSound,
             )
         }
-        Text(
-            stringResource(
-                if (speechAvailable) {
-                    R.string.settings_speech_info_available
-                } else {
-                    R.string.settings_speech_info_unavailable
-                },
-            ),
-            style = SkType.SmallSoft,
-        )
+        SpeechAvailabilityInfo(speechAvailable)
         SettingsGroup(stringResource(R.string.settings_progress_title)) {
             ResetProgressRow(!action.pending) {
                 app.clearSettingsError()
@@ -103,6 +97,23 @@ fun SettingsScreen(
             onDismiss = { confirmReset = false },
             onReset = { app.resetProgress { confirmReset = false } },
         )
+    }
+}
+
+@Composable
+internal fun SpeechAvailabilityInfo(available: Boolean) {
+    // Refreshing the voice must not shrink the content and clamp a restored scroll offset.
+    Box {
+        for ((state, message) in listOf(
+            true to R.string.settings_speech_info_available,
+            false to R.string.settings_speech_info_unavailable,
+        )) {
+            Text(
+                stringResource(message),
+                modifier = if (state == available) Modifier else Modifier.alpha(0f).clearAndSetSemantics {},
+                style = SkType.SmallSoft,
+            )
+        }
     }
 }
 
@@ -167,7 +178,7 @@ private fun ResetProgressDialog(
     onReset: () -> Unit,
 ) {
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!pending) onDismiss() },
         title = { Text(stringResource(R.string.settings_reset_title)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
@@ -181,7 +192,7 @@ private fun ResetProgressDialog(
                 horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM, Alignment.End),
                 verticalArrangement = Arrangement.spacedBy(SkDimens.GapM),
             ) {
-                SkButton(stringResource(R.string.settings_cancel), onDismiss)
+                SkButton(stringResource(R.string.settings_cancel), onDismiss, enabled = !pending)
                 SkButton(stringResource(R.string.settings_reset_action), onReset, enabled = !pending)
             }
         },

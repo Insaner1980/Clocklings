@@ -324,4 +324,6 @@
     <string name="l_vrk_c3">Viisi iltapäivällä: 17.00</string>
     <string name="l_vrk_hint">Keskellä lukee ilta. Lisää tuntiin 12: 7 + 12 = 19.</string>
     <string name="doll_stars_explained">Tähdet eivät kulu. Uusia asuja avautuu, kun tähtiä on tarpeeksi.</string>
+    <string name="answer_correct">Oikein</string>
+    <string name="answer_incorrect">Väärin</string>
 </resources>

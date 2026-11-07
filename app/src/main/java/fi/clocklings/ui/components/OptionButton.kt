@@ -20,12 +20,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import fi.clocklings.R
 import fi.clocklings.ui.rememberReduceMotion
 import fi.clocklings.ui.theme.SkColors
 import fi.clocklings.ui.theme.SkDimens
@@ -47,6 +53,12 @@ fun OptionButton(
     enabled: Boolean = true,
     wordsStyle: TextStyle = SkType.OptWords,
 ) {
+    val result =
+        when (state) {
+            OptionState.NORMAL -> null
+            OptionState.CORRECT -> stringResource(R.string.answer_correct)
+            OptionState.WRONG -> stringResource(R.string.answer_incorrect)
+        }
     val (bg, border, shadow) =
         when (state) {
             OptionState.NORMAL -> Triple(SkColors.Surface, SkColors.Line, ledgeColor(SkColors.Surface))
@@ -78,7 +90,12 @@ fun OptionButton(
         modifier =
             modifier
                 .fillMaxWidth()
-                .graphicsLayer {
+                .semantics {
+                    if (result != null) {
+                        stateDescription = result
+                        liveRegion = LiveRegionMode.Polite
+                    }
+                }.graphicsLayer {
                     translationX = shake.value * density
                     alpha = if (state == OptionState.WRONG) WRONG_ALPHA else 1f
                 },

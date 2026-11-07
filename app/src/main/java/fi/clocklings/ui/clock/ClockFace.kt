@@ -10,17 +10,23 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.border
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -35,6 +41,13 @@ import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -125,6 +138,7 @@ fun ClockFace(
     val addLabel = pluralStringResource(R.plurals.clock_add, step, step)
     val subtractLabel = pluralStringResource(R.plurals.clock_subtract, step, step)
     val currentInteractive by rememberUpdatedState(interactive)
+    var focused by remember { mutableStateOf(false) }
     val origin = if (mini) S.MINI_VIEW_ORIGIN else S.VIEW_ORIGIN
     val viewSize = if (mini) S.MINI_VIEW_SIZE else S.VIEW_SIZE
 
@@ -137,7 +151,9 @@ fun ClockFace(
                 if (interactive) {
                     customActions = clockActions(state, addLabel, subtractLabel)
                 }
-            }.clockDrag(state, origin, viewSize) { currentInteractive },
+            }.onFocusChanged { focused = it.isFocused }
+            .clockKeyboard(state, interactive, focused)
+            .clockDrag(state, origin, viewSize) { currentInteractive },
     ) {
         val scale = size.width / viewSize
         withTransform({
@@ -660,6 +676,25 @@ private fun DrawScope.drawMark(
 private const val QUARTER_TURN = 90f
 private const val SUN_RAY_COUNT = 8
 private const val SUN_RAY_ANGLE = 45f
+
+private fun Modifier.clockKeyboard(
+    state: ClockState,
+    interactive: Boolean,
+    focused: Boolean,
+): Modifier =
+    onKeyEvent { event ->
+        if (!interactive || event.type != KeyEventType.KeyDown) return@onKeyEvent false
+        val direction =
+            when (event.key) {
+                Key.DirectionRight, Key.DirectionUp -> 1
+                Key.DirectionLeft, Key.DirectionDown -> -1
+                else -> return@onKeyEvent false
+            }
+        state.nudge(direction)
+        true
+    }.pointerHoverIcon(if (interactive) PointerIcon(android.view.PointerIcon.TYPE_GRAB) else PointerIcon.Default)
+        .focusable(enabled = interactive)
+        .then(if (focused && interactive) Modifier.border(SkDimens.Border, SkColors.Ink, CircleShape) else Modifier)
 
 private fun Modifier.clockDrag(
     state: ClockState,

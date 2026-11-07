@@ -11,6 +11,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -76,9 +79,14 @@ fun IntroOverlay(
             .padding(horizontal = SkDimens.Gutter),
         contentAlignment = Alignment.Center,
     ) {
-        val mascotSize = min(maxWidth, maxHeight * MASCOT_HEIGHT_SHARE)
+        val mascotSize = min(SkDimens.ClockMax, min(maxWidth, maxHeight * MASCOT_HEIGHT_SHARE))
         Column(
-            Modifier.fillMaxWidth().clearAndSetSemantics { }.graphicsLayer { alpha = T.contentAlpha(time()) },
+            Modifier
+                .widthIn(max = SkDimens.ReadingWidth)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .clearAndSetSemantics { }
+                .graphicsLayer { alpha = T.contentAlpha(time()) },
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(SkDimens.GapM),
         ) {
