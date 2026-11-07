@@ -5,7 +5,6 @@ import android.content.ClipboardManager
 import android.graphics.Bitmap
 import android.os.ParcelFileDescriptor
 import android.view.KeyEvent
-import android.view.WindowInsets
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
@@ -28,6 +27,8 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import fi.clocklings.domain.AppLanguage
@@ -488,9 +489,13 @@ class DeviceInputVerificationTest : InputDeviceTest() {
             assertEquals(fullHeight.toFloat(), bounds.height, 1f)
             compose.runOnIdle {
                 val decor = compose.activity.window.decorView
-                val insets = decor.rootWindowInsets
-                val top = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout()).top
-                val bottom = insets.getInsets(WindowInsets.Type.ime() or WindowInsets.Type.systemBars()).bottom
+                val insets = checkNotNull(ViewCompat.getRootWindowInsets(decor))
+                val top =
+                    insets
+                        .getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+                        .top
+                val bottom =
+                    insets.getInsets(WindowInsetsCompat.Type.ime() or WindowInsetsCompat.Type.systemBars()).bottom
                 assertTrue("Name above top obstruction: $bounds / $top", bounds.top >= top)
                 val visibleBottom = decor.height - bottom
                 assertTrue("Name above real IME: $bounds / $visibleBottom", bounds.bottom <= visibleBottom)
@@ -527,8 +532,9 @@ class DeviceInputVerificationTest : InputDeviceTest() {
         var visible = false
         instrumentation.runOnMainSync {
             visible =
-                compose.activity.window.decorView.rootWindowInsets
-                    ?.isVisible(WindowInsets.Type.ime()) == true
+                ViewCompat
+                    .getRootWindowInsets(compose.activity.window.decorView)
+                    ?.isVisible(WindowInsetsCompat.Type.ime()) == true
         }
         return visible
     }

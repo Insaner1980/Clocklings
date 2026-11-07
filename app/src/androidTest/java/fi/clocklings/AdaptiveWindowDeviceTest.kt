@@ -159,9 +159,11 @@ class AdaptiveWindowDeviceTest : InputDeviceTest() {
         val originalSize =
             shell("wm size")
                 .lineSequence()
-                .last { it.contains("size:") }
-                .substringAfter(": ")
-                .trim()
+                .firstOrNull { it.startsWith("Override size:") }
+                ?.substringAfter(": ")
+                ?.trim() ?: "reset"
+        val originalAutoRotation = shell("settings get system accelerometer_rotation").trim()
+        val originalUserRotation = shell("settings get system user_rotation").trim()
         try {
             for ((width, height) in listOf(800 to 900, 1200 to 600, 900 to 360, 320 to 800)) {
                 shell("wm size ${width}x$height")
@@ -191,7 +193,11 @@ class AdaptiveWindowDeviceTest : InputDeviceTest() {
             back()
             waitFor(hasText("Clocklings"))
         } finally {
-            shell("settings put system user_rotation 0")
+            val rotationSettings =
+                listOf("accelerometer_rotation" to originalAutoRotation, "user_rotation" to originalUserRotation)
+            for ((setting, value) in rotationSettings) {
+                shell(if (value == "null") "settings delete system $setting" else "settings put system $setting $value")
+            }
             shell("wm size $originalSize")
         }
     }
@@ -201,9 +207,9 @@ class AdaptiveWindowDeviceTest : InputDeviceTest() {
         val originalSize =
             shell("wm size")
                 .lineSequence()
-                .last { it.contains("size:") }
-                .substringAfter(": ")
-                .trim()
+                .firstOrNull { it.startsWith("Override size:") }
+                ?.substringAfter(": ")
+                ?.trim() ?: "reset"
         try {
             open("Learn")
             open("Two hands")
@@ -254,9 +260,9 @@ class AdaptiveWindowDeviceTest : InputDeviceTest() {
         val originalSize =
             shell("wm size")
                 .lineSequence()
-                .last { it.contains("size:") }
-                .substringAfter(": ")
-                .trim()
+                .firstOrNull { it.startsWith("Override size:") }
+                ?.substringAfter(": ")
+                ?.trim() ?: "reset"
         try {
             open("Play Together")
             open("Random time")
@@ -288,9 +294,9 @@ class AdaptiveWindowDeviceTest : InputDeviceTest() {
         val originalSize =
             shell("wm size")
                 .lineSequence()
-                .last { it.contains("size:") }
-                .substringAfter(": ")
-                .trim()
+                .firstOrNull { it.startsWith("Override size:") }
+                ?.substringAfter(": ")
+                ?.trim() ?: "reset"
         try {
             shell("wm size 320x800")
             compose.waitUntil(10_000) { compose.activity.resources.configuration.screenWidthDp == 320 }

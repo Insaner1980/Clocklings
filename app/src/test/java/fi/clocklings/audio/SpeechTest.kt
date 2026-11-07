@@ -154,7 +154,6 @@ class SpeechTest {
             speech.speak("active")
             assertTrue(speaking.await(5, TimeUnit.SECONDS))
             repeat(40) { speech.speak("queued-$it") }
-            println("Queued speech jobs (40 requests): ${scope.coroutineContext.job.children.count()}")
             speech.stop()
             speech.shutdown()
             assertFalse(speech.available.value)

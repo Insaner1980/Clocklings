@@ -2,7 +2,6 @@ package fi.clocklings
 
 import android.graphics.Bitmap
 import android.view.KeyEvent
-import android.view.WindowInsets
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.toArgb
@@ -17,6 +16,8 @@ import androidx.compose.ui.test.isFocused
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.performClick
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.test.platform.app.InstrumentationRegistry
 import fi.clocklings.domain.Progress
 import fi.clocklings.domain.Settings
@@ -56,7 +57,7 @@ abstract class InputDeviceTest {
         waitFor(hasText("Clocklings"))
         if (requireCutout && InstrumentationRegistry.getArguments().getString("requireCutout") == "true") {
             compose.runOnIdle {
-                val cutout = compose.activity.window.decorView.rootWindowInsets.displayCutout
+                val cutout = ViewCompat.getRootWindowInsets(compose.activity.window.decorView)?.displayCutout
                 val hasCutout = cutout != null && cutout.safeInsetTop > 0
                 assertTrue("Nonempty app-visible cutout required: $cutout", hasCutout)
             }
@@ -146,8 +147,10 @@ abstract class InputDeviceTest {
             var visible = false
             instrumentation.runOnMainSync {
                 val decor = compose.activity.window.decorView
-                val bottom = decor.rootWindowInsets.getInsets(WindowInsets.Type.ime() or WindowInsets.Type.systemBars())
-                visible = bounds.height >= node.size.height - 1 && bounds.bottom <= decor.height - bottom.bottom
+                val insets = ViewCompat.getRootWindowInsets(decor)
+                val bottom = insets?.getInsets(WindowInsetsCompat.Type.ime() or WindowInsetsCompat.Type.systemBars())
+                visible = bottom != null && bounds.height >= node.size.height - 1 &&
+                    bounds.bottom <= decor.height - bottom.bottom
             }
             visible
         }

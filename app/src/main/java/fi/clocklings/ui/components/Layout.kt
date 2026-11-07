@@ -33,6 +33,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -294,8 +295,8 @@ private fun BoxScope.ScaffoldFades(
 
 @Composable
 private fun restoredScrollInsetsReady(scrollState: ScrollState): Boolean {
-    val restoringScroll = remember(scrollState) { scrollState.value > 0 }
-    if (!restoringScroll) return true
+    var ready by remember(scrollState) { mutableStateOf(scrollState.value == 0) }
+    if (ready) return true
     val density = LocalDensity.current
     val drawing = WindowInsets.safeDrawing
     val top = drawing.getTop(density)
@@ -304,7 +305,9 @@ private fun restoredScrollInsetsReady(scrollState: ScrollState): Boolean {
         ViewCompat
             .getRootWindowInsets(LocalView.current)
             ?.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
-    return platform == null || (top >= platform.top && bottom >= platform.bottom)
+    val insetsReady = platform == null || (top >= platform.top && bottom >= platform.bottom)
+    if (insetsReady) SideEffect { ready = true }
+    return insetsReady
 }
 
 @Composable

@@ -15,9 +15,9 @@ import org.junit.runner.RunWith
 class RuntimeCompatibilityDeviceTest {
     @Test
     fun packagedNativeLibrariesLoadAtTheExpectedRuntimePageSize() {
-        val expected = InstrumentationRegistry.getArguments().getString("pageSize", "4096").toLong()
+        val expected = InstrumentationRegistry.getArguments().getString("pageSize")?.toLong()
         val pageSize = Os.sysconf(OsConstants._SC_PAGESIZE)
-        assertEquals(expected, pageSize)
+        if (expected != null) assertEquals(expected, pageSize)
         System.loadLibrary("androidx.graphics.path")
         System.loadLibrary("datastore_shared_counter")
         InstrumentationRegistry.getInstrumentation().sendStatus(

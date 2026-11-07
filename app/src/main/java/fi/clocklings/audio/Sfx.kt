@@ -56,7 +56,7 @@ class Sfx(
             // Opening APK resource descriptors is synchronous even though SoundPool decoding is asynchronous.
             for (sound in Sound.entries) {
                 sound.clip?.let { clip ->
-                    runCatching { pool.load(context, clip, 1) }
+                    runCatching { pool.load(context, clip, 1).also { check(it != 0) { "SoundPool rejected clip" } } }
                         .onSuccess { samples = samples + (sound to it) }
                         .onFailure { Log.w(TAG, "Could not load sound $sound", it) }
                 }

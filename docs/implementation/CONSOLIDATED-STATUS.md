@@ -1,10 +1,10 @@
 # Clocklings — consolidated implementation and verification status
 
-Updated: 6 November 2026.
+Updated: 7 November 2026.
 
 This is the single current summary of implemented functionality, the Android/Google audit follow-ups, adaptive-layout work, actual validation and remaining limits. It supersedes older workload counts, desktop-scope deferrals, rejected short-window screenshots and outstanding-cleanup statements in the historical reports. Those reports remain evidence, not separate current task lists.
 
-This consolidation reviewed retained evidence and current file identities. It did not run a new build, application test, device session or online policy review. Test results below retain their original version and environment boundaries.
+The 6 November consolidation reviewed retained evidence and current file identities without rerunning validation. The PR #13 follow-up below records the additional 7 November checks. Historical test results retain their original version and environment boundaries.
 
 ## Current position
 
@@ -13,7 +13,24 @@ This consolidation reviewed retained evidence and current file identities. It di
 - The owner has no equipment available for the additional hardware/accessibility checks discussed at handoff. These are recorded as unavailable evidence, not required owner tasks, purchasing requirements or reasons to reopen completed work.
 - Additional emulator-based checks can be considered separately. An old physical Android phone is not inherently required for API 26 validation: API 26 tests already ran on a dedicated emulator before the adaptive changes.
 - Publication, signing, licensing/provenance and privacy/store work remain deliberately deferred. This document does not declare release readiness.
-- Work is local on `codex/adaptive-layouts`, based on Git revision `2435cc6b6ac1ceacc45dd4bc0d8679c54399ff81`, with existing uncommitted work preserved. No commit, push or pull request was made for the audit/adaptive continuation or this consolidation.
+- The audit/adaptive work was committed and pushed as `49e1c16` on `codex/adaptive-layouts`. The owner opened [PR #13](https://github.com/Insaner1980/Clocklings/pull/13); its review follow-up is recorded below.
+
+## PR #13 review follow-up, 7 November
+
+CodeRabbit and Greptile's 17 inline findings at `49e1c16` were checked against the implementation. Eleven prompted corrections: API-compatible IME/cutout reads, preservation of emulator rotation/display overrides, safe fixture-parent logging, non-masking split-screen teardown, optional page-size expectations, rejected SoundPool sample handling, removal of a diagnostic print, independent startup-loading coverage, a one-way restored-scroll inset readiness latch, and the toolchain/local-evidence clarifications in this document. Focused regressions cover rejected audio samples and retained scaffold content during later inset changes.
+
+Six findings did not warrant changes:
+
+- `ActivityRetentionDeviceTest`: all six `ActivityScenario.onActivity` calls must complete; unavailable activities or failed recreation throw rather than silently skipping a reference. See the [ActivityScenario contract](https://developer.android.com/reference/androidx/test/core/app/ActivityScenario).
+- `AdaptiveWindowDeviceTest`: explicit expected layout thresholds provide an independent test oracle; production thresholds were not changed.
+- `AuditInputMethodService`: Android creates the IME window before `onCreateInputView`; the potentially absent root insets are already checked. See the [framework lifecycle implementation](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/core/java/android/inputmethodservice/InputMethodService.java).
+- `AuditSpeechService`: synthesis requests run serially on the synthesis thread, and the callback blocks until completion. The claimed concurrent pending-latch replacement does not occur under the [TextToSpeechService contract](https://developer.android.com/reference/android/speech/tts/TextToSpeechService).
+- `Sfx`: the local `loaded` name is a naming preference without a behavior defect.
+- `resumedActivities`: the inspected lifecycle and audio-setting callers run on the main thread, including the delayed lifecycle coroutine; no cross-thread access was found.
+
+Validation with AGP 9.5.1: 20 targeted JVM cases passed (`SfxFailureTest`, `SpeechTest`, `StartupStateTest` on API 26/33, and `ScaffoldInsetsTest`). Debug app/test APK builds, ktlint, Detekt, Android lint, and debug/release stability checks passed. Eight instrumented cases passed on the dedicated API 36 `ClocklingsReview20261030` emulator: native-library loading with an unspecified page-size expectation, multi-window audio ownership, live resizing/rotation/recreation, four real-IME runs at 411/320 dp and 100%/200% font scale (each covering English, Finnish, Swedish and German), and native composition/replacement/commit/cancellation. The fixture-IME case initially timed out before the keyboard appeared; enabling hardware-keyboard IME display and reselecting the fixture made the unchanged test pass. Emulator settings were restored afterwards.
+
+The final review patch used targeted validation, not another complete 407-case JVM run. API 26 instrumented execution, 16 KB runtime execution, physical devices, and an online policy review were not repeated in this follow-up.
 
 ## Implemented application
 
@@ -29,7 +46,7 @@ This consolidation reviewed retained evidence and current file identities. It di
 | Settings and data | Language, sound/speech, motion and existing learning/display preferences; progress reset; local persistence; visible failure/retry paths. No new account, analytics, backend or data-transfer feature was added by this work. |
 | Accessibility and input | Accessible names/states, answer feedback, visible keyboard focus, clock arrow-key controls, pointer interactions, enlarged-text layouts, IME/inset handling and corrected edit-history routing. Human and automated evidence have different scopes, recorded below. |
 
-The verified toolchain remains AGP 9.5.0, Kotlin 2.4.21, Compose BOM 2026.09.00, Material 3 1.4.0, Navigation 3 1.2.0, Lifecycle 2.11.0 and DataStore 1.3.0; minSdk 26, target/compileSdk 37. Adaptive work introduced no dependency upgrade, SDK change, navigation redesign, text-field migration or new experimental API. Earlier audit code already had a narrowly scoped BringIntoViewSpec opt-in; this is not presented as a new adaptive migration.
+The current toolchain uses AGP 9.5.1, Kotlin 2.4.21, Compose BOM 2026.09.00, Material 3 1.4.0, Navigation 3 1.2.0, Lifecycle 2.11.0 and DataStore 1.3.0; minSdk 26, target/compileSdk 37. The historical audit/adaptive checks below used AGP 9.5.0. PR #12 updated AGP separately on 7 November; the subsequent 407-test suite, debug app/test builds, ktlint, Detekt, lint and stability checks passed with 9.5.1 before commit `49e1c16`. Adaptive work introduced no dependency upgrade, SDK change, navigation redesign, text-field migration or new experimental API. Earlier audit code already had a narrowly scoped BringIntoViewSpec opt-in; this is not presented as a new adaptive migration.
 
 ## Application corrections completed during the audit
 
@@ -219,6 +236,8 @@ The final APK and 15 compact screenshots remain present. Prior task receipts rec
 ## Evidence references
 
 This document is sufficient for the current status and remaining-work decisions. The following records retain detailed commands, logs, historical failures and chronology:
+
+Evidence under `reports/`, including screenshots, logs and APKs, is local-only and Git-ignored. Those relative links require the original working directory and do not resolve in a fresh GitHub checkout. They are historical local evidence, not downloadable repository artifacts.
 
 | Record | Purpose |
 | --- | --- |

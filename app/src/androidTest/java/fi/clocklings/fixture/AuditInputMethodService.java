@@ -3,6 +3,7 @@ package fi.clocklings.fixture;
 import android.inputmethodservice.InputMethodService;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewParent;
 import android.view.WindowInsets;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
@@ -52,10 +53,11 @@ public final class AuditInputMethodService extends InputMethodService {
             keyboard.addView(row);
         }
         keyboard.addOnLayoutChangeListener((view, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+            ViewParent parent = keyboard.getParent();
             Log.i("ClocklingsAuditIme", "layout height=" + keyboard.getHeight() +
                     " measured=" + keyboard.getMeasuredHeight() + " padding=" + keyboard.getPaddingBottom() +
                     " rows=" + keyboard.getChildAt(0).getHeight() + "," + keyboard.getChildAt(1).getHeight() +
-                    " parent=" + ((View) keyboard.getParent()).getHeight());
+                    " parent=" + (parent instanceof View ? ((View) parent).getHeight() : -1));
         });
         return keyboard;
     }

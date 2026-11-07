@@ -63,8 +63,10 @@ class MultiWindowDeviceTest {
                 returned
             }
         } finally {
-            shell("dumpsys activity service SystemUIService WMShell splitscreen exitSplitScreen ${original.taskId}")
             instrumentation.runOnMainSync { second?.takeUnless { it.isDestroyed }?.finishAndRemoveTask() }
+            runCatching {
+                shell("dumpsys activity service SystemUIService WMShell splitscreen exitSplitScreen ${original.taskId}")
+            }
         }
     }
 

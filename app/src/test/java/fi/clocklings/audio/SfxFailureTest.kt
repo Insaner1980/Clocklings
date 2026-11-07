@@ -55,10 +55,16 @@ class SfxFailureTest {
     }
 
     @Test
-    fun thrownClipLoadStaysSilentAndDoesNotPreventLaterClipsLoading() {
+    fun thrownClipLoadStaysSilentAndDoesNotPreventLaterClipsLoading() = checkRejectedClip(returnZero = false)
+
+    @Test
+    fun zeroClipLoadIsRejectedAndDoesNotPreventLaterClipsLoading() = checkRejectedClip(returnZero = true)
+
+    private fun checkRejectedClip(returnZero: Boolean) {
         FailingTrack.failure = WriteFailure.NONE
         FailingTrack.written.clear()
         FailingPool.fail = true
+        FailingPool.returnZero = returnZero
         val errors = mutableListOf<Throwable>()
         val thread = Thread.currentThread()
         val previous = thread.uncaughtExceptionHandler
@@ -68,6 +74,8 @@ class SfxFailureTest {
             try {
                 awaitLoading(sfx)
                 assertTrue("Load failure must not escape the sound scope: $errors", errors.isEmpty())
+                val samples = ReflectionHelpers.getField<Map<Sound, Int>>(sfx, "samples")
+                assertTrue("Failed sample must not be retained", Sound.BAD !in samples)
                 val pool = ReflectionHelpers.getField<SoundPool>(sfx, "pool")
                 val shadow = Shadow.extract<FailingPool>(pool)
                 sfx.play(Sound.BAD)
@@ -80,6 +88,7 @@ class SfxFailureTest {
         } finally {
             thread.uncaughtExceptionHandler = previous
             FailingPool.fail = false
+            FailingPool.returnZero = false
         }
     }
 
@@ -147,12 +156,16 @@ class SfxFailureTest {
             resId: Int,
             priority: Int,
         ): Int {
-            if (fail && resId == R.raw.wrong) throw Resources.NotFoundException("Synthetic clip load failure")
+            if (fail && resId == R.raw.wrong) {
+                if (returnZero) return 0
+                throw Resources.NotFoundException("Synthetic clip load failure")
+            }
             return super.load(context, resId, priority).also { notifyResourceLoaded(resId, true) }
         }
 
         companion object {
             var fail = false
+            var returnZero = false
         }
     }
 }

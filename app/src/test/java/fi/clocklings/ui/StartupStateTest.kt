@@ -53,12 +53,15 @@ class StartupStateTest {
                 override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences =
                     delegate.updateData(transform)
             }
+        val audio = FakeServices()
         val services =
-            object : AppServices by FakeServices() {
+            object : AppServices by audio {
                 override val repository = ProgressRepository(store)
             }
         runBlocking { services.repository.updateProgress { it.withLevelResult(0, 3) } }
         val model = AppViewModel(services)
+        // Locale reads are ready independently of the app's blocked progress/settings reads, including on API 26.
+        val localeServices = FakeServices()
         val viewport = mutableStateOf(411 to 1f)
         val loading =
             SemanticsMatcher.expectValue(
@@ -68,11 +71,12 @@ class StartupStateTest {
         compose.setContent {
             CompositionLocalProvider(LocalDensity provides Density(2f, viewport.value.second)) {
                 Box(Modifier.requiredSize(viewport.value.first.dp, 640.dp)) {
-                    ClocklingsApp(container = services, app = model)
+                    ClocklingsApp(container = localeServices, app = model)
                 }
             }
         }
         try {
+            compose.waitUntil(5_000) { audio.speechRefreshes > 0 }
             for (cell in listOf(411 to 1f, 320 to 1f, 411 to 2f, 320 to 2f)) {
                 compose.runOnIdle { viewport.value = cell }
                 compose.onNode(loading).assertIsDisplayed()
