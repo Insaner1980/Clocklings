@@ -65,7 +65,7 @@ class LocalPurchasesTest {
             assertEquals(1, gateway.acknowledged.size)
         }
 
-    @Test fun cancellationNeverGrantsOrErasesOwnership() =
+    @Test fun cancellationOnlyChangesOwnershipAfterAFreshVerifiedQuery() =
         runTest {
             val service = service()
             service.onForeground()
@@ -95,6 +95,7 @@ class LocalPurchasesTest {
             assertEquals(1, gateway.launches)
             gateway.update(StoreResult.Failure(StoreFailure.CANCELLED))
             runCurrent()
+            assertEquals(1, gateway.closed)
             service.onForeground()
             runCurrent()
             assertEquals(PurchaseStatus.CANCELLED, service.state.value.status)
@@ -102,7 +103,73 @@ class LocalPurchasesTest {
             assertFalse(service.state.value.fullAccess)
             assertTrue(gateway.acknowledged.isEmpty())
             service.onBackground()
-            assertEquals(1, gateway.closed)
+            assertEquals(2, gateway.closed)
+        }
+
+    @Test fun bufferedCancellationReconcilesCompletedOwnershipOnResume() =
+        runTest {
+            val service = service()
+            service.onForeground()
+            runCurrent()
+            service.buy(Activity())
+            service.onBackground()
+            val receipt = SignedPurchases.purchase()
+            gateway.owned = StoreResult.Success(listOf(receipt))
+            gateway.update(StoreResult.Failure(StoreFailure.CANCELLED))
+            runCurrent()
+            assertFalse(service.state.value.fullAccess)
+            service.onForeground()
+            runCurrent()
+            assertTrue(service.state.value.fullAccess)
+            assertEquals(PurchaseStatus.CANCELLED, service.state.value.status)
+            assertFalse(service.state.value.canPurchase)
+            assertEquals(listOf(receipt.token), gateway.acknowledged)
+            assertTrue(requireNotNull(store.read()).acknowledged)
+        }
+
+    @Test fun cancellationReconcilesRevokedOwnershipAfterAResumeQuery() =
+        runTest {
+            val service = service()
+            service.onForeground()
+            runCurrent()
+            service.buy(Activity())
+            service.onBackground()
+            gateway.owned = StoreResult.Success(listOf(SignedPurchases.purchase(acknowledged = true)))
+            service.onForeground()
+            runCurrent()
+            assertTrue(service.state.value.fullAccess)
+            gateway.owned = StoreResult.Success(emptyList())
+            gateway.update(StoreResult.Failure(StoreFailure.CANCELLED))
+            runCurrent()
+            assertFalse(service.state.value.fullAccess)
+            assertEquals(PurchaseStatus.CANCELLED, service.state.value.status)
+            assertTrue(service.state.value.canPurchase)
+            assertNull(store.read())
+        }
+
+    @Test fun cancelledRefreshFailurePreservesCachedAccessAndRetriesRevocation() =
+        runTest {
+            val service = service()
+            service.onForeground()
+            runCurrent()
+            service.buy(Activity())
+            service.onBackground()
+            gateway.owned = StoreResult.Success(listOf(SignedPurchases.purchase(acknowledged = true)))
+            service.onForeground()
+            runCurrent()
+            assertTrue(service.state.value.fullAccess)
+            gateway.owned = StoreResult.Failure(StoreFailure.UNAVAILABLE)
+            gateway.update(StoreResult.Failure(StoreFailure.CANCELLED))
+            runCurrent()
+            assertTrue(service.state.value.fullAccess)
+            assertEquals(PurchaseStatus.FAILED, service.state.value.status)
+            assertNotNull(store.read())
+            gateway.owned = StoreResult.Success(emptyList())
+            advanceTimeBy(2_000)
+            runCurrent()
+            assertFalse(service.state.value.fullAccess)
+            assertEquals(PurchaseStatus.CANCELLED, service.state.value.status)
+            assertNull(store.read())
         }
 
     @Test fun purchaseCallbackWhilePausedRequiresFreshMatchingOwnershipOnResume() =
@@ -182,11 +249,16 @@ class LocalPurchasesTest {
             gateway.queryGate = gate
             service.onForeground()
             runCurrent()
+            val queries = gateway.queries
             gateway.update(StoreResult.Failure(StoreFailure.CANCELLED))
             runCurrent()
+            assertEquals(queries + 1, gateway.queries)
+            assertEquals(PurchaseStatus.CANCELLED, service.state.value.status)
+            assertTrue(service.state.value.busy)
             gate.complete(Unit)
             runCurrent()
             assertEquals(PurchaseStatus.CANCELLED, service.state.value.status)
+            assertFalse(service.state.value.busy)
             assertFalse(service.state.value.fullAccess)
         }
 

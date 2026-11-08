@@ -51,7 +51,12 @@ class LocalPurchases(
             gateway.updates.collect { update ->
                 if (verifier.configured && (foreground || purchaseInProgress)) {
                     purchaseInProgress = false
-                    if (foreground) handleUpdate(update.result) else pendingUpdate = update
+                    if (foreground) {
+                        handleUpdate(update.result)
+                    } else {
+                        pendingUpdate = update
+                        gateway.close()
+                    }
                 }
             }
         }
@@ -93,6 +98,7 @@ class LocalPurchases(
     private fun requestRefresh(
         restoring: Boolean,
         expectedToken: String? = null,
+        cancelled: Boolean = false,
     ) {
         cycle?.cancel()
         cycle =
@@ -107,7 +113,7 @@ class LocalPurchases(
                         if (!foreground) return@launch
                         delay(wait)
                     }
-                    val status = lock.withLock { refreshStore(restoring, expectedToken) }
+                    val status = lock.withLock { refreshStore(restoring, expectedToken, cancelled) }
                     if (status !in RETRY_STATUSES) break
                 }
             }
@@ -116,8 +122,9 @@ class LocalPurchases(
     private suspend fun refreshStore(
         restoring: Boolean,
         expectedToken: String?,
+        cancelled: Boolean,
     ): PurchaseStatus {
-        publish(PurchaseStatus.VERIFYING, busy = true)
+        publish(if (cancelled) PurchaseStatus.CANCELLED else PurchaseStatus.VERIFYING, busy = true)
         val status =
             try {
                 ownership.load()
@@ -137,7 +144,14 @@ class LocalPurchases(
             } catch (_: IOException) {
                 PurchaseStatus.FAILED
             }
-        publish(status)
+        // Verification failures and pending payments must remain actionable after cancellation.
+        val visibleStatus =
+            if (cancelled && status !in RETRY_STATUSES && status != PurchaseStatus.PENDING) {
+                PurchaseStatus.CANCELLED
+            } else {
+                status
+            }
+        publish(visibleStatus)
         return status
     }
 
@@ -164,7 +178,7 @@ class LocalPurchases(
 
     private fun handleFailure(reason: StoreFailure) {
         when (reason) {
-            StoreFailure.CANCELLED -> publish(PurchaseStatus.CANCELLED)
+            StoreFailure.CANCELLED -> requestRefresh(restoring = false, cancelled = true)
             StoreFailure.ALREADY_OWNED -> restore()
             else -> requestRefresh(restoring = false)
         }
