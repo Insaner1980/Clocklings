@@ -4,6 +4,8 @@
 
 **Purpose:** A repository-specific guide to the complete application: product behavior, screens, architecture, data, rendering, localization, platform boundaries, tests, build tooling, review priorities, and unresolved decisions. It is an orientation reference, not a replacement for inspecting code or an authorization to implement proposals.
 
+**8 November 2026 correction:** Monetization and paid-access restrictions are implemented on `codex/full-unlock`. The scoped corrections below supersede this document's older snapshot for billing, access, permissions, dependencies and source-test counts. See [MONETIZATION.md](docs/implementation/MONETIZATION.md) and [CONSOLIDATED-STATUS.md](docs/implementation/CONSOLIDATED-STATUS.md) for the approved model and actual validation. Live Play setup, production licensing/signing and transactions remain deferred; the placeholder public key safely disables production purchases. Historical test results below retain their original revision boundaries.
+
 **Authority:** Owner instructions and [AGENTS.md](AGENTS.md) govern scope and working rules. Current source governs implemented behavior. [CONSOLIDATED-STATUS.md](docs/implementation/CONSOLIDATED-STATUS.md), updated 7 November, is the current implementation/verification summary and supersedes old outstanding-work lists. [STATUS.md](docs/implementation/STATUS.md) records decisions and dated validation; [TESTING_HISTORY.md](TESTING_HISTORY.md) consolidates earlier campaigns through its stated cutoff. None is a fresh pass for this documentation task. The [product plan](docs/superpowers/plans/2026-10-20-public-clock-learning-app.md) distinguishes requirements from proposals; detailed specifications do not automatically approve features.
 
 **Important scope update:** The owner expanded the release languages on 4 November to **English, Finnish, shared Swedish, German, French, Spain Spanish and Brazilian Portuguese**. The older three-language restriction in the product plan and baseline instructions is superseded by that decision, as recorded in STATUS and implemented in source. The later [seven-language audit](docs/localization/2026-11-04-language-audit.md), including its emulator continuation, contains evidence not consolidated into TESTING_HISTORY or the earlier STATUS entries. Native-speaker review is unverified; it is not a newly imposed release dependency.
@@ -76,13 +78,13 @@ The intended audience is children learning to tell time, with optional adult/sha
 
 This update compared the previous reference's source base `2435cc6` with `b09e3be`, inspected owners of changed behavior and relevant test source, checked build/manifest configuration, and recalculated source/test/resource inventories. Unchanged domain, screen and artwork descriptions are retained as source-oriented reference, not a fresh line-by-line security audit or pixel-by-pixel UI review. Historical results are attributed to the decision/testing records, especially the latest consolidated status. Original logs, traces, APKs, screenshots and remote results were not independently revalidated. Private machine configuration, signing material, external dashboards and the original application's workspace were not inspected.
 
-The production tree contains **120 Kotlin files**. JVM tests contain **80 Kotlin files**, of which 75 declare **403 `@Test` methods**; instrumentation contains **44 Kotlin files**, of which 37 declare **185 `@Test` methods**, plus two Java native-provider fixtures. Kotlin file totals include helpers; method totals include conditional/opt-in tests and are not passing-test counts. Robolectric can execute one method on several SDKs, so reported executed-case totals can exceed declared-method totals. Counts use `app/src/main`, `app/src/test` and `app/src/androidTest`, excluding build output/report snapshots. There are nine companion catalogs with 146 clothing/accessory items, 18 packaged OGG clips, six font weights and seven UI languages. Six Maestro YAML journeys also exist outside the Kotlin source sets. Detailed inventories and evidence boundaries follow below.
+The production tree contains **132 Kotlin files**. JVM tests contain **90 Kotlin files**, of which 83 declare **456 `@Test` methods**; instrumentation contains **47 Kotlin files**, of which 39 declare **190 `@Test` methods**, plus two Java native-provider fixtures (source counts checked on 8 November 2026). Kotlin file totals include helpers; method totals include conditional/opt-in tests and are not passing-test counts. Robolectric can execute one method on several SDKs, so reported executed-case totals can exceed declared-method totals. Counts use `app/src/main`, `app/src/test` and `app/src/androidTest`, excluding build output/report snapshots. There are nine companion catalogs with 146 clothing/accessory items, 18 packaged OGG clips, six font weights and seven UI languages. Six Maestro YAML journeys also exist outside the Kotlin source sets. Detailed inventories and evidence boundaries follow below.
 
 Validation for this documentation update is limited to source/inventory checks, local secret scans, resource parity and document link/diff checks; actual results are recorded in N. No Gradle build, JVM test suite, instrumentation suite, Maestro journey, emulator session, vulnerability audit, Sonar source upload or release validation is implied by this reference. No application implementation is changed by this task.
 
 ## B. Complete feature inventory
 
-Every implemented feature below uses local state/storage and requires no app-requested dangerous permission. Speech additionally depends on a suitable installed Android TTS voice; its availability is optional. Tests listed are existing coverage, not results from this documentation task. Test paths are mapped in [N](#n-tests-and-validation-evidence).
+Learning and settings use local state/storage and require no app-requested dangerous permission. Billing additionally uses Google Play and a separate private receipt store. Speech depends on a suitable installed Android TTS voice; its availability is optional. Tests listed are existing coverage, not results from this documentation task. Test paths are mapped in [N](#n-tests-and-validation-evidence).
 
 | Feature and access | Processing and persistence | States, restrictions, recovery | Main implementation and tests |
 | --- | --- | --- | --- |
@@ -91,12 +93,12 @@ Every implemented feature below uses local state/storage and requires no app-req
 | Lesson library | Nine authored lessons, pages, demos and quizzes; winding chapter path with five direct practice entries; completion IDs persisted | Day lesson hidden in 12-hour mode; quiz mistakes disable choices; successful persistence unlocks next action, failed save permits answering again | `LessonScreens.kt`, `LessonCatalog.kt`, `LessonViewModel`; lesson/domain/localization tests |
 | Automatic pre-level lessons | `introPlan` selects incomplete lessons for a level and optional day lesson | Intro-shown markers saved when starting the route, before completing the lessons; top-bar skip enters game | `Lessons.kt`, `AppViewModel.startLevel`, `Navigator`; `LessonsTest`, `GameViewModelTest` |
 | Explore/free clock | Drag hands in five-minute steps, randomize, read words/digits, listen, toggle guides | No scoring; saveable time; 24-hour conversion retains an afternoon representation when enabled | `FreeClockScreen`, `ClockFace`; `AppFlowTest`, `ClockSurfaceStateTest`, `LanguageSettingsTest` |
-| Practice level selection | Five path nodes from whole hours to exact minutes; best stars, current marker and lesson shortcuts | All levels immediately available; no sequential lock or mastery gate | `LevelsScreen`, `Levels`; `LevelsTest`, `AppFlowTest` |
+| Practice level selection | Five path nodes from whole hours to exact minutes; best stars, current marker and lesson shortcuts | Level 0 is free; levels 1–4 require full access. Within full access there is no sequential mastery gate | `LevelsScreen`, `Levels`, `AccessPolicy`; access and navigation tests |
 | Practice round | Ten distinct tasks alternating READ/SET; two-stage error feedback; best-of-level star update | First wrong answer gives hint; second reveals answer; correct answer advances after delay; final-save failure offers Retry without discarding the round; active round not durably saved | `GameScreen`, `GameViewModel`; `GameViewModelTest`, `ActiveLocaleStateTest` |
 | Result/rewards | Three-star display, preserved best, newly unlocked items, companion celebration, replay/next/dress | One to three stars per completed round; aggregate best max 15; previewing new clothes does not equip them | `ResultScreen`, `Progress`, `Wardrobe`; `VisibleUnlocksTest`, `AppFlowTest`, `ComposeStabilityRegressionTest` |
 | One-minute challenge | Sixty-second read-only multiple-choice round; best score persisted | Levels 0–3 only; reserved answer-panel height; END save error and Retry; no stars or item unlocks; no persisted active countdown | `ChallengeScreen`, `ChallengeViewModel`; `ChallengeViewModelTest`, `ChallengeScreenTest`, `ActiveLocaleStateTest` |
 | Play together | Setter chooses time, hands over hidden-answer question, reveals answer, swaps player number | No recorded answer, score, player name, or correctness judging; time/phase/player are saveable | `AskScreen`; `AppFlowTest`, `LanguageSettingsTest`, `ClockSurfaceStateTest` |
-| Companion choice | Doll (stored as HUMAN), cat, dog, robot, dragon, dinosaur, bunny, unicorn, car, none; choice persisted | All choices free; previous names/outfits are retained per species | `AppearanceScreen`, `Personalization`; `PersonalizationFlowTest` |
+| Companion choice | Doll (stored as HUMAN), cat, dog, robot, dragon, dinosaur, bunny, unicorn, car, none; choice persisted | HUMAN, CAT and NONE are free; other companions require full access and three earned stars. Previous names/outfits are retained per species | `AppearanceScreen`, `Personalization`, `AccessPolicy`; personalization/access tests |
 | Companion color | Four color options per non-human kind; dragon replaces purple with orange; dinosaur replaces green with orange; settings persisted per kind | Human uses its own artwork/clothing colors; `NONE` has no wardrobe | `WardrobeScreen`, `PersonalizationPreferences`; `PersonalizationTest` |
 | Clothing and names | 146 items across nine catalogs; star thresholds; per-kind outfit/name persisted | Required human slots cannot be removed; optional slots toggle; name input capped at 16 UTF-16 units without splitting a surrogate pair, then trimmed for saving | `WardrobeScreen`, `NameField`, `Wardrobe`, `CompanionItems`; `WardrobeTest`, `CompanionItemsTest`, `NameFieldEdgeCaseTest`, `PersonalizationStorageTest` |
 | Clock styles | Seven named styles plus custom; custom has 48 combinations; persisted settings | All styles share clock geometry, red hour hand, blue minute hand; no unlock cost | `AppearanceScreen`, `ClockThemeArt`, `ClockAppearance`; `PersonalizationFlowTest`, galleries |
@@ -106,7 +108,7 @@ Every implemented feature below uses local state/storage and requires no app-req
 | Optional read-aloud | Local offline-eligible voice reads localized clock/lesson text; engine calls run serially on a background dispatcher | Hidden when unavailable; stale queued requests invalidated by stop/language/refresh/shutdown; stopping an already running engine call is asynchronous | `Speech`, `Texts.kt`; JVM `SpeechTest`, Android `OfflineVoiceTest` |
 | Sound effects | Generated POP PCM and 18 recorded intro/feedback/reward/voice clips; resource loading dispatched to IO; foreground and sound-setting gates | Each clip becomes usable once registered and decoded; unloaded cues stay silent without delayed replay; force bypasses the setting but not pause | `AppContainer`, `Sfx`, `Sound`, `ToneSynth`; `AppAudioLifecycleTest`, `SfxTest`, `SoundTest`, `ToneSynthTest` |
 
-Not implemented: account management, authentication, multiple learner profiles, billing, ads, cloud sync, analytics, crash reporting SDK, user-visible history/log, import/export, backup UI, notifications, widgets, everyday timers/routines, achievements beyond current star/clothing progression, or a parent PIN/gate. Absence is based on source/configuration inventory, not on a claim about transitive library internals.
+Not implemented: account management, authentication, multiple learner profiles, ads, cloud sync, analytics, crash reporting SDK, user-visible history/log, import/export, backup UI, notifications, widgets, everyday timers/routines, achievements beyond current star/clothing progression, or a persistent parent PIN. A reverse-code adult gate, parent screen and Play Billing integration are implemented. Absence is based on source/configuration inventory, not on a claim about transitive library internals.
 
 ## C. Architecture and initialization
 
@@ -183,7 +185,7 @@ All feature screens are Compose functions; there are no XML activity/fragment la
 | `Screen.Settings` / `SettingsScreen` | Language panel; 12/24-hour radio group/example; guides/effects switches; speech status; reset panel and error text | `AppViewModel.settingsAction`, root settings, locale controller |
 | `Screen.Language` / `LanguageScreen` | Device-language option plus seven named language radio rows; pending/failed selection | `AppLocaleController.selection` |
 
-The intro is an overlay, not a route. Reset is a Material 3 `AlertDialog`, not a screen. No implemented bottom sheets, overflow menus, login forms, purchase dialogs, or permission dialogs were found.
+The intro is an overlay, not a route. Reset uses a Material 3 `AlertDialog`. The adult gate leads to `ParentScreen`; the purchase screen is supplied by Google Play. No implemented bottom sheets, overflow menus, account login forms or runtime-permission dialogs were found.
 
 ### Adaptive window contract
 
@@ -502,7 +504,7 @@ The manifest disables backup/full backup and references extraction rules excludi
 | Android Preferences DataStore | Local progress, appearance and settings | Initial IO fallback, later last-known-value retention, 1–30-second exponential retry while collected; caller-dependent write recovery |
 | Android system clock | `LocalTime.now()` for Home and introduction | Device-local time; no time server or calendar integration |
 
-There is no authored runtime HTTP client, API endpoint, Firebase configuration, analytics SDK, remote crash reporting, Google sign-in, Google Play Billing, ad SDK or backend credential. Development integrations such as SonarCloud, GitHub Actions, vulnerability feeds and DeepSec belong to build/review tooling and can communicate externally when invoked; they are not features embedded in the application.
+There is no authored runtime HTTP client, API endpoint, Firebase configuration, analytics SDK, remote crash reporting, Google sign-in, ad SDK or backend credential. Play Billing is an external runtime service accessed through `PlayBillingGateway`. Development integrations such as SonarCloud, GitHub Actions, vulnerability feeds and DeepSec belong to build/review tooling and can communicate externally when invoked; they are not features embedded in the application.
 
 ### Speech selection and lifecycle
 
@@ -543,9 +545,9 @@ If a track or clip is not ready, the effect is silent; `SfxTest` specifically co
 
 ## I. Monetization and entitlements
 
-Billing is not implemented. There are no product IDs, purchase tokens, acknowledgements, restoration requests, receipt verification, premium flags, subscription UI or Play Billing dependency. No advertising or payment-related permissions/services were found.
+One non-consumable `clocklings_full_unlock` product permanently grants full access through Google Play Billing 9.1.0. The approved name is Clocklings Full Unlock and the confirmed price is EUR 6.99; the UI uses the localized Play price rather than a hardcoded fallback. The adult gate opens the parent screen for purchase/restore. `LocalPurchases` coordinates callbacks and fresh ownership queries; `LocalPurchaseVerifier` checks the signed purchase and its package, product, token, quantity and completed state. `PreferencesOwnershipStore` caches the signed receipt and acknowledgement state in a separate private DataStore; learning reset does not remove it. Verified cached access survives offline failures, while a successful empty ownership query revokes it. See MONETIZATION.md for the complete verification and deferred Console boundaries.
 
-Stars and clothing thresholds are local learning rewards, not financial entitlements. The UI enables items according to the best-star total; no remote authority verifies them. A local valid clothing ID can be decoded independently of stars. Commercial model and any adult purchase control remain product decisions; the current code must not be described as a completed paid/freemium offering.
+Stars and clothing thresholds remain local learning rewards and are never sold. `AccessPolicy` keeps level 0 and its lessons, the optional day lesson, Explore and Together free; levels 1–4 and challenges require full access. HUMAN/CAT/NONE are free, other companions additionally require three earned stars, and free HUMAN/CAT wardrobe content is limited to items requiring at most three stars. Full access never grants stars or lesson completions. Saved locked choices are preserved and use display-only fallbacks. The invalid `UNCONFIGURED` licensing key disables production purchase/verification; no live transaction or release readiness is claimed.
 
 ## J. Permissions, security, and privacy
 
@@ -555,7 +557,7 @@ Source: [`AndroidManifest.xml`](app/src/main/AndroidManifest.xml), [`data_extrac
 
 | Declaration | Actual purpose and consequence |
 | --- | --- |
-| No positive app `uses-permission` requests | No runtime dangerous-permission flow; no app INTERNET, microphone, notifications, storage or location request |
+| Billing dependency manifest permissions | The debug merged manifest checked on 8 November contains `com.android.vending.BILLING`, `android.permission.INTERNET` and `android.permission.ACCESS_NETWORK_STATE`; no dangerous-permission prompt is implemented |
 | `${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` with `tools:node="remove"` | Manifest-merger removal entries for the generated permission/declaration, not a permission grant |
 | `<queries>` for `android.intent.action.TTS_SERVICE` | TTS package visibility; not microphone or network permission |
 | Exported `MainActivity` with MAIN/LAUNCHER | Public launcher entry point; no other app-authored exported activity/service/provider/receiver |
@@ -571,7 +573,7 @@ This table describes authored source, not a fresh merged release manifest. Depen
 ### Security boundaries
 
 - Application identity separates Clocklings from the original private application. There is no source path that intentionally imports that application's preferences, credentials or signing material.
-- Local companion names, progress and preferences remain in app-private DataStore. No app-layer encryption, user login or parent gate exists. Reset is available from Settings with confirmation.
+- Local companion names, progress, preferences and signed ownership receipts remain in app-private DataStore. No app-layer encryption or user login exists. A reverse-code adult gate protects entry to purchase/restore controls; it is not account authentication. Reset is available from Settings with confirmation and does not erase ownership.
 - TTS is an external installed Android service. This app filters its advertised voice capability and supplies teaching text; it does not control the service's own permissions or independently prove its behavior.
 - Stable item IDs, enum parsing and numeric clamping are integrity checks, not authorization controls against an actor who can modify app-private data.
 - `Screen` serializers and R8 rules affect navigation reconstruction. They are not exposed as an arbitrary external deserialization endpoint in the launcher implementation.
@@ -600,7 +602,8 @@ Versions below are declared in the repository, not assertions that they are the 
 | kotlinx coroutines test | 1.11.0; main coroutine support comes through dependencies rather than a direct main declaration |
 | JUnit | 4.13.2 |
 | Robolectric | 4.17; API 37, native graphics, JDK 21 host requirement |
-| Guava constraint | 33.7.2-jre in host tests/buildscript; not an app main-runtime dependency |
+| Guava constraint | 33.8.0-jre in host tests/buildscript; not an app main-runtime dependency |
+| Google Play Billing | 9.1.0; runtime purchase transport, with local signed-receipt verification |
 | AndroidX test ext JUnit / runner / Espresso | 1.3.0 / 1.7.0 / 3.7.0 |
 | ktlint Gradle plugin / engine / Compose rules | 14.2.0 / 1.8.0 / 0.6.8 |
 | Detekt / Compose rules | 1.23.8 / 0.4.28 |
@@ -716,7 +719,7 @@ These four cells are a validation plan, not a claim of universal existing covera
 
 ### Existing JVM suites
 
-Paths in this table are relative to [`app/src/test/java/fi/clocklings/`](app/src/test/java/fi/clocklings). There are **75 test-bearing Kotlin files with 403 declared `@Test` methods**, plus five helpers (80 files total). Tests use JUnit 4, coroutine-test virtual time and Robolectric where applicable. Counts describe source declarations, not execution or assertion coverage. A method may loop over languages/layout cells, and Robolectric can execute it on multiple SDKs. Neither loop iterations nor SDK-expanded case totals are additional source methods. The historical 407-case run below is therefore not contradicted by the current declaration count.
+Paths in this table are relative to [`app/src/test/java/fi/clocklings/`](app/src/test/java/fi/clocklings). There are **83 test-bearing Kotlin files with 456 declared `@Test` methods**, plus seven helpers (90 files total), counted on 8 November 2026. Tests use JUnit 4, coroutine-test virtual time and Robolectric where applicable. Counts describe source declarations, not execution or assertion coverage. A method may loop over languages/layout cells, and Robolectric can execute it on multiple SDKs. Neither loop iterations nor SDK-expanded case totals are additional source methods. The historical 407-case run below is therefore not contradicted by the current declaration count.
 
 | Files | Main assertions and boundaries |
 | --- | --- |
@@ -764,7 +767,7 @@ Helpers: `TestClocklingsApplication.kt` supplies the application; `ui/TestLocale
 
 ### Existing Android and Compose suites
 
-Paths are relative to [`app/src/androidTest/java/fi/clocklings/`](app/src/androidTest/java/fi/clocklings). AndroidJUnitRunner, Compose UI tests and ActivityScenario provide the runtime harness. There are **37 test-bearing Kotlin files with 185 declared `@Test` methods**, plus seven Kotlin helpers/base classes (44 files total) and two Java provider fixtures. Thirty-six methods belong to the opt-in screenshot-review-6 gallery. Native-provider tests require explicit setup/arguments; intro tests have animation-setting assumptions, compact all-language coverage requires a specific window/font configuration, and retry recreation requires API 33+. A source-method total is not an expected all-pass default run.
+Paths are relative to [`app/src/androidTest/java/fi/clocklings/`](app/src/androidTest/java/fi/clocklings). AndroidJUnitRunner, Compose UI tests and ActivityScenario provide the runtime harness. There are **39 test-bearing Kotlin files with 190 declared `@Test` methods**, plus eight Kotlin helpers/base classes (47 files total) and two Java provider fixtures, counted on 8 November 2026. Thirty-six methods belong to the opt-in screenshot-review-6 gallery. Native-provider tests require explicit setup/arguments; intro tests have animation-setting assumptions, compact all-language coverage requires a specific window/font configuration, and retry recreation requires API 33+. A source-method total is not an expected all-pass default run.
 
 | Files | Main assertions and limitations |
 | --- | --- |
@@ -857,7 +860,7 @@ The Home performance report used dedicated `ClocklingsReview20261030`, serial `e
 
 ### Gaps and choosing validation
 
-Process death is distinct from ActivityScenario recreation and host StateRestorationTester. The consolidated audit records scoped process-death observations and an accepted restart policy; seamless active-game/challenge recovery is not promised. Historical real audio/TalkBack and minimum/legacy/16 KB emulator evidence have the version limits above. Final adaptive TalkBack, actual Chromebook/Googlebook runtime and physical trackpad evidence remain unavailable; the owner is not required to obtain equipment. A focused final-APK API 26 emulator rerun is optional additional evidence, not an automatically reopened defect. Production signing, final optimized distribution and store/license/privacy validation remain deliberately deferred. Gallery captures alone establish neither visual acceptability nor contrast. No live API/billing tests are needed for absent runtime features.
+Process death is distinct from ActivityScenario recreation and host StateRestorationTester. The consolidated audit records scoped process-death observations and an accepted restart policy; seamless active-game/challenge recovery is not promised. Historical real audio/TalkBack and minimum/legacy/16 KB emulator evidence have the version limits above. Final adaptive TalkBack, actual Chromebook/Googlebook runtime and physical trackpad evidence remain unavailable; the owner is not required to obtain equipment. A focused final-APK API 26 emulator rerun is optional additional evidence, not an automatically reopened defect. Production signing, final optimized distribution and store/license/privacy validation remain deliberately deferred. Gallery captures alone establish neither visual acceptability nor contrast. Live Play purchase testing is deferred by the owner; billing source tests are distinct from that missing runtime evidence.
 
 For a scoped change, run the relevant existing pure/ViewModel tests first; add meaningful regression coverage when behavior changes. Use real DataStore/UI tests for changes crossing those boundaries. Broaden to the required device/font/language matrix for UI work. Do not rerun unrelated expensive suites merely to make a documentation-only change appear more validated.
 
@@ -1050,7 +1053,7 @@ These describe boundaries visible in source, not necessarily deviations from app
 | Older plan/current-state sections describe a smaller companion or clock inventory | Current code has nine companions plus none, 146 clothing/accessory items and seven named clock styles plus custom |
 | New-companion design initially describes silent new kinds until clips arrive | Bunny, unicorn and car now have packaged clips and voice mappings; silence is not the current implemented contract |
 | Language-review history contains older resource totals | Current counts are 486 default/485 per translation; 3,396 entries differ from 3,501 individual text values. Do not sum historical inventories |
-| Previous PROJECT.md reported 379 JVM/131 instrumentation methods | Current declarations are 403/185; SDK-expanded execution counts and conditional skips differ. Audio remains 18 recorded clips plus synthesized POP |
+| Previous PROJECT.md reported 379 JVM/131 instrumentation methods | Current declarations checked on 8 November are 456/190; SDK-expanded execution counts and conditional skips differ. Audio remains 18 recorded clips plus synthesized POP |
 | Earlier references lacked timer/answer semantics or human accessibility evidence | Timer label/progress and answer states are implemented; historical human observations exist. Final adaptive spoken order is still unavailable |
 | Previous PROJECT.md described portrait-only UI, no clock keys, unbounded caches, fixed read retries and dismissible pending reset | Current source implements adaptive windows/arrow keys, a 16-key cache, 1–30-second retry backoff and pending-reset dismissal protection |
 | Earlier audit deferred laptop scope or left input follow-ups open | Later owner scope and consolidated closeout supersede those entries; no reproduced current input defect is identified by the final record |
@@ -1097,7 +1100,7 @@ Use this table to begin a focused review, then trace callers and tests. It ident
 | Release/toolchain | App/root Gradle, catalog, wrapper, verification metadata, serializers, CI | Historical reports include scoped test-signed R8 Home checks; production-signed artifact, minified navigation/restore and current check reports still needed for release claims |
 | Developer tool safety | `tools/sonar.ps1`, wrappers, `.deepsec` patches and config | Sonar wrapper tests; task-owned process cleanup, upload authorization, external helper availability |
 
-Authentication, billing and cloud authorization are absent; do not spend a review inventing purchase/account flows. If the product later adds them, update the architecture and threat boundaries explicitly.
+Account authentication and cloud authorization are absent. Billing review must cover `LocalPurchases`, `LocalPurchaseVerifier`, `PurchaseOwnership`, `PreferencesOwnershipStore`, `PlayBillingGateway`, `AccessPolicy` and their tests: callback lifecycle, fresh matching ownership, signed durable receipts, revocation and free/full boundaries. Do not infer authorization for live Play setup or transactions from a source-review request.
 
 ### Preparing a useful review or test question
 
@@ -1245,11 +1248,11 @@ The owner requires completion of all agreed features and all seven selected lang
 | Current agreed implementation | Scoped audit/adaptive work complete per consolidated record; no outstanding reproduced application defect identified there. Old proposals do not reopen its inventory |
 | Learner profiles and session/reward policy | Current implementation has one progress store and best-star clothing thresholds; broader profile/reward designs are not implemented |
 | Everyday timers, routines, widgets | Proposed options, no implementation in the inspected source |
-| Commercial model and adult controls | Unresolved product choices; no billing/ads/parent gate |
+| Commercial model and adult controls | One-time full unlock and reverse-code adult gate implemented; no ads. Production Play setup and live transactions remain deferred |
 | Data transfer/recovery | No app export/import/backup UI; platform backup/transfer disabled by configuration |
 | Artwork acceptance/human head motion | New kinds, isolated item previews, shading and crop corrections are implemented. Historical visual observations and the separate human head-motion choice are not automatic approval for further redesign |
 | Persistence recovery | Backoff/read retention and completion/customization failure UX implemented; name failure reconstructs Retry on restoration. Other closures/session state are not durable; scoped real-file/pending-write observations do not promise all failure modes |
-| Validation of current source | 403 JVM/185 instrumented methods plus six Maestro flows inventoried; prior 407-case JVM run and later PR #13 targeted checks have distinct snapshots. Documentation checks only here; no fresh application tests or remote CI |
+| Validation of current source | 456 JVM/190 instrumented source methods plus six Maestro flows inventoried on 8 November; executed cases and historical results have separate version boundaries. See the current consolidated status and CodeRabbit audit report for actual runs; no remote CI result is inferred |
 | Home performance | Historical test-signed R8 emulator report shows one draw per no-companion minute update after the correction; deadline misses and companion-animation spikes remain. No universal smoothness or physical-device speedup claim |
 | Language confidence | Seven resource sets/formatters, independent fixtures and text/layout audits; historical installed-voice listening for six languages, Spanish unavailable. No professional native-speaker certification or new mandatory review gate |
 | Spoken accessibility and audio | Historical Finnish human TalkBack and offline listening recorded; final adaptive spoken order unavailable, controlled native TTS output is not listening |

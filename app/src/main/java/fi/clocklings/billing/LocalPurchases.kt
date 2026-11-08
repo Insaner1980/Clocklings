@@ -23,6 +23,8 @@ class LocalPurchases(
     private val mutableState = MutableStateFlow(PurchaseUiState(loading = true))
     override val state = mutableState.asStateFlow()
     private var foreground = false
+    private var purchaseInProgress = false
+    private var pendingUpdate: PurchaseUpdate? = null
     private var cycle: Job? = null
     private var price: String? = null
     private val initialized =
@@ -47,20 +49,27 @@ class LocalPurchases(
         scope.launch {
             initialized.join()
             gateway.updates.collect { update ->
-                if (foreground && verifier.configured) handleUpdate(update.result)
+                if (verifier.configured && (foreground || purchaseInProgress)) {
+                    purchaseInProgress = false
+                    if (foreground) handleUpdate(update.result) else pendingUpdate = update
+                }
             }
         }
     }
 
     override fun onForeground() {
         foreground = true
-        refresh()
+        purchaseInProgress = false
+        val update = pendingUpdate
+        pendingUpdate = null
+        if (update == null) refresh() else handleUpdate(update.result)
     }
 
     override fun onBackground() {
         foreground = false
         cycle?.cancel()
-        gateway.close()
+        // The Play purchase screen pauses our activity before delivering its result.
+        if (!purchaseInProgress) gateway.close()
     }
 
     override fun refresh() = requestRefresh(restoring = false)
@@ -69,12 +78,14 @@ class LocalPurchases(
 
     override fun buy(activity: Activity) {
         if (state.value.canPurchase) {
+            cycle?.cancel()
+            purchaseInProgress = true
             publish(PurchaseStatus.VERIFYING, busy = true)
-            when (val result = gateway.launch(activity)) {
-                is StoreResult.Success -> Unit
-
-                // Query on callback/resume, never trust the launch result as ownership.
-                is StoreResult.Failure -> handleFailure(result.reason)
+            // Query on callback/resume, never trust the launch result as ownership.
+            val result = gateway.launch(activity)
+            if (result is StoreResult.Failure) {
+                purchaseInProgress = false
+                handleFailure(result.reason)
             }
         }
     }
@@ -131,6 +142,7 @@ class LocalPurchases(
     }
 
     private fun handleUpdate(result: StoreResult<List<StorePurchase>>) {
+        cycle?.cancel()
         when (result) {
             is StoreResult.Failure -> {
                 handleFailure(result.reason)

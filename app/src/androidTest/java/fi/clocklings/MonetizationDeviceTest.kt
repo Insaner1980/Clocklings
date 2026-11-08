@@ -29,10 +29,14 @@ import fi.clocklings.domain.Settings
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
+import org.junit.Assert.fail
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExternalResource
 import org.junit.rules.RuleChain
+import org.junit.runner.Description
+import org.junit.runners.model.Statement
 
 /** Deterministic access/UI tests. These do not connect to Play or simulate a verified store transaction. */
 class MonetizationDeviceTest {
@@ -42,13 +46,22 @@ class MonetizationDeviceTest {
             InstrumentationRegistry
                 .getInstrumentation()
                 .targetContext.applicationContext as ClocklingsTestApplication
-    private val fixture =
+
+    private fun fixture() =
         object : ExternalResource() {
             private lateinit var originalPurchaseState: PurchaseUiState
+            private lateinit var originalProgress: Progress
+            private lateinit var originalSettings: Settings
 
             override fun before() {
                 originalPurchaseState = application.testPurchases.state.value
                 runBlocking {
+                    originalProgress =
+                        application.container.repository.progress
+                            .first()
+                    originalSettings =
+                        application.container.repository.settings
+                            .first()
                     application.container.repository.updateProgress { Progress() }
                     application.container.repository.updateSettings { Settings(sound = false) }
                 }
@@ -57,10 +70,60 @@ class MonetizationDeviceTest {
 
             override fun after() {
                 application.testPurchases.state.value = originalPurchaseState
+                runBlocking {
+                    application.container.repository.updateProgress { originalProgress }
+                    application.container.repository.updateSettings { originalSettings }
+                }
             }
         }
 
-    @get:Rule val rules: RuleChain = RuleChain.outerRule(EnglishLocaleRule()).around(fixture).around(compose)
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(EnglishLocaleRule()).around(fixture()).around(compose)
+
+    @Test fun fixtureRestoresProgressSettingsAndPurchasesAfterAFailedTest() {
+        val progress = Progress(stars = listOf(1, 2, 0, 0, 0), lessonsDone = setOf("viisarit"))
+        val settings = Settings(sound = false, help = false, h24 = true)
+        val purchase = PurchaseUiState(fullAccess = true, status = PurchaseStatus.OWNED)
+        runBlocking {
+            application.container.repository.updateProgress { progress }
+            application.container.repository.updateSettings { settings }
+        }
+        application.testPurchases.state.value = purchase
+        val expectedFailure = AssertionError("Intentional fixture test failure")
+        try {
+            fixture()
+                .apply(
+                    object : Statement() {
+                        override fun evaluate() {
+                            runBlocking {
+                                application.container.repository.updateProgress { Progress(stars = List(5) { 3 }) }
+                                application.container.repository.updateSettings { Settings(sound = false, help = true) }
+                            }
+                            application.testPurchases.state.value = PurchaseUiState(fullAccess = false)
+                            throw expectedFailure
+                        }
+                    },
+                    Description.EMPTY,
+                ).evaluate()
+            fail("The fixture must propagate the test failure")
+        } catch (failure: AssertionError) {
+            assertSame(expectedFailure, failure)
+        }
+        assertEquals(
+            progress,
+            runBlocking {
+                application.container.repository.progress
+                    .first()
+            },
+        )
+        assertEquals(
+            settings,
+            runBlocking {
+                application.container.repository.settings
+                    .first()
+            },
+        )
+        assertEquals(purchase, application.testPurchases.state.value)
+    }
 
     @Test
     fun freeContentAdultCancellationUnavailablePurchaseAndLiveAccess() {

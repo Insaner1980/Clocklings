@@ -2,6 +2,7 @@ package fi.clocklings.billing
 
 import android.app.Activity
 import fi.clocklings.data.InMemoryPreferencesStore
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableSharedFlow
 import org.json.JSONObject
 import java.io.IOException
@@ -64,6 +65,7 @@ internal class FakeBillingGateway : BillingGateway {
     var launchResult: StoreResult<Unit> = StoreResult.Success(Unit)
     val acknowledged = mutableListOf<String>()
     var queries = 0
+    var queryGate: CompletableDeferred<Unit>? = null
     var launches = 0
     var closed = 0
 
@@ -71,6 +73,7 @@ internal class FakeBillingGateway : BillingGateway {
 
     override suspend fun purchases(): StoreResult<List<StorePurchase>> {
         queries++
+        queryGate?.await()
         return owned
     }
 

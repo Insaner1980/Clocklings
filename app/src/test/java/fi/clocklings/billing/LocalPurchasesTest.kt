@@ -4,6 +4,7 @@ import android.app.Activity
 import fi.clocklings.data.InMemoryPreferencesStore
 import fi.clocklings.data.ProgressRepository
 import fi.clocklings.domain.Progress
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
@@ -80,6 +81,113 @@ class LocalPurchasesTest {
             gateway.update(StoreResult.Failure(StoreFailure.CANCELLED))
             runCurrent()
             assertTrue(service.state.value.fullAccess)
+        }
+
+    @Test fun purchaseCancellationWhilePausedSurvivesReturningToTheApp() =
+        runTest {
+            val service = service()
+            service.onForeground()
+            runCurrent()
+            service.buy(Activity())
+            service.buy(Activity())
+            service.onBackground()
+            assertEquals(0, gateway.closed)
+            assertEquals(1, gateway.launches)
+            gateway.update(StoreResult.Failure(StoreFailure.CANCELLED))
+            runCurrent()
+            service.onForeground()
+            runCurrent()
+            assertEquals(PurchaseStatus.CANCELLED, service.state.value.status)
+            assertTrue(service.state.value.canPurchase)
+            assertFalse(service.state.value.fullAccess)
+            assertTrue(gateway.acknowledged.isEmpty())
+            service.onBackground()
+            assertEquals(1, gateway.closed)
+        }
+
+    @Test fun purchaseCallbackWhilePausedRequiresFreshMatchingOwnershipOnResume() =
+        runTest {
+            val service = service()
+            service.onForeground()
+            runCurrent()
+            service.buy(Activity())
+            service.onBackground()
+            gateway.update(StoreResult.Success(listOf(SignedPurchases.purchase(token = "callback-token"))))
+            runCurrent()
+            assertFalse(service.state.value.fullAccess)
+            gateway.owned = StoreResult.Success(listOf(SignedPurchases.purchase(token = "other-token")))
+            service.onForeground()
+            runCurrent()
+            assertEquals(PurchaseStatus.FAILED, service.state.value.status)
+            assertFalse(service.state.value.fullAccess)
+            assertTrue(gateway.acknowledged.isEmpty())
+        }
+
+    @Test fun purchaseCompletingWhilePausedIsVerifiedAndAcknowledgedAfterResume() =
+        runTest {
+            val service = service()
+            service.onForeground()
+            runCurrent()
+            service.buy(Activity())
+            service.onBackground()
+            val receipt = SignedPurchases.purchase()
+            gateway.owned = StoreResult.Success(listOf(receipt))
+            gateway.update(gateway.owned)
+            runCurrent()
+            assertFalse(service.state.value.fullAccess)
+            service.onForeground()
+            runCurrent()
+            assertTrue(service.state.value.fullAccess)
+            assertEquals(listOf(receipt.token), gateway.acknowledged)
+        }
+
+    @Test fun resumeWithoutPurchaseCallbackRefreshesOwnershipAndReleasesTheFlow() =
+        runTest {
+            val service = service()
+            service.onForeground()
+            runCurrent()
+            service.buy(Activity())
+            service.onBackground()
+            gateway.owned = StoreResult.Success(listOf(SignedPurchases.purchase()))
+            service.onForeground()
+            runCurrent()
+            assertTrue(service.state.value.fullAccess)
+            service.onBackground()
+            assertEquals(1, gateway.closed)
+        }
+
+    @Test fun failedPurchaseLaunchDoesNotKeepTheConnectionOpenInBackground() =
+        runTest {
+            val service = service()
+            service.onForeground()
+            runCurrent()
+            gateway.launchResult = StoreResult.Failure(StoreFailure.CANCELLED)
+            service.buy(Activity())
+            service.onBackground()
+            gateway.update(StoreResult.Success(listOf(SignedPurchases.purchase())))
+            runCurrent()
+            assertEquals(1, gateway.closed)
+            assertFalse(service.state.value.fullAccess)
+            assertTrue(gateway.acknowledged.isEmpty())
+        }
+
+    @Test fun cancellationAfterResumeIsNotOverwrittenByAnInFlightOwnershipQuery() =
+        runTest {
+            val service = service()
+            service.onForeground()
+            runCurrent()
+            service.buy(Activity())
+            service.onBackground()
+            val gate = CompletableDeferred<Unit>()
+            gateway.queryGate = gate
+            service.onForeground()
+            runCurrent()
+            gateway.update(StoreResult.Failure(StoreFailure.CANCELLED))
+            runCurrent()
+            gate.complete(Unit)
+            runCurrent()
+            assertEquals(PurchaseStatus.CANCELLED, service.state.value.status)
+            assertFalse(service.state.value.fullAccess)
         }
 
     @Test fun alreadyOwnedLaunchRestoresInsteadOfConsumingOrChargingAgain() =

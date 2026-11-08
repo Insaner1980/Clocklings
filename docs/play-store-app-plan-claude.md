@@ -2,7 +2,7 @@
 
 **Author:** Claude (Opus 5.5), written for comparison with an independent plan by Codex.
 **Date:** 2026-10-20
-**Status:** Draft for review. Nothing in this document is decided unless it appears in section 2 ("Decisions already made"). Every other item is a proposal that the owner accepts, rejects, or changes.
+**Status:** Superseded historical comparison draft. See [STATUS.md](implementation/STATUS.md) for current owner decisions and [CONSOLIDATED-STATUS.md](implementation/CONSOLIDATED-STATUS.md) for implementation and verification. Earlier English-first release and original Git-history copying proposals below are not current instructions.
 **Working title:** "the store app". The final name is an open decision (section 15).
 
 ---
