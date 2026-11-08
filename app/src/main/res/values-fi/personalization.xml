@@ -13,7 +13,7 @@
     <string name="companion_unicorn">Yksisarvinen</string>
     <string name="companion_car">Auto</string>
     <string name="companion_none">Pelkkä kello</string>
-    <string name="no_companion_hint">Kaikki oppitunnit ja pelit ovat käytettävissäsi. Voit valita kaverin milloin vain.</string>
+    <string name="no_companion_hint">Harjoittele kellonaikoja ilman kaveria.</string>
     <string name="companion_color">Väri</string>
     <string name="color_original">Alkuperäinen</string>
     <string name="color_blue">Sininen</string>

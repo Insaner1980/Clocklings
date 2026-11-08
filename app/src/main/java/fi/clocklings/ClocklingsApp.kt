@@ -1,5 +1,6 @@
 package fi.clocklings
 
+import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,6 +26,7 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import fi.clocklings.audio.Sound
+import fi.clocklings.domain.AccessPolicy
 import fi.clocklings.domain.Lessons
 import fi.clocklings.ui.AppViewModel
 import fi.clocklings.ui.LocalAppViewModel
@@ -50,6 +52,7 @@ import fi.clocklings.ui.levels.LevelsScreen
 import fi.clocklings.ui.locale.AppLocaleProvider
 import fi.clocklings.ui.locale.LocalAppLanguage
 import fi.clocklings.ui.navigationTransition
+import fi.clocklings.ui.parent.ParentScreen
 import fi.clocklings.ui.rememberReduceMotion
 import fi.clocklings.ui.settings.LanguageScreen
 import fi.clocklings.ui.settings.SettingsScreen
@@ -63,6 +66,7 @@ fun ClocklingsApp(
     container: AppServices = (LocalContext.current.applicationContext as ClocklingsApplication).container,
     app: AppViewModel = viewModel(factory = viewModelFactory { initializer { AppViewModel(container) } }),
 ) {
+    val activity = LocalActivity.current
     AppLocaleProvider(container.repository) {
         val language = LocalAppLanguage.current
         DisposableEffect(language) {
@@ -74,12 +78,33 @@ fun ClocklingsApp(
             Box(modifier.fillMaxSize()) {
                 val progress by app.progress.collectAsStateWithLifecycle()
                 val settings by app.settings.collectAsStateWithLifecycle()
-                val p = progress
-                val s = settings
-                if (p == null || s == null) {
+                val purchase by app.purchaseState.collectAsStateWithLifecycle()
+                val access = AccessPolicy(purchase.fullAccess)
+                val savedProgress = progress
+                val savedSettings = settings
+                if (savedProgress == null || savedSettings == null || purchase.loading) {
                     LoadingScreen()
                     return@Box
                 }
+                // These are display values only. Ownership changes never rewrite saved choices.
+                val p =
+                    savedProgress.copy(
+                        outfits =
+                            savedProgress.outfits.mapValues { (kind, outfit) ->
+                                access.displayedOutfit(kind, outfit, savedProgress.totalStars)
+                            },
+                    )
+                val s =
+                    savedSettings.copy(
+                        personalization =
+                            savedSettings.personalization.copy(
+                                companion =
+                                    access.displayedCompanion(
+                                        savedSettings.personalization.companion,
+                                        p.totalStars,
+                                    ),
+                            ),
+                    )
                 val speech by app.speechAvailable.collectAsStateWithLifecycle()
                 CompositionLocalProvider(
                     LocalAppViewModel provides app,
@@ -93,7 +118,7 @@ fun ClocklingsApp(
                         DisposableEffect(backStack.last()) {
                             onDispose { app.stopSpeech() }
                         }
-                        val nav = remember(backStack) { Navigator(backStack) }
+                        val nav = remember(backStack) { Navigator(backStack) { app.access } }
                         // Ignore repeated or delayed callbacks from a destination that has already left.
                         val go = { from: Screen, screen: Screen ->
                             nav.ifCurrent(from) {
@@ -110,7 +135,7 @@ fun ClocklingsApp(
                         val playLevel = { from: Screen, level: Int, replaceTop: Boolean ->
                             nav.ifCurrent(from) {
                                 app.play(Sound.POP)
-                                nav.startLevel(level, app.startLevel(level), replaceTop)
+                                app.startLevel(level)?.let { nav.startLevel(level, it, replaceTop) }
                             }
                         }
                         val reducedMotion = rememberReduceMotion()
@@ -171,6 +196,16 @@ fun ClocklingsApp(
                                                     speech,
                                                     { go(Screen.Settings, Screen.Language) },
                                                     { back(Screen.Settings) },
+                                                    onParent = { go(Screen.Settings, Screen.Parent) },
+                                                )
+                                            }
+                                            entry<Screen.Parent> {
+                                                ParentScreen(
+                                                    purchase,
+                                                    onPurchase = { activity?.let(container.purchases::buy) },
+                                                    onRestore = container.purchases::restore,
+                                                    onRetry = container.purchases::refresh,
+                                                    onBack = { back(Screen.Parent) },
                                                 )
                                             }
                                             entry<Screen.Language> { LanguageScreen({ back(Screen.Language) }) }
@@ -180,9 +215,13 @@ fun ClocklingsApp(
                                             entry<Screen.Ask> { AskScreen(s.h24, s.help, speech, { back(Screen.Ask) }) }
                                             entry<Screen.Wardrobe> {
                                                 val kind = s.personalization.companion
-                                                WardrobeScreen(kind, p, s.personalization.styleFor(kind).color, {
-                                                    back(Screen.Wardrobe)
-                                                })
+                                                WardrobeScreen(
+                                                    kind,
+                                                    p,
+                                                    s.personalization.styleFor(kind).color,
+                                                    { back(Screen.Wardrobe) },
+                                                    onParent = { go(Screen.Wardrobe, Screen.Parent) },
+                                                )
                                             }
                                             entry<Screen.Personalize> {
                                                 AppearanceScreen(
@@ -190,15 +229,18 @@ fun ClocklingsApp(
                                                     p,
                                                     { go(Screen.Personalize, Screen.Wardrobe) },
                                                     { back(Screen.Personalize) },
+                                                    onParent = { go(Screen.Personalize, Screen.Parent) },
                                                 )
                                             }
                                             entry<Screen.LessonList> {
                                                 LessonListScreen(
                                                     s.h24,
                                                     p,
+                                                    access,
                                                     onPlayLevel = { playLevel(Screen.LessonList, it, false) },
                                                     onOpen = { go(Screen.LessonList, Screen.Lesson(listOf(it))) },
                                                     onBack = { back(Screen.LessonList) },
+                                                    onParent = { go(Screen.LessonList, Screen.Parent) },
                                                 )
                                             }
                                             entry<Screen.Lesson> { key ->
@@ -216,12 +258,14 @@ fun ClocklingsApp(
                                             entry<Screen.Levels> {
                                                 LevelsScreen(
                                                     progress = p,
+                                                    access = access,
                                                     onPlay = { playLevel(Screen.Levels, it, false) },
                                                     onLesson = {
                                                         go(Screen.Levels, Screen.Lesson(Lessons.levelLessons[it]))
                                                     },
                                                     onChallenge = { go(Screen.Levels, Screen.Challenge) },
                                                     onBack = { back(Screen.Levels) },
+                                                    onParent = { go(Screen.Levels, Screen.Parent) },
                                                 )
                                             }
                                             entry<Screen.Game> { key ->
@@ -237,6 +281,7 @@ fun ClocklingsApp(
                                             }
                                             entry<Screen.Result> { key ->
                                                 ResultScreen(
+                                                    access = access,
                                                     result = key,
                                                     outfit = p.outfitFor(s.personalization.companion),
                                                     onPlayAgain = {
@@ -261,6 +306,8 @@ fun ClocklingsApp(
                                                         }
                                                     },
                                                     onSound = app::play,
+                                                    canReplay = access.level(key.level),
+                                                    canContinue = access.level(key.level + 1),
                                                 )
                                             }
                                             entry<Screen.Challenge> {

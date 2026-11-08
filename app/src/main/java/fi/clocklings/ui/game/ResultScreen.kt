@@ -34,6 +34,7 @@ import fi.clocklings.R
 import fi.clocklings.Screen
 import fi.clocklings.audio.Sound
 import fi.clocklings.audio.companionVoice
+import fi.clocklings.domain.AccessPolicy
 import fi.clocklings.domain.CompanionKind
 import fi.clocklings.domain.Item
 import fi.clocklings.domain.Levels
@@ -64,6 +65,7 @@ import kotlinx.coroutines.delay
  */
 @Composable
 fun ResultScreen(
+    access: AccessPolicy,
     result: Screen.Result,
     outfit: Outfit,
     onPlayAgain: () -> Unit,
@@ -72,13 +74,15 @@ fun ResultScreen(
     onLevels: () -> Unit,
     modifier: Modifier = Modifier,
     onSound: (Sound, Float) -> Unit = { _, _ -> },
+    canReplay: Boolean = true,
+    canContinue: Boolean = true,
 ) {
     val stars = result.stars
     val after = result.starsBefore + maxOf(0, stars - result.previousBest)
     val personalization = LocalPersonalization.current
     val kind = personalization.companion
     val color = personalization.styleFor(kind).color
-    val newItems = visibleUnlocks(result.starsBefore, after, kind)
+    val newItems = visibleUnlocks(result.starsBefore, after, kind).filter { access.item(it, after) }
     val text = resultMessage(result, newItems.size)
 
     val confetti = LocalConfetti.current
@@ -121,8 +125,8 @@ fun ResultScreen(
                     horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM, Alignment.CenterHorizontally),
                     verticalArrangement = Arrangement.spacedBy(SkDimens.GapM),
                 ) {
-                    SkButton(stringResource(R.string.play_again), onPlayAgain)
-                    if (result.level < Levels.all.lastIndex) {
+                    if (canReplay) SkButton(stringResource(R.string.play_again), onPlayAgain)
+                    if (canContinue && result.level < Levels.all.lastIndex) {
                         SkButton(stringResource(R.string.next_level), onNextLevel, kind = ButtonKind.PRIMARY)
                     }
                     if (newItems.isNotEmpty()) {

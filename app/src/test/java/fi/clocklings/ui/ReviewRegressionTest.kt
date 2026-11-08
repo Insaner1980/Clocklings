@@ -60,7 +60,7 @@ class ReviewRegressionTest {
     private val store = ReviewWriteStore()
     private val repository = ProgressRepository(store)
     private val services =
-        object : AppServices by FakeServices() {
+        object : AppServices by FakeServices(fullAccess = true) {
             override val repository = this@ReviewRegressionTest.repository
         }
     private val model = AppViewModel(services)

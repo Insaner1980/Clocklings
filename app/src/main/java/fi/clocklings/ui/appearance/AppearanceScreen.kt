@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -43,8 +44,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.max
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import fi.clocklings.R
 import fi.clocklings.audio.companionVoice
+import fi.clocklings.domain.AccessPolicy
 import fi.clocklings.domain.ClockFrame
 import fi.clocklings.domain.ClockPalette
 import fi.clocklings.domain.ClockTheme
@@ -95,24 +98,20 @@ fun AppearanceScreen(
     onOutfits: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onParent: () -> Unit = {},
 ) {
     val app = LocalAppViewModel.current
+    val purchase by app.purchaseState.collectAsStateWithLifecycle()
+    val access = AccessPolicy(purchase.fullAccess)
     val save = remember(app) { RetryableSave() }
     val onChange: ((Personalization) -> Personalization) -> Unit = { transform ->
         save.run { app.personalize(it, transform) }
     }
-    // Keep the requested preview and its observer alive across tab switches, including failed writes.
-    val pager = rememberPagerState(initialPage = appearance.companion.ordinal) { CompanionKind.entries.size }
-    val currentOnChange by rememberUpdatedState(onChange)
-    LaunchedEffect(pager) {
-        // Restore once; an older completed save must not replace a newer requested choice.
-        if (pager.settledPage != appearance.companion.ordinal) pager.scrollToPage(appearance.companion.ordinal)
-        snapshotFlow { pager.settledPage }.drop(1).collect { page ->
-            val chosen = CompanionKind.entries[page]
-            currentOnChange { it.copy(companion = chosen) }
+    val pager =
+        rememberCompanionPager(appearance.companion, progress.totalStars, access) { chosen ->
+            onChange { it.copy(companion = chosen) }
             companionVoice(chosen)?.let(app::play)
         }
-    }
     var clocks by rememberSaveable { mutableStateOf(false) }
     ScreenScaffold(
         modifier,
@@ -146,6 +145,8 @@ fun AppearanceScreen(
                 max(SkDimens.CompanionPreview, clockSize * PREVIEW_GROWTH),
                 onOutfits,
                 pager,
+                access,
+                onParent,
             )
         }
     }
@@ -158,11 +159,17 @@ private fun CompanionChoices(
     previewHeight: Dp,
     onOutfits: () -> Unit,
     pager: PagerState,
+    access: AccessPolicy,
+    onParent: () -> Unit,
 ) {
     val kind = appearance.companion
+    val preview = CompanionKind.entries[pager.settledPage]
     AdaptiveContent(previewHeight, visual = { size -> CompanionPager(pager, progress, size) }) {
-        CompanionThumbnails(pager, kind, progress)
-        if (kind == CompanionKind.NONE) {
+        CompanionThumbnails(pager, kind, progress, access)
+        if (!access.companion(preview, progress.totalStars)) {
+            Text(stringResource(R.string.companion_access_requirement), style = SkType.BodySoft)
+            if (!access.fullAccess) SkButton(stringResource(R.string.parent_title), onParent)
+        } else if (preview == CompanionKind.NONE) {
             Text(stringResource(R.string.no_companion_hint), style = SkType.BodySoft)
         } else {
             SkButton(
@@ -171,6 +178,7 @@ private fun CompanionChoices(
                 Modifier.fillMaxWidth(),
                 kind = ButtonKind.PRIMARY,
                 icon = SkIcons.Dress,
+                enabled = preview == kind,
             )
         }
     }
@@ -394,6 +402,7 @@ private fun CompanionThumbnails(
     pager: PagerState,
     kind: CompanionKind,
     progress: Progress,
+    access: AccessPolicy,
 ) {
     val scope = rememberCoroutineScope()
     val reduced = rememberReduceMotion()
@@ -426,6 +435,7 @@ private fun CompanionThumbnails(
                         },
                     border = if (kind == option) BorderStroke(SkDimens.BorderThin, SkColors.ItemOnBorder) else null,
                     role = Role.RadioButton,
+                    enabled = access.companion(option, progress.totalStars),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Box(Modifier.size(thumb * THUMB_ART).clearAndSetSemantics { }) {

@@ -57,6 +57,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.test.core.app.ActivityScenario
 import androidx.test.platform.app.InstrumentationRegistry
+import fi.clocklings.domain.AccessPolicy
 import fi.clocklings.domain.AppLanguage
 import fi.clocklings.domain.ClockAppearance
 import fi.clocklings.domain.ClockTheme
@@ -217,7 +218,7 @@ class ScreenshotReview6GalleryTest : ScreenshotReview6Host() {
     fun a1LevelsMiniClock() {
         onlyCells("base")
         launchHost()
-        show { LevelsScreen(progress.value, {}, {}, {}, {}) }
+        show { LevelsScreen(progress.value, AccessPolicy(fullAccess = true), {}, {}, {}, {}) }
         capture("a1-levels-top")
     }
 
@@ -321,7 +322,17 @@ class ScreenshotReview6GalleryTest : ScreenshotReview6Host() {
     fun b3GameResult() {
         launchHost()
         for (lang in AppLanguage.entries) {
-            show(lang) { ResultScreen(Screen.Result(0, 3, 0, 0), Outfit.Default, {}, {}, {}, {}) }
+            show(lang) {
+                ResultScreen(
+                    access = AccessPolicy(fullAccess = true),
+                    Screen.Result(0, 3, 0, 0),
+                    Outfit.Default,
+                    {},
+                    {},
+                    {},
+                    {},
+                )
+            }
             capture("b3-result-${lang.tag}")
         }
     }
@@ -437,12 +448,32 @@ class ScreenshotReview6GalleryTest : ScreenshotReview6Host() {
     fun c1LessonList() {
         launchHost()
         for (lang in AppLanguage.entries) {
-            show(lang) { LessonListScreen(false, progress.value, {}, {}, {}) }
+            show(
+                lang,
+            ) {
+                LessonListScreen(
+                    false,
+                    progress.value,
+                    AccessPolicy(fullAccess = true),
+                    {},
+                    {},
+                    {},
+                )
+            }
             capture("c1-learn-${lang.tag}-top")
             scrollToEnd()
             capture("c1-learn-${lang.tag}-bottom")
         }
-        show { LessonListScreen(true, progress.value, {}, {}, {}) }
+        show {
+            LessonListScreen(
+                true,
+                progress.value,
+                AccessPolicy(fullAccess = true),
+                {},
+                {},
+                {},
+            )
+        }
         scrollToEnd()
         capture("c1-learn-en-24h-bottom")
     }
@@ -793,7 +824,18 @@ class ScreenshotReview6Round2Test : ScreenshotReview6Host() {
         for (lang in AppLanguage.entries) {
             for (h24 in listOf(false, true)) {
                 if (h24 && lang != AppLanguage.ENGLISH) continue
-                show(lang) { LessonListScreen(h24, progress.value, {}, {}, {}) }
+                show(
+                    lang,
+                ) {
+                    LessonListScreen(
+                        h24,
+                        progress.value,
+                        AccessPolicy(fullAccess = true),
+                        {},
+                        {},
+                        {},
+                    )
+                }
                 measureLessonHeadings(lang, h24)
                 dumpPages("r2-lessons-${lang.tag}-h24-$h24")
             }
@@ -962,7 +1004,9 @@ class ScreenshotReview6Round2Test : ScreenshotReview6Host() {
         onlyCells("base")
         launchHost()
         for (lang in AppLanguage.entries) {
-            show(lang) { LevelsScreen(progress.value, {}, {}, {}, {}) }
+            show(
+                lang,
+            ) { LevelsScreen(progress.value, AccessPolicy(fullAccess = true), {}, {}, {}, {}) }
             dumpPages("r2dev-levels-${lang.tag}")
         }
     }
@@ -1164,10 +1208,23 @@ class ScreenshotReview6Round3Test : ScreenshotReview6Host() {
         launchHost()
         dumpTree("r3-warmup")
         for (lang in listOf(AppLanguage.FINNISH, AppLanguage.ENGLISH)) {
-            show(lang) { LessonListScreen(false, progress.value, {}, {}, {}) }
+            show(
+                lang,
+            ) {
+                LessonListScreen(
+                    false,
+                    progress.value,
+                    AccessPolicy(fullAccess = true),
+                    {},
+                    {},
+                    {},
+                )
+            }
             capture("r3-opi-${lang.tag}-p0")
             dumpTree("r3-opi-${lang.tag}")
-            show(lang) { LevelsScreen(progress.value, {}, {}, {}, {}) }
+            show(
+                lang,
+            ) { LevelsScreen(progress.value, AccessPolicy(fullAccess = true), {}, {}, {}, {}) }
             capture("r3-play-${lang.tag}-p0")
             dumpTree("r3-play-${lang.tag}")
         }

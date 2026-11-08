@@ -31,7 +31,7 @@ class StorageReadRecoveryTest {
     private val store = RecoveringReadStore()
     private val repository = ProgressRepository(store)
     private val services =
-        object : AppServices by FakeServices() {
+        object : AppServices by FakeServices(fullAccess = true) {
             override val repository = this@StorageReadRecoveryTest.repository
         }
 

@@ -61,6 +61,7 @@ class LocalAppFlowTest {
 
     @Test
     fun companionColorsAndOutfitsPersistAcrossRecreation() {
+        runBlocking { repository.updateProgress { it.withLevelResult(0, 3) } }
         click("My Companion")
         for (kind in CompanionKind.entries) {
             tagClick("choose_companion_${kind.name}")

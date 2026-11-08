@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import fi.clocklings.AppServices
 import fi.clocklings.audio.Sound
+import fi.clocklings.domain.AccessPolicy
 import fi.clocklings.domain.AppLanguage
 import fi.clocklings.domain.Choice
 import fi.clocklings.domain.ClockTime
@@ -68,6 +69,12 @@ class LessonViewModel(
     private val random: Random = Random.Default,
     private var language: AppLanguage = AppLanguage.ENGLISH,
 ) : ViewModel() {
+    init {
+        val access = AccessPolicy(services.purchases.state.value.fullAccess)
+        require(queue.isNotEmpty() && queue.all(access::lesson)) { "Lesson access required" }
+        require(thenLevel == null || access.level(thenLevel)) { "Level access required" }
+    }
+
     private val _state = MutableStateFlow(pageState(0, 0, celebrate = 0))
     val state: StateFlow<LessonUiState> = _state.asStateFlow()
 
@@ -172,7 +179,8 @@ class LessonViewModel(
         }
         // Leaving a finished quiz completes the lesson.
         services.play(Sound.LESSON_COMPLETE)
-        if (s.queueIndex < queue.size - 1) {
+        val access = AccessPolicy(services.purchases.state.value.fullAccess)
+        if (s.queueIndex < queue.size - 1 && access.lesson(queue[s.queueIndex + 1])) {
             show(s.queueIndex + 1, 0)
         } else {
             _state.update { it.copy(finished = true) }

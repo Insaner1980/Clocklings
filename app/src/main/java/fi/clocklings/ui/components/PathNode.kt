@@ -66,6 +66,7 @@ fun PathNode(
     first: Boolean = index == 0,
     last: Boolean = false,
     isHeading: Boolean = false,
+    enabled: Boolean = true,
     badge: @Composable () -> Unit = {},
     art: @Composable () -> Unit = { Text((index + 1).toString(), style = SkType.LessonNumber) },
 ) {
@@ -94,6 +95,7 @@ fun PathNode(
                 ),
             // The number, icon or clock and the check only repeat what the description says.
             decorativeContent = true,
+            enabled = enabled,
         ) {
             Box(contentAlignment = Alignment.Center) {
                 art()

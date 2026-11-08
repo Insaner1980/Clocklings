@@ -171,11 +171,11 @@ class ScreenshotReviewGalleryTest {
             }
 
             "learn" -> {
-                LessonListScreen(true, progress, {}, {}, {})
+                LessonListScreen(true, progress, fi.clocklings.domain.AccessPolicy(fullAccess = true), {}, {}, {})
             }
 
             "levels" -> {
-                LevelsScreen(progress, {}, {}, {}, {})
+                LevelsScreen(progress, fi.clocklings.domain.AccessPolicy(fullAccess = true), {}, {}, {}, {})
             }
 
             "explore" -> {

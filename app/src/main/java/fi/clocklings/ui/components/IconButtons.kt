@@ -35,6 +35,7 @@ fun RoundIconButton(
     modifier: Modifier = Modifier,
     selected: Boolean? = null,
     large: Boolean = false,
+    enabled: Boolean = true,
 ) {
     DepthSurface(
         onClick,
@@ -66,6 +67,7 @@ fun RoundIconButton(
             },
         depth = if (large) SkDimens.ButtonDepth else SkDimens.SegmentLift,
         pressedDepth = if (large) SkDimens.ButtonDepthPressed else 0.dp,
+        enabled = enabled,
     ) {
         Box(contentAlignment = Alignment.Center) {
             SkIcon(icon, if (large) SkDimens.LargeActionIcon else SkDimens.ActionIcon)

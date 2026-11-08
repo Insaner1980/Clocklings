@@ -14,7 +14,7 @@ public fun fi.clocklings.ClocklingsApp(modifier: androidx.compose.ui.Modifier, c
     - app: STABLE (marked @Stable or @Immutable)
 
 @Composable
-public fun fi.clocklings.ui.appearance.AppearanceScreen(appearance: fi.clocklings.domain.Personalization, progress: fi.clocklings.domain.Progress, onOutfits: kotlin.Function0<kotlin.Unit>, onBack: kotlin.Function0<kotlin.Unit>, modifier: androidx.compose.ui.Modifier): kotlin.Unit
+public fun fi.clocklings.ui.appearance.AppearanceScreen(appearance: fi.clocklings.domain.Personalization, progress: fi.clocklings.domain.Progress, onOutfits: kotlin.Function0<kotlin.Unit>, onBack: kotlin.Function0<kotlin.Unit>, modifier: androidx.compose.ui.Modifier, onParent: kotlin.Function0<kotlin.Unit>): kotlin.Unit
   skippable: true
   restartable: true
   params:
@@ -23,6 +23,7 @@ public fun fi.clocklings.ui.appearance.AppearanceScreen(appearance: fi.clockling
     - onOutfits: STABLE (function type)
     - onBack: STABLE (function type)
     - modifier: STABLE (marked @Stable or @Immutable)
+    - onParent: STABLE (function type)
 
 @Composable
 private fun fi.clocklings.ui.appearance.ChoiceCard(title: kotlin.String, on: kotlin.Boolean, onClick: kotlin.Function0<kotlin.Unit>, modifier: androidx.compose.ui.Modifier, showLabel: kotlin.Boolean, art: @[Composable] androidx.compose.runtime.internal.ComposableFunction0<kotlin.Unit>): kotlin.Unit
@@ -74,7 +75,7 @@ private fun fi.clocklings.ui.appearance.ClockOptions(title: kotlin.Int, options:
     - preview: STABLE (function type)
 
 @Composable
-private fun fi.clocklings.ui.appearance.CompanionChoices(appearance: fi.clocklings.domain.Personalization, progress: fi.clocklings.domain.Progress, previewHeight: androidx.compose.ui.unit.Dp, onOutfits: kotlin.Function0<kotlin.Unit>, pager: androidx.compose.foundation.pager.PagerState): kotlin.Unit
+private fun fi.clocklings.ui.appearance.CompanionChoices(appearance: fi.clocklings.domain.Personalization, progress: fi.clocklings.domain.Progress, previewHeight: androidx.compose.ui.unit.Dp, onOutfits: kotlin.Function0<kotlin.Unit>, pager: androidx.compose.foundation.pager.PagerState, access: fi.clocklings.domain.AccessPolicy, onParent: kotlin.Function0<kotlin.Unit>): kotlin.Unit
   skippable: true
   restartable: true
   params:
@@ -83,6 +84,8 @@ private fun fi.clocklings.ui.appearance.CompanionChoices(appearance: fi.clocklin
     - previewHeight: STABLE (marked @Stable or @Immutable)
     - onOutfits: STABLE (function type)
     - pager: STABLE (marked @Stable or @Immutable)
+    - access: STABLE (stability configuration file type)
+    - onParent: STABLE (function type)
 
 @Composable
 private fun fi.clocklings.ui.appearance.CompanionPager(pager: androidx.compose.foundation.pager.PagerState, progress: fi.clocklings.domain.Progress, previewHeight: androidx.compose.ui.unit.Dp): kotlin.Unit
@@ -94,13 +97,14 @@ private fun fi.clocklings.ui.appearance.CompanionPager(pager: androidx.compose.f
     - previewHeight: STABLE (marked @Stable or @Immutable)
 
 @Composable
-private fun fi.clocklings.ui.appearance.CompanionThumbnails(pager: androidx.compose.foundation.pager.PagerState, kind: fi.clocklings.domain.CompanionKind, progress: fi.clocklings.domain.Progress): kotlin.Unit
+private fun fi.clocklings.ui.appearance.CompanionThumbnails(pager: androidx.compose.foundation.pager.PagerState, kind: fi.clocklings.domain.CompanionKind, progress: fi.clocklings.domain.Progress, access: fi.clocklings.domain.AccessPolicy): kotlin.Unit
   skippable: true
   restartable: true
   params:
     - pager: STABLE (marked @Stable or @Immutable)
     - kind: STABLE (stability configuration file type)
     - progress: STABLE (stability configuration file type)
+    - access: STABLE (stability configuration file type)
 
 @Composable
 private fun fi.clocklings.ui.appearance.CustomClockControls(custom: fi.clocklings.domain.CustomClock, onChange: kotlin.Function1<kotlin.Function1<fi.clocklings.domain.CustomClock, fi.clocklings.domain.CustomClock>, kotlin.Unit>): kotlin.Unit
@@ -116,6 +120,16 @@ internal fun fi.clocklings.ui.appearance.ZoomedClock(appearance: fi.clocklings.d
   restartable: true
   params:
     - appearance: STABLE (stability configuration file type)
+
+@Composable
+internal fun fi.clocklings.ui.appearance.rememberCompanionPager(companion: fi.clocklings.domain.CompanionKind, stars: kotlin.Int, access: fi.clocklings.domain.AccessPolicy, onSelect: kotlin.Function1<fi.clocklings.domain.CompanionKind, kotlin.Unit>): androidx.compose.foundation.pager.PagerState
+  skippable: false
+  restartable: false
+  params:
+    - companion: STABLE (stability configuration file type)
+    - stars: STABLE (primitive type)
+    - access: STABLE (stability configuration file type)
+    - onSelect: STABLE (function type)
 
 @Composable
 private fun fi.clocklings.ui.ask.AskActions(phase: fi.clocklings.ui.ask.AskPhase, focus: fi.clocklings.ui.components.TaskActionFocus, compact: kotlin.Boolean, onRandom: kotlin.Function0<kotlin.Unit>, onAsk: kotlin.Function0<kotlin.Unit>, onReveal: kotlin.Function0<kotlin.Unit>, onSwap: kotlin.Function0<kotlin.Unit>): kotlin.Unit
@@ -420,7 +434,7 @@ private fun fi.clocklings.ui.companion.ItemTileContent(item: fi.clocklings.domai
     - nameStyle: STABLE (marked @Stable or @Immutable)
 
 @Composable
-private fun fi.clocklings.ui.companion.LockedTile(item: fi.clocklings.domain.Item, outfit: fi.clocklings.domain.Outfit, color: fi.clocklings.domain.CompanionColor, total: kotlin.Int, modifier: androidx.compose.ui.Modifier, nameStyle: androidx.compose.ui.text.TextStyle): kotlin.Unit
+private fun fi.clocklings.ui.companion.LockedTile(item: fi.clocklings.domain.Item, outfit: fi.clocklings.domain.Outfit, color: fi.clocklings.domain.CompanionColor, total: kotlin.Int, modifier: androidx.compose.ui.Modifier, nameStyle: androidx.compose.ui.text.TextStyle, requiresFullVersion: kotlin.Boolean): kotlin.Unit
   skippable: true
   restartable: true
   params:
@@ -430,6 +444,7 @@ private fun fi.clocklings.ui.companion.LockedTile(item: fi.clocklings.domain.Ite
     - total: STABLE (primitive type)
     - modifier: STABLE (marked @Stable or @Immutable)
     - nameStyle: STABLE (marked @Stable or @Immutable)
+    - requiresFullVersion: STABLE (primitive type)
 
 @Composable
 internal fun fi.clocklings.ui.companion.NameField(text: kotlin.String, onChange: kotlin.Function1<kotlin.String, kotlin.Unit>, modifier: androidx.compose.ui.Modifier): kotlin.Unit
@@ -449,7 +464,7 @@ internal fun fi.clocklings.ui.companion.WardrobeHints(kind: fi.clocklings.domain
     - total: STABLE (primitive type)
 
 @Composable
-private fun fi.clocklings.ui.companion.WardrobeItems(kind: fi.clocklings.domain.CompanionKind, total: kotlin.Int, outfit: fi.clocklings.domain.Outfit, color: fi.clocklings.domain.CompanionColor, onItemClick: kotlin.Function1<fi.clocklings.domain.Item, kotlin.Unit>): kotlin.Unit
+private fun fi.clocklings.ui.companion.WardrobeItems(kind: fi.clocklings.domain.CompanionKind, total: kotlin.Int, outfit: fi.clocklings.domain.Outfit, color: fi.clocklings.domain.CompanionColor, access: fi.clocklings.domain.AccessPolicy, onItemClick: kotlin.Function1<fi.clocklings.domain.Item, kotlin.Unit>): kotlin.Unit
   skippable: true
   restartable: true
   params:
@@ -457,10 +472,11 @@ private fun fi.clocklings.ui.companion.WardrobeItems(kind: fi.clocklings.domain.
     - total: STABLE (primitive type)
     - outfit: STABLE (stability configuration file type)
     - color: STABLE (stability configuration file type)
+    - access: STABLE (stability configuration file type)
     - onItemClick: STABLE (function type)
 
 @Composable
-public fun fi.clocklings.ui.companion.WardrobeScreen(kind: fi.clocklings.domain.CompanionKind, progress: fi.clocklings.domain.Progress, color: fi.clocklings.domain.CompanionColor, onBack: kotlin.Function0<kotlin.Unit>, modifier: androidx.compose.ui.Modifier): kotlin.Unit
+public fun fi.clocklings.ui.companion.WardrobeScreen(kind: fi.clocklings.domain.CompanionKind, progress: fi.clocklings.domain.Progress, color: fi.clocklings.domain.CompanionColor, onBack: kotlin.Function0<kotlin.Unit>, modifier: androidx.compose.ui.Modifier, onParent: kotlin.Function0<kotlin.Unit>): kotlin.Unit
   skippable: true
   restartable: true
   params:
@@ -469,6 +485,7 @@ public fun fi.clocklings.ui.companion.WardrobeScreen(kind: fi.clocklings.domain.
     - color: STABLE (stability configuration file type)
     - onBack: STABLE (function type)
     - modifier: STABLE (marked @Stable or @Immutable)
+    - onParent: STABLE (function type)
 
 @Composable
 private fun fi.clocklings.ui.companion.WardrobeSection(title: kotlin.String, content: @[Composable] androidx.compose.runtime.internal.ComposableFunction0<kotlin.Unit>): kotlin.Unit
@@ -513,6 +530,15 @@ internal fun fi.clocklings.ui.companion.rememberNameSave(kind: fi.clocklings.dom
   params:
     - kind: STABLE (stability configuration file type)
     - name: STABLE (String is immutable)
+
+@Composable
+internal fun fi.clocklings.ui.companion.wardrobeStarInfo(kind: fi.clocklings.domain.CompanionKind, total: kotlin.Int, access: fi.clocklings.domain.AccessPolicy): kotlin.String
+  skippable: false
+  restartable: false
+  params:
+    - kind: STABLE (stability configuration file type)
+    - total: STABLE (primitive type)
+    - access: STABLE (stability configuration file type)
 
 @Composable
 public fun fi.clocklings.ui.components.ActionPair(startLabel: kotlin.String, endLabel: kotlin.String?, start: @[Composable] androidx.compose.runtime.internal.ComposableFunction1<androidx.compose.ui.Modifier, kotlin.Unit>, modifier: androidx.compose.ui.Modifier, end: @[Composable] androidx.compose.runtime.internal.ComposableFunction1<androidx.compose.ui.Modifier, kotlin.Unit>): kotlin.Unit
@@ -737,7 +763,7 @@ private fun fi.clocklings.ui.components.OutcomeDot(outcome: fi.clocklings.ui.com
     - modifier: STABLE (marked @Stable or @Immutable)
 
 @Composable
-public fun fi.clocklings.ui.components.PathNode(index: kotlin.Int, title: kotlin.String, description: kotlin.String, onClick: kotlin.Function0<kotlin.Unit>, modifier: androidx.compose.ui.Modifier, color: androidx.compose.ui.graphics.Color, completed: kotlin.Boolean, current: kotlin.Boolean, first: kotlin.Boolean, last: kotlin.Boolean, isHeading: kotlin.Boolean, badge: @[Composable] androidx.compose.runtime.internal.ComposableFunction0<kotlin.Unit>, art: @[Composable] androidx.compose.runtime.internal.ComposableFunction0<kotlin.Unit>): kotlin.Unit
+public fun fi.clocklings.ui.components.PathNode(index: kotlin.Int, title: kotlin.String, description: kotlin.String, onClick: kotlin.Function0<kotlin.Unit>, modifier: androidx.compose.ui.Modifier, color: androidx.compose.ui.graphics.Color, completed: kotlin.Boolean, current: kotlin.Boolean, first: kotlin.Boolean, last: kotlin.Boolean, isHeading: kotlin.Boolean, enabled: kotlin.Boolean, badge: @[Composable] androidx.compose.runtime.internal.ComposableFunction0<kotlin.Unit>, art: @[Composable] androidx.compose.runtime.internal.ComposableFunction0<kotlin.Unit>): kotlin.Unit
   skippable: true
   restartable: true
   params:
@@ -752,6 +778,7 @@ public fun fi.clocklings.ui.components.PathNode(index: kotlin.Int, title: kotlin
     - first: STABLE (primitive type)
     - last: STABLE (primitive type)
     - isHeading: STABLE (primitive type)
+    - enabled: STABLE (primitive type)
     - badge: STABLE (composable function type)
     - art: STABLE (composable function type)
 
@@ -807,7 +834,7 @@ public fun fi.clocklings.ui.components.ReadOptions(modifier: androidx.compose.ui
     - content: STABLE (composable function type)
 
 @Composable
-public fun fi.clocklings.ui.components.RoundIconButton(icon: fi.clocklings.ui.components.SvgIcon, contentDescription: kotlin.String, onClick: kotlin.Function0<kotlin.Unit>, modifier: androidx.compose.ui.Modifier, selected: kotlin.Boolean?, large: kotlin.Boolean): kotlin.Unit
+public fun fi.clocklings.ui.components.RoundIconButton(icon: fi.clocklings.ui.components.SvgIcon, contentDescription: kotlin.String, onClick: kotlin.Function0<kotlin.Unit>, modifier: androidx.compose.ui.Modifier, selected: kotlin.Boolean?, large: kotlin.Boolean, enabled: kotlin.Boolean): kotlin.Unit
   skippable: true
   restartable: true
   params:
@@ -817,6 +844,7 @@ public fun fi.clocklings.ui.components.RoundIconButton(icon: fi.clocklings.ui.co
     - modifier: STABLE (marked @Stable or @Immutable)
     - selected: STABLE (class with no mutable properties)
     - large: STABLE (primitive type)
+    - enabled: STABLE (primitive type)
 
 @Composable
 private fun fi.clocklings.ui.components.ScaffoldBody(availableWidth: androidx.compose.ui.unit.Dp, viewportHeight: androidx.compose.ui.unit.Dp, wideContent: kotlin.Boolean, centerContent: kotlin.Boolean, scrollChrome: kotlin.Boolean, scrolling: kotlin.Boolean, scrollState: androidx.compose.foundation.ScrollState, section: fi.clocklings.ui.theme.Section, hasBottomBar: kotlin.Boolean, clockHeightShare: kotlin.Float, clockFit: fi.clocklings.ui.components.ClockFit, animateClock: kotlin.Boolean, content: @[Composable] @[ExtensionFunctionType] androidx.compose.runtime.internal.ComposableFunction2<androidx.compose.foundation.layout.ColumnScope, androidx.compose.ui.unit.Dp, kotlin.Unit>): kotlin.Unit
@@ -1222,10 +1250,11 @@ private fun fi.clocklings.ui.game.PoppingStar(on: kotlin.Boolean, delayMs: kotli
     - onPop: STABLE (function type)
 
 @Composable
-public fun fi.clocklings.ui.game.ResultScreen(result: fi.clocklings.Screen.Result, outfit: fi.clocklings.domain.Outfit, onPlayAgain: kotlin.Function0<kotlin.Unit>, onNextLevel: kotlin.Function0<kotlin.Unit>, onDress: kotlin.Function0<kotlin.Unit>, onLevels: kotlin.Function0<kotlin.Unit>, modifier: androidx.compose.ui.Modifier, onSound: kotlin.Function2<fi.clocklings.audio.Sound, kotlin.Float, kotlin.Unit>): kotlin.Unit
+public fun fi.clocklings.ui.game.ResultScreen(access: fi.clocklings.domain.AccessPolicy, result: fi.clocklings.Screen.Result, outfit: fi.clocklings.domain.Outfit, onPlayAgain: kotlin.Function0<kotlin.Unit>, onNextLevel: kotlin.Function0<kotlin.Unit>, onDress: kotlin.Function0<kotlin.Unit>, onLevels: kotlin.Function0<kotlin.Unit>, modifier: androidx.compose.ui.Modifier, onSound: kotlin.Function2<fi.clocklings.audio.Sound, kotlin.Float, kotlin.Unit>, canReplay: kotlin.Boolean, canContinue: kotlin.Boolean): kotlin.Unit
   skippable: true
   restartable: true
   params:
+    - access: STABLE (stability configuration file type)
     - result: STABLE (class with no mutable properties)
     - outfit: STABLE (stability configuration file type)
     - onPlayAgain: STABLE (function type)
@@ -1234,6 +1263,8 @@ public fun fi.clocklings.ui.game.ResultScreen(result: fi.clocklings.Screen.Resul
     - onLevels: STABLE (function type)
     - modifier: STABLE (marked @Stable or @Immutable)
     - onSound: STABLE (function type)
+    - canReplay: STABLE (primitive type)
+    - canContinue: STABLE (primitive type)
 
 @Composable
 private fun fi.clocklings.ui.game.ResultStars(stars: kotlin.Int, onSound: kotlin.Function2<fi.clocklings.audio.Sound, kotlin.Float, kotlin.Unit>?, onCenter: kotlin.Function1<androidx.compose.ui.geometry.Offset, kotlin.Unit>): kotlin.Unit
@@ -1468,16 +1499,18 @@ private fun fi.clocklings.ui.lesson.LessonCaption(caption: kotlin.String): kotli
     - caption: STABLE (String is immutable)
 
 @Composable
-public fun fi.clocklings.ui.lesson.LessonListScreen(h24: kotlin.Boolean, progress: fi.clocklings.domain.Progress, onPlayLevel: kotlin.Function1<kotlin.Int, kotlin.Unit>, onOpen: kotlin.Function1<kotlin.String, kotlin.Unit>, onBack: kotlin.Function0<kotlin.Unit>, modifier: androidx.compose.ui.Modifier): kotlin.Unit
+public fun fi.clocklings.ui.lesson.LessonListScreen(h24: kotlin.Boolean, progress: fi.clocklings.domain.Progress, access: fi.clocklings.domain.AccessPolicy, onPlayLevel: kotlin.Function1<kotlin.Int, kotlin.Unit>, onOpen: kotlin.Function1<kotlin.String, kotlin.Unit>, onBack: kotlin.Function0<kotlin.Unit>, modifier: androidx.compose.ui.Modifier, onParent: kotlin.Function0<kotlin.Unit>): kotlin.Unit
   skippable: true
   restartable: true
   params:
     - h24: STABLE (primitive type)
     - progress: STABLE (stability configuration file type)
+    - access: STABLE (stability configuration file type)
     - onPlayLevel: STABLE (function type)
     - onOpen: STABLE (function type)
     - onBack: STABLE (function type)
     - modifier: STABLE (marked @Stable or @Immutable)
+    - onParent: STABLE (function type)
 
 @Composable
 private fun fi.clocklings.ui.lesson.LessonNavigation(state: fi.clocklings.ui.lesson.LessonUiState, onPrevious: kotlin.Function0<kotlin.Unit>, onNext: kotlin.Function0<kotlin.Unit>, focus: fi.clocklings.ui.components.TaskActionFocus): kotlin.Unit
@@ -1500,6 +1533,17 @@ private fun fi.clocklings.ui.lesson.LessonPlayback(speechAvailable: kotlin.Boole
     - onSpeak: STABLE (function type)
     - onReplay: STABLE (function type)
     - compact: STABLE (primitive type)
+
+@Composable
+private fun fi.clocklings.ui.lesson.LessonPracticeNode(index: kotlin.Int, level: kotlin.Int, stars: kotlin.Int, enabled: kotlin.Boolean, onPlay: kotlin.Function0<kotlin.Unit>): kotlin.Unit
+  skippable: true
+  restartable: true
+  params:
+    - index: STABLE (primitive type)
+    - level: STABLE (primitive type)
+    - stars: STABLE (primitive type)
+    - enabled: STABLE (primitive type)
+    - onPlay: STABLE (function type)
 
 @Composable
 private fun fi.clocklings.ui.lesson.LessonQuiz(state: fi.clocklings.ui.lesson.LessonUiState, anchors: androidx.compose.runtime.snapshots.SnapshotStateMap<kotlin.Int, androidx.compose.ui.geometry.Offset>, onPick: kotlin.Function1<kotlin.Int, kotlin.Unit>): kotlin.Unit
@@ -1539,16 +1583,27 @@ public fun fi.clocklings.ui.lesson.LessonScreen(state: fi.clocklings.ui.lesson.L
     - modifier: STABLE (marked @Stable or @Immutable)
 
 @Composable
-public fun fi.clocklings.ui.levels.LevelsScreen(progress: fi.clocklings.domain.Progress, onPlay: kotlin.Function1<kotlin.Int, kotlin.Unit>, onLesson: kotlin.Function1<kotlin.Int, kotlin.Unit>, onChallenge: kotlin.Function0<kotlin.Unit>, onBack: kotlin.Function0<kotlin.Unit>, modifier: androidx.compose.ui.Modifier): kotlin.Unit
+private fun fi.clocklings.ui.levels.ChallengeNode(best: kotlin.Int, enabled: kotlin.Boolean, onChallenge: kotlin.Function0<kotlin.Unit>): kotlin.Unit
+  skippable: true
+  restartable: true
+  params:
+    - best: STABLE (primitive type)
+    - enabled: STABLE (primitive type)
+    - onChallenge: STABLE (function type)
+
+@Composable
+public fun fi.clocklings.ui.levels.LevelsScreen(progress: fi.clocklings.domain.Progress, access: fi.clocklings.domain.AccessPolicy, onPlay: kotlin.Function1<kotlin.Int, kotlin.Unit>, onLesson: kotlin.Function1<kotlin.Int, kotlin.Unit>, onChallenge: kotlin.Function0<kotlin.Unit>, onBack: kotlin.Function0<kotlin.Unit>, modifier: androidx.compose.ui.Modifier, onParent: kotlin.Function0<kotlin.Unit>): kotlin.Unit
   skippable: true
   restartable: true
   params:
     - progress: STABLE (stability configuration file type)
+    - access: STABLE (stability configuration file type)
     - onPlay: STABLE (function type)
     - onLesson: STABLE (function type)
     - onChallenge: STABLE (function type)
     - onBack: STABLE (function type)
     - modifier: STABLE (marked @Stable or @Immutable)
+    - onParent: STABLE (function type)
 
 @Composable
 public fun fi.clocklings.ui.locale.AppLocaleProvider(repository: fi.clocklings.data.ProgressRepository, modifier: androidx.compose.ui.Modifier, controller: fi.clocklings.ui.locale.AppLocaleController, content: @[Composable] androidx.compose.runtime.internal.ComposableFunction0<kotlin.Unit>): kotlin.Unit
@@ -1559,6 +1614,36 @@ public fun fi.clocklings.ui.locale.AppLocaleProvider(repository: fi.clocklings.d
     - modifier: STABLE (marked @Stable or @Immutable)
     - controller: STABLE (marked @Stable or @Immutable)
     - content: STABLE (composable function type)
+
+@Composable
+private fun fi.clocklings.ui.parent.AdultGate(onContinue: kotlin.Function0<kotlin.Unit>, onCancel: kotlin.Function0<kotlin.Unit>): kotlin.Unit
+  skippable: true
+  restartable: true
+  params:
+    - onContinue: STABLE (function type)
+    - onCancel: STABLE (function type)
+
+@Composable
+public fun fi.clocklings.ui.parent.ParentScreen(state: fi.clocklings.billing.PurchaseUiState, onPurchase: kotlin.Function0<kotlin.Unit>, onRestore: kotlin.Function0<kotlin.Unit>, onRetry: kotlin.Function0<kotlin.Unit>, onBack: kotlin.Function0<kotlin.Unit>, modifier: androidx.compose.ui.Modifier): kotlin.Unit
+  skippable: true
+  restartable: true
+  params:
+    - state: STABLE (class with no mutable properties)
+    - onPurchase: STABLE (function type)
+    - onRestore: STABLE (function type)
+    - onRetry: STABLE (function type)
+    - onBack: STABLE (function type)
+    - modifier: STABLE (marked @Stable or @Immutable)
+
+@Composable
+private fun fi.clocklings.ui.parent.PurchaseContent(state: fi.clocklings.billing.PurchaseUiState, onPurchase: kotlin.Function0<kotlin.Unit>, onRestore: kotlin.Function0<kotlin.Unit>, onRetry: kotlin.Function0<kotlin.Unit>): kotlin.Unit
+  skippable: true
+  restartable: true
+  params:
+    - state: STABLE (class with no mutable properties)
+    - onPurchase: STABLE (function type)
+    - onRestore: STABLE (function type)
+    - onRetry: STABLE (function type)
 
 @Composable
 public fun fi.clocklings.ui.rememberReduceMotion(): kotlin.Boolean
@@ -1653,7 +1738,7 @@ internal fun fi.clocklings.ui.settings.SettingsGroup(title: kotlin.String, conte
     - content: STABLE (composable function type)
 
 @Composable
-public fun fi.clocklings.ui.settings.SettingsScreen(settings: fi.clocklings.domain.Settings, speechAvailable: kotlin.Boolean, onLanguage: kotlin.Function0<kotlin.Unit>, onBack: kotlin.Function0<kotlin.Unit>, modifier: androidx.compose.ui.Modifier): kotlin.Unit
+public fun fi.clocklings.ui.settings.SettingsScreen(settings: fi.clocklings.domain.Settings, speechAvailable: kotlin.Boolean, onLanguage: kotlin.Function0<kotlin.Unit>, onBack: kotlin.Function0<kotlin.Unit>, modifier: androidx.compose.ui.Modifier, onParent: kotlin.Function0<kotlin.Unit>?): kotlin.Unit
   skippable: true
   restartable: true
   params:
@@ -1662,6 +1747,7 @@ public fun fi.clocklings.ui.settings.SettingsScreen(settings: fi.clocklings.doma
     - onLanguage: STABLE (function type)
     - onBack: STABLE (function type)
     - modifier: STABLE (marked @Stable or @Immutable)
+    - onParent: STABLE (function type)
 
 @Composable
 internal fun fi.clocklings.ui.settings.SettingsSwitch(text: kotlin.String, supporting: kotlin.String, checked: kotlin.Boolean, enabled: kotlin.Boolean, onChange: kotlin.Function1<kotlin.Boolean, kotlin.Unit>): kotlin.Unit

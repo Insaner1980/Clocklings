@@ -29,6 +29,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import fi.clocklings.Screen
+import fi.clocklings.domain.AccessPolicy
 import fi.clocklings.domain.CompanionKind
 import fi.clocklings.domain.Lessons
 import fi.clocklings.domain.Outfit
@@ -113,7 +114,12 @@ class ScreenInteractionTest {
         var lesson = -1
         var challenge = false
         compose.setContent {
-            ClocklingsTheme { LevelsScreen(progress.value, { played = it }, { lesson = it }, { challenge = true }, {}) }
+            ClocklingsTheme {
+                LevelsScreen(progress.value, AccessPolicy(fullAccess = true), {
+                    played =
+                        it
+                }, { lesson = it }, { challenge = true }, {})
+            }
         }
         val titles = listOf("Whole hours", "Half past", "Quarter hours", "Five-minute steps", "Exact minutes")
         for (stars in listOf(listOf(0, 0, 0, 0, 0), listOf(3, 2, 1, 0, 0), listOf(3, 3, 3, 3, 3))) {
@@ -140,7 +146,11 @@ class ScreenInteractionTest {
     @Test
     fun lessonPathHasNoChapterHeadersAndEachChapterEndsWithAPractiseNode() {
         val progress = Progress(stars = listOf(3, 0, 0, 0, 0), lessonsDone = Lessons.levelLessons[0].toSet())
-        compose.setContent { ClocklingsTheme { LessonListScreen(false, progress, {}, {}, {}) } }
+        compose.setContent {
+            ClocklingsTheme {
+                LessonListScreen(false, progress, AccessPolicy(fullAccess = true), {}, {}, {})
+            }
+        }
         val levelNames = listOf("Whole hours", "Half past", "Quarter hours", "Five-minute steps", "Exact minutes")
         for (name in levelNames) {
             compose.onAllNodes(isHeading() and hasText(name)).assertCountEquals(0)
@@ -158,7 +168,11 @@ class ScreenInteractionTest {
 
     @Test
     fun eachLessonChapterExposesOneScreenReaderHeadingOnItsFirstStop() {
-        compose.setContent { ClocklingsTheme { LessonListScreen(true, Progress(), {}, {}, {}) } }
+        compose.setContent {
+            ClocklingsTheme {
+                LessonListScreen(true, Progress(), AccessPolicy(fullAccess = true), {}, {}, {})
+            }
+        }
         // The top bar title is a text heading; chapter headings live on the first stop's description.
         val headings =
             compose.onAllNodes(isHeading()).fetchSemanticsNodes().mapNotNull {
@@ -301,7 +315,7 @@ class ScreenInteractionTest {
     @Test
     fun togetherPhaseActionsStayVisibleWithoutScrollingAndTheAnswerShowsAfterReveal() {
         val viewport = mutableStateOf(360 to 1f)
-        val model = AppViewModel(FakeServices())
+        val model = AppViewModel(FakeServices(fullAccess = true))
         compose.setContent {
             val base = LocalDensity.current
             CompositionLocalProvider(
@@ -360,6 +374,7 @@ class ScreenInteractionTest {
             CompositionLocalProvider(LocalPersonalization provides Personalization(companion = kind.value)) {
                 ClocklingsTheme {
                     ResultScreen(
+                        access = AccessPolicy(fullAccess = true),
                         result.value,
                         Outfit.default(kind.value),
                         { action = "replay" },

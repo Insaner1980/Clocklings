@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- No permissions. This removes AndroidX's permission; it does not declare one. -->
+    <!-- Billing and its transport dependencies merge their permissions. Remove AndroidX's unused permission. -->
     <permission
         android:name="${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
         tools:ignore="InsecurePermissionProtectionLevel"

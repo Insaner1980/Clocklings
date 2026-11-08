@@ -23,7 +23,7 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "fi.clocklings.ClocklingsTestRunner"
     }
 
     // Julkaisuavain ja salasanat ovat repositorion ulkopuolella, esim. ~/.gradle/gradle.properties:
@@ -203,6 +203,7 @@ dependencies {
     implementation(libs.androidx.navigation3.ui)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.serialization.core)
+    implementation(libs.google.play.billing)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

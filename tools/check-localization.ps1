@@ -79,8 +79,9 @@ function Test-ResourceParity([string]$Root) {
     $problems = [System.Collections.Generic.List[string]]::new()
     $base = Read-TextResources (Join-Path $Root 'values') $problems
     if ($base.Count -eq 0) { throw "No base text resources in $Root/values" }
-    # This is an explicit, reviewed exception, not blanket permission to skip new strings.
-    $exceptions = @('app_name')
+    # Brand and the app-specific public RSA key are not translated UI copy.
+    # Keep this explicit: new strings still require translations by default.
+    $exceptions = @('app_name', 'play_billing_public_key')
     foreach ($key in $base.Keys) {
         if ($base[$key].NonTranslatable -and $key -notin $exceptions) {
             $problems.Add("UNREVIEWED_EXCEPTION values/$key")
@@ -141,7 +142,7 @@ function Invoke-SelfTest {
             Set-Content -LiteralPath (Join-Path $fixture "$folder/strings.xml") -Value $valid -Encoding utf8
         }
         $basePath = Join-Path $fixture 'values/strings.xml'
-        $baseText = $valid.Replace('<resources>', '<resources><string name="app_name" translatable="false">Clocklings</string>')
+        $baseText = $valid.Replace('<resources>', '<resources><string name="app_name" translatable="false">Clocklings</string><string name="play_billing_public_key" translatable="false">UNCONFIGURED</string>')
         Set-Content -LiteralPath $basePath -Value $baseText -Encoding utf8
         $errors = @(Test-ResourceParity $fixture)
         if ($errors.Count) { throw "Valid fixture failed: $($errors -join '; ')" }
@@ -164,7 +165,7 @@ function Invoke-SelfTest {
             }
             Write-Output "PASS self-test: $($case.Name)"
         }
-        Write-Output 'PASS self-test: valid translations and explicit brand exception'
+        Write-Output 'PASS self-test: valid translations and explicit brand/public-key exceptions'
     } finally {
         # Only remove this invocation's verified child directory.
         $toolsRoot = [System.IO.Path]::GetFullPath($PSScriptRoot) + [System.IO.Path]::DirectorySeparatorChar

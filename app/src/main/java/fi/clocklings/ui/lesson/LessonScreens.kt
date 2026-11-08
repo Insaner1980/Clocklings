@@ -37,6 +37,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import fi.clocklings.R
 import fi.clocklings.Screen
 import fi.clocklings.audio.Sound
+import fi.clocklings.domain.AccessPolicy
 import fi.clocklings.domain.Lessons
 import fi.clocklings.domain.Progress
 import fi.clocklings.ui.AppViewModel
@@ -84,10 +85,12 @@ import fi.clocklings.ui.theme.SkType
 fun LessonListScreen(
     h24: Boolean,
     progress: Progress,
+    access: AccessPolicy,
     onPlayLevel: (Int) -> Unit,
     onOpen: (String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onParent: () -> Unit = {},
 ) {
     ScreenScaffold(
         modifier,
@@ -96,7 +99,7 @@ fun LessonListScreen(
     ) {
         val language = LocalAppLanguage.current
         val ids = Lessons.levelLessons.flatten() + if (h24) listOf(Lessons.DAY_LESSON) else emptyList()
-        val current = ids.firstOrNull { it !in progress.lessonsDone }
+        val current = ids.firstOrNull { access.lesson(it) && it !in progress.lessonsDone }
         for ((level, chapter) in ids.groupBy(Lessons::levelOf)) {
             val color = level?.let { SkColors.LevelCards[it] } ?: SkColors.ChallengeCard
             val chapterTitle = level?.let { stringResource(levelName(it)) }
@@ -105,6 +108,7 @@ fun LessonListScreen(
                 val title = lesson.title.resolve()
                 val completed = id in progress.lessonsDone
                 val completion = if (completed) stringResource(R.string.lesson_done) else ""
+                val locked = if (access.lesson(id)) "" else stringResource(R.string.full_version_label)
                 // With no visible chapter headers, the chapter's first stop is its screen reader heading
                 // and is announced with the chapter title first.
                 val isHeading = position == 0
@@ -112,7 +116,7 @@ fun LessonListScreen(
                 PathNode(
                     ids.indexOf(id),
                     title,
-                    "$chapterPrefix$title. ${lesson.description.resolve()}. $completion",
+                    "$chapterPrefix$title. ${lesson.description.resolve()}. $completion $locked",
                     { onOpen(id) },
                     color = color,
                     completed = completed,
@@ -120,32 +124,60 @@ fun LessonListScreen(
                     first = position == 0,
                     last = level == null,
                     isHeading = isHeading,
+                    enabled = access.lesson(id),
+                    badge = { if (locked.isNotEmpty()) Text(locked, style = SkType.Small) },
                 )
             }
             if (level != null) {
-                val stars = progress.stars[level]
-                val starDescription = pluralStringResource(R.plurals.stars_count, stars, stars)
-                val practise = stringResource(R.string.lesson_practise)
-                val action = stringResource(if (stars > 0) R.string.play_again else R.string.lesson_start_game)
-                PathNode(
+                LessonPracticeNode(
                     ids.indexOf(chapter.last()) + 1,
-                    practise,
-                    "$chapterTitle. $practise. $action. $starDescription",
+                    level,
+                    progress.stars[level],
+                    access.level(level),
                     { onPlayLevel(level) },
-                    color = color,
-                    completed = stars == 3,
-                    current = false,
-                    first = false,
-                    last = true,
-                    badge = {
-                        WordSafeText(action, SkType.Small, textAlign = TextAlign.Start)
-                        StarRow(stars, starDescription, size = SkDimens.StarSmall)
-                    },
-                    art = { SkIcon(SkIcons.Star, SkDimens.ChildTarget) },
                 )
             }
         }
+        if (!access.fullAccess) SkButton(stringResource(R.string.parent_title), onParent)
     }
+}
+
+@Composable
+private fun LessonPracticeNode(
+    index: Int,
+    level: Int,
+    stars: Int,
+    enabled: Boolean,
+    onPlay: () -> Unit,
+) {
+    val starDescription = pluralStringResource(R.plurals.stars_count, stars, stars)
+    val practise = stringResource(R.string.lesson_practise)
+    val chapterTitle = stringResource(levelName(level))
+    val action =
+        stringResource(
+            when {
+                !enabled -> R.string.full_version_label
+                stars > 0 -> R.string.play_again
+                else -> R.string.lesson_start_game
+            },
+        )
+    PathNode(
+        index,
+        practise,
+        "$chapterTitle. $practise. $action. $starDescription",
+        onPlay,
+        color = SkColors.LevelCards[level],
+        completed = stars == 3,
+        current = false,
+        enabled = enabled,
+        first = false,
+        last = true,
+        badge = {
+            WordSafeText(action, SkType.Small, textAlign = TextAlign.Start)
+            StarRow(stars, starDescription, size = SkDimens.StarSmall)
+        },
+        art = { SkIcon(SkIcons.Star, SkDimens.ChildTarget) },
+    )
 }
 
 @Composable
