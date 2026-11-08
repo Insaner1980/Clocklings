@@ -44,12 +44,19 @@ class MonetizationDeviceTest {
                 .targetContext.applicationContext as ClocklingsTestApplication
     private val fixture =
         object : ExternalResource() {
+            private lateinit var originalPurchaseState: PurchaseUiState
+
             override fun before() {
-                application.testPurchases.state.value = PurchaseUiState(fullAccess = false)
+                originalPurchaseState = application.testPurchases.state.value
                 runBlocking {
                     application.container.repository.updateProgress { Progress() }
                     application.container.repository.updateSettings { Settings(sound = false) }
                 }
+                application.testPurchases.state.value = PurchaseUiState(fullAccess = false)
+            }
+
+            override fun after() {
+                application.testPurchases.state.value = originalPurchaseState
             }
         }
 

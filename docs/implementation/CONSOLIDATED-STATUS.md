@@ -16,6 +16,14 @@ The 6 November consolidation reviewed retained evidence and current file identit
 - Publication, signing, licensing/provenance and privacy/store work remain deliberately deferred. This document does not declare release readiness.
 - The audit/adaptive work was committed and pushed as `49e1c16` on `codex/adaptive-layouts`. The owner opened [PR #13](https://github.com/Insaner1980/Clocklings/pull/13); its review follow-up is recorded below.
 
+## PR #14 review follow-up, 8 November
+
+Verified CodeRabbit's two comments and Greptile's one comment on `d20e7a0` against the implementation. The monetization fixture now saves and restores the entire previous purchase state after each test, including a failing test body. The Together resize test explicitly checks compact controls at 1000 × 360 dp, their absence at 1000 × 600 dp, and their return after resizing and Activity recreation. The earlier adaptive-layout APK hash below is now labeled as a historical checkpoint. Application code and resources are unchanged.
+
+Validation: debug app/test APK assembly, `ktlintCheck`, `detekt`, secrets checks and `git diff --check` passed. On the dedicated API 36 `ClocklingsReview20261030` emulator, **15 instrumented tests passed**: the three monetization tests at 411 dp / 100%, 320 dp / 100%, 411 dp / 200% and 320 dp / 200%; the Together resize/recreation test at both font scales; and the full-access level/challenge test immediately after the monetization tests in the same instrumentation process. This last sequence verifies that the free-access fixture no longer leaves paid content locked for subsequent tests.
+
+Initial emulator runs ended in host QEMU crashes (Windows exception `0xc0000005`), without completed test results. The successful runs used the host GPU with Vulkan disabled; no project or AVD configuration file was changed. The task-owned emulator was stopped afterwards. The full JVM suite, human TalkBack review, live Play purchases and owner-operated `lc`/`sc` were not rerun. The local-only execution log is `reports/pr14-review/device-validation.log`.
+
 ## Dependency-warning follow-up, 8 November
 
 The owner asked to address the four Lint dependency-version warnings where necessary. Reviewed the actual dependency declarations and official release notes before changing the existing `codex/full-unlock` checkout:
@@ -359,11 +367,11 @@ The final compact evidence directory contains **15 screenshots**. The nine final
 
 The rejected `polish/screenshots/short-lesson.png`, `short-challenge.png` and `short-together.png` are historical failure evidence, not accepted final layouts.
 
-Latest debug APK: `C:\Dev\Clocklings\app\build\outputs\apk\debug\app-debug.apk`.
+Adaptive-layout checkpoint APK (8 November, before full unlock): `C:\Dev\Clocklings\app\build\outputs\apk\debug\app-debug.apk`.
 
 SHA-256: `B6E8E99D667DAFCB622FEA1CD2262781EB5B08F6ECFAB971783DFE41CD0433D0` (verified on 8 November against the installed API 26 artifact).
 
-This is a debug artifact, not a signed publication deliverable. Older report hashes identify historical builds.
+This historical hash identifies the adaptive-layout verification build, not the current file at that path. The current full-unlock debug APK is recorded in [Dependency-warning follow-up](#dependency-warning-follow-up-8-november). Neither is a signed publication deliverable.
 
 ## Reconciled audit follow-ups
 

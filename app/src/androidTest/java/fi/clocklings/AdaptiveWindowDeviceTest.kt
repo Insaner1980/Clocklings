@@ -254,13 +254,19 @@ class AdaptiveWindowDeviceTest : InputDeviceTest() {
             val clock = hasContentDescription("Clock face:", substring = true)
             val chosen = compose.onNode(clock).fetchSemanticsNode().config[SemanticsProperties.ContentDescription]
             open("Pass to partner")
-            for (height in listOf(360, 480, 360)) {
+            for ((height, compact) in listOf(360 to true, 600 to false, 360 to true)) {
                 resizeWindowDp(1000, height)
                 waitFor(hasText("What time is it?"))
                 compose.onNode(hasText("Show the answer") and hasClickAction()).assertExists()
+                if (compact) {
+                    compose.onNodeWithTag("compact_task_controls").assertIsDisplayed()
+                } else {
+                    compose.onNodeWithTag("compact_task_controls").assertDoesNotExist()
+                }
             }
             compose.activityRule.scenario.recreate()
             waitFor(hasText("What time is it?"))
+            compose.onNodeWithTag("compact_task_controls").assertIsDisplayed()
             open("Show the answer")
             assertEquals(
                 chosen,
