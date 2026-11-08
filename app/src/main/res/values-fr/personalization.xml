@@ -13,7 +13,7 @@
     <string name="companion_unicorn">Licorne</string>
     <string name="companion_car">Voiture</string>
     <string name="companion_none">Juste l’horloge</string>
-    <string name="no_companion_hint">Tu peux toujours découvrir toutes les leçons et tous les jeux. Choisis un compagnon quand tu veux.</string>
+    <string name="no_companion_hint">Apprends à lire l’heure sans compagnon.</string>
     <string name="companion_color">Couleur</string>
     <string name="color_original">D’origine</string>
     <string name="color_blue">Bleu</string>

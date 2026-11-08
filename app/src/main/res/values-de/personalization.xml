@@ -13,7 +13,7 @@
     <string name="companion_unicorn">Einhorn</string>
     <string name="companion_car">Auto</string>
     <string name="companion_none">Nur die Uhr</string>
-    <string name="no_companion_hint">Alle Lektionen und Spiele bleiben verfügbar. Du kannst dir jederzeit eine Figur aussuchen.</string>
+    <string name="no_companion_hint">Übe die Uhrzeit ohne Figur.</string>
     <string name="companion_color">Farbe</string>
     <string name="color_original">Original</string>
     <string name="color_blue">Blau</string>

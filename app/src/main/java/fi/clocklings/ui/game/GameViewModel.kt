@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import fi.clocklings.AppServices
 import fi.clocklings.Screen
 import fi.clocklings.audio.Sound
+import fi.clocklings.domain.AccessPolicy
 import fi.clocklings.domain.ClockTime
 import fi.clocklings.domain.Hint
 import fi.clocklings.domain.Hints
@@ -98,6 +99,10 @@ class GameViewModel(
     private val services: AppServices,
     private val random: Random = Random.Default,
 ) : ViewModel() {
+    init {
+        require(AccessPolicy(services.purchases.state.value.fullAccess).level(level)) { "Level access required" }
+    }
+
     private val lv = Levels.all[level]
     private val tasks = Levels.makeTasks(lv, h24, random)
     private var clockValue = 0

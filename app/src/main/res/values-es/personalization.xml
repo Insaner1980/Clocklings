@@ -13,7 +13,7 @@
     <string name="companion_unicorn">Unicornio</string>
     <string name="companion_car">Coche</string>
     <string name="companion_none">Solo el reloj</string>
-    <string name="no_companion_hint">Puedes seguir explorando todas las lecciones y juegos. Elige un acompañante cuando quieras.</string>
+    <string name="no_companion_hint">Practica las horas sin acompañante.</string>
     <string name="companion_color">Color</string>
     <string name="color_original">Original</string>
     <string name="color_blue">Azul</string>

@@ -32,7 +32,7 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class NavigationFlowTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
-    private val services = FakeServices()
+    private val services = FakeServices(fullAccess = true)
     private val viewport = mutableStateOf(411 to 1f)
 
     @Test

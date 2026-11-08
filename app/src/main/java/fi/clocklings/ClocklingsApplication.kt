@@ -9,6 +9,9 @@ import androidx.datastore.preferences.preferencesDataStore
 import fi.clocklings.audio.Sfx
 import fi.clocklings.audio.Sound
 import fi.clocklings.audio.Speech
+import fi.clocklings.billing.Purchases
+import fi.clocklings.billing.UnconfiguredPurchases
+import fi.clocklings.billing.createPlayPurchases
 import fi.clocklings.data.ProgressRepository
 import fi.clocklings.domain.AppLanguage
 import kotlinx.coroutines.CoroutineScope
@@ -29,6 +32,7 @@ private val Context.dataStore by preferencesDataStore(name = "clocklings")
 interface AppServices {
     val repository: ProgressRepository
     val speechAvailable: StateFlow<Boolean>
+    val purchases: Purchases
 
     /**
      * Plays a sound while the app is resumed and sound effects are enabled.
@@ -54,6 +58,7 @@ interface AppServices {
 class AppContainer(
     context: Context,
     store: DataStore<Preferences> = context.dataStore,
+    override val purchases: Purchases = UnconfiguredPurchases(),
 ) : AppServices {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     override val repository = ProgressRepository(store)
@@ -83,19 +88,23 @@ class AppContainer(
 
     fun resume() {
         resumedActivities++
+        if (resumedActivities == 1) purchases.onForeground()
     }
 
     /** Äänet ja puhe pysähtyvät, kun sovellus menee taustalle. */
     fun pause() {
         resumedActivities = (resumedActivities - 1).coerceAtLeast(0)
         if (resumedActivities > 0) return
+        purchases.onBackground()
         sfx.stopAll()
         speech.stop()
     }
 }
 
 open class ClocklingsApplication : Application() {
-    val container: AppContainer by lazy { AppContainer(this, preferencesStore()) }
+    val container: AppContainer by lazy { AppContainer(this, preferencesStore(), purchases()) }
+
+    protected open fun purchases(): Purchases = createPlayPurchases(this)
 
     /** Where progress and settings are kept: the app's preferences file. Local JVM tests keep them in memory. */
     protected open fun preferencesStore(): DataStore<Preferences> = dataStore

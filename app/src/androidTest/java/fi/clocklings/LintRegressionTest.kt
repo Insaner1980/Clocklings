@@ -24,6 +24,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import fi.clocklings.domain.AccessPolicy
 import fi.clocklings.domain.Outfit
 import fi.clocklings.ui.clock.ClockCommand
 import fi.clocklings.ui.clock.ClockFace
@@ -75,6 +76,7 @@ class LintRegressionTest {
         compose.setContent {
             ClocklingsTheme {
                 ResultScreen(
+                    access = AccessPolicy(fullAccess = true),
                     result = Screen.Result(level = 0, stars = stars.intValue, previousBest = 3, starsBefore = 15),
                     outfit = Outfit.Default,
                     onPlayAgain = { replayed = true },

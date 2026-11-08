@@ -34,7 +34,7 @@ import kotlin.random.Random
 class ChallengeViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val scope = TestScope(dispatcher)
-    private val services = FakeServices()
+    private val services = FakeServices(fullAccess = true)
 
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
 

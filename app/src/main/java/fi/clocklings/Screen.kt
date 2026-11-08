@@ -16,6 +16,8 @@ sealed interface Screen : NavKey {
 
     @Serializable data object Language : Screen
 
+    @Serializable data object Parent : Screen
+
     @Serializable data object FreeClock : Screen
 
     @Serializable data object LessonList : Screen
@@ -62,6 +64,7 @@ val ScreenSavedState =
                     subclass(Screen.Home::class, Screen.Home.serializer())
                     subclass(Screen.Settings::class, Screen.Settings.serializer())
                     subclass(Screen.Language::class, Screen.Language.serializer())
+                    subclass(Screen.Parent::class, Screen.Parent.serializer())
                     subclass(Screen.FreeClock::class, Screen.FreeClock.serializer())
                     subclass(Screen.LessonList::class, Screen.LessonList.serializer())
                     subclass(Screen.Lesson::class, Screen.Lesson.serializer())

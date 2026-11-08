@@ -53,7 +53,7 @@ class StartupStateTest {
                 override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences =
                     delegate.updateData(transform)
             }
-        val audio = FakeServices()
+        val audio = FakeServices(fullAccess = true)
         val services =
             object : AppServices by audio {
                 override val repository = ProgressRepository(store)
@@ -61,7 +61,7 @@ class StartupStateTest {
         runBlocking { services.repository.updateProgress { it.withLevelResult(0, 3) } }
         val model = AppViewModel(services)
         // Locale reads are ready independently of the app's blocked progress/settings reads, including on API 26.
-        val localeServices = FakeServices()
+        val localeServices = FakeServices(fullAccess = true)
         val viewport = mutableStateOf(411 to 1f)
         val loading =
             SemanticsMatcher.expectValue(

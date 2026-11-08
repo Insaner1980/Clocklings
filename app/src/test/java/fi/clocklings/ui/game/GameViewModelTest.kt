@@ -30,7 +30,7 @@ class GameViewModelTest {
     @get:Rule val mainDispatcher = MainDispatcherRule()
 
     private val scope = TestScope(mainDispatcher.dispatcher)
-    private val services = FakeServices()
+    private val services = FakeServices(fullAccess = true)
 
     @Test
     fun recreatedClockUsesTheSameTimeAsTheSubmittedAnswer() =

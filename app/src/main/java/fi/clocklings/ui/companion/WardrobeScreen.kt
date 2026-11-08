@@ -47,8 +47,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import fi.clocklings.R
 import fi.clocklings.audio.Sound
+import fi.clocklings.domain.AccessPolicy
 import fi.clocklings.domain.CompanionColor
 import fi.clocklings.domain.CompanionKind
 import fi.clocklings.domain.Item
@@ -94,15 +96,18 @@ fun WardrobeScreen(
     color: CompanionColor,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onParent: () -> Unit = {},
 ) {
     val app = LocalAppViewModel.current
+    val purchase by app.purchaseState.collectAsStateWithLifecycle()
+    val access = AccessPolicy(purchase.fullAccess)
     var name by rememberSaveable(kind) { mutableStateOf(progress.nameFor(kind)) }
     val (saveName, nameRetry) = rememberNameSave(kind, name)
     val colorSave = remember(app, kind) { RetryableSave() }
     val itemSaves = remember(app, kind) { kind.slots.associateWith { RetryableSave() } }
     val retry = nameRetry ?: colorSave.retry ?: itemSaves.values.firstNotNullOfOrNull { it.retry }
     val total = progress.totalStars
-    val outfit = progress.outfitFor(kind)
+    val outfit = access.displayedOutfit(kind, progress.outfitFor(kind), total)
     val keyboardOpen = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     val failureBar: @Composable () -> Unit = {
         Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapS)) {
@@ -125,12 +130,7 @@ fun WardrobeScreen(
                 name,
                 nameError = if (nameRetry != null) stringResource(R.string.settings_save_error) else null,
                 stars = stringResource(R.string.home_star_total, total, Wardrobe.MAX_STARS),
-                starInfo =
-                    if (Wardrobe.lockedCount(kind, total) > 0) {
-                        pluralStringResource(R.plurals.doll_info, total, total)
-                    } else {
-                        stringResource(R.string.doll_all_open)
-                    },
+                starInfo = wardrobeStarInfo(kind, total, access),
                 onNameChange = {
                     name = it
                     saveName(it)
@@ -139,14 +139,16 @@ fun WardrobeScreen(
         }) {
             if (retry != null && keyboardOpen) failureBar()
             WardrobeHints(kind, total)
+            if (!access.fullAccess) Text(stringResource(R.string.wardrobe_full_requirement), style = SkType.BodySoft)
             if (kind != CompanionKind.HUMAN) {
                 WardrobeSection(stringResource(R.string.companion_color)) {
                     CompanionColors(kind, color) { chosen -> colorSave.run { app.setColor(kind, chosen, it) } }
                 }
             }
-            WardrobeItems(kind, total, outfit, color) { item ->
+            WardrobeItems(kind, total, outfit, color, access) { item ->
                 itemSaves.getValue(item.slot).run { app.toggleItem(kind, item, it) }
             }
+            if (!access.fullAccess) SkButton(stringResource(R.string.parent_title), onParent)
         }
     }
 }
@@ -157,6 +159,7 @@ private fun WardrobeItems(
     total: Int,
     outfit: Outfit,
     color: CompanionColor,
+    access: AccessPolicy,
     onItemClick: (Item) -> Unit,
 ) {
     val app = LocalAppViewModel.current
@@ -166,14 +169,14 @@ private fun WardrobeItems(
             for (slot in kind.slots) {
                 WardrobeSection(stringResource(slotName(slot))) {
                     ItemGrid(Wardrobe.itemsFor(kind, slot), columns) { item, cell ->
-                        if (item.star <= total) {
+                        if (access.item(item, total)) {
                             val on = outfit.isOn(item)
                             ItemTile(item, outfit, color, cell, nameStyle = nameStyle, on = on, onClick = {
                                 app.play(if (on) Sound.POP else Sound.EQUIP)
                                 onItemClick(item)
                             })
                         } else {
-                            LockedTile(item, outfit, color, total, cell, nameStyle)
+                            LockedTile(item, outfit, color, total, cell, nameStyle, !access.itemContent(item))
                         }
                     }
                 }
@@ -365,8 +368,17 @@ private fun LockedTile(
     total: Int,
     modifier: Modifier = Modifier,
     nameStyle: TextStyle = SkType.ItemName,
+    requiresFullVersion: Boolean = false,
 ) {
-    val description = pluralStringResource(R.plurals.doll_item_locked, item.star, item.star, total)
+    val starsDescription = pluralStringResource(R.plurals.doll_item_locked, item.star, item.star, total)
+    val description =
+        if (requiresFullVersion) {
+            "${stringResource(
+                R.string.full_version_label,
+            )}. $starsDescription"
+        } else {
+            starsDescription
+        }
     Column(
         modifier
             .background(SkColors.ItemLockedBg, SkShapes.Item)
@@ -391,6 +403,7 @@ private fun LockedTile(
             WordSafeText(stringResource(itemName(item.id)), nameStyle.copy(color = SkColors.InkSoft), minScale = 1f)
         }
         Pill(stringResource(R.string.home_star_total, total, item.star), kind = PillKind.MUTED, icon = SkIcons.StarOn)
+        if (requiresFullVersion) Text(stringResource(R.string.full_version_label), style = SkType.Small)
     }
 }
 

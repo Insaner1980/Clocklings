@@ -117,13 +117,13 @@ class AppSettingsTest {
             advanceUntilIdle()
 
             assertEquals(original.copy(introShown = setOf("0", "1", "4")), repository.progress.first())
-            assertTrue(app.startLevel(0).isEmpty())
-            assertTrue(app.startLevel(1).isEmpty())
+            assertTrue(requireNotNull(app.startLevel(0)).isEmpty())
+            assertTrue(requireNotNull(app.startLevel(1)).isEmpty())
             advanceUntilIdle()
         }
 
     private fun services(repository: ProgressRepository): AppServices =
-        object : AppServices by FakeServices() {
+        object : AppServices by FakeServices(fullAccess = true) {
             override val repository = repository
         }
 }

@@ -4,13 +4,27 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import fi.clocklings.R
+import fi.clocklings.domain.AccessPolicy
 import fi.clocklings.domain.CompanionKind
 import fi.clocklings.domain.Wardrobe
 import fi.clocklings.domain.slots
 import fi.clocklings.ui.theme.SkDimens
 import fi.clocklings.ui.theme.SkType
+
+@Composable
+internal fun wardrobeStarInfo(
+    kind: CompanionKind,
+    total: Int,
+    access: AccessPolicy,
+): String =
+    if (Wardrobe.itemsFor(kind).any { !access.item(it, total) }) {
+        pluralStringResource(R.plurals.doll_info, total, total)
+    } else {
+        stringResource(R.string.doll_all_open)
+    }
 
 @Composable
 internal fun WardrobeHints(

@@ -25,6 +25,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.test.platform.app.InstrumentationRegistry
+import fi.clocklings.domain.AccessPolicy
 import fi.clocklings.domain.ClockAppearance
 import fi.clocklings.domain.ClockFrame
 import fi.clocklings.domain.ClockPalette
@@ -167,7 +168,15 @@ class PersonalizationGalleryTest {
         compose.setContent {
             ClocklingsTheme {
                 CompositionLocalProvider(LocalPersonalization provides Personalization(companion = kind.value)) {
-                    ResultScreen(Screen.Result(0, 3, 0, 0), Outfit.Default, {}, {}, {}, {})
+                    ResultScreen(
+                        access = AccessPolicy(fullAccess = true),
+                        Screen.Result(0, 3, 0, 0),
+                        Outfit.Default,
+                        {},
+                        {},
+                        {},
+                        {},
+                    )
                 }
             }
         }

@@ -46,6 +46,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
+import kotlin.math.roundToInt
 
 /** Runs only on the dedicated Clocklings test AVD; the runner selects real guest display configurations. */
 @RunWith(AndroidJUnit4::class)
@@ -156,18 +157,17 @@ class AdaptiveWindowDeviceTest : InputDeviceTest() {
         compose.waitForIdle()
         val clock = hasContentDescription("Clock face:", substring = true)
         val expected = compose.onNode(clock).fetchSemanticsNode().config[SemanticsProperties.ContentDescription]
-        val originalSize =
-            shell("wm size")
-                .lineSequence()
-                .firstOrNull { it.startsWith("Override size:") }
-                ?.substringAfter(": ")
-                ?.trim() ?: "reset"
+        val originalSize = currentWindowSize()
         val originalAutoRotation = shell("settings get system accelerometer_rotation").trim()
         val originalUserRotation = shell("settings get system user_rotation").trim()
         try {
             for ((width, height) in listOf(800 to 900, 1200 to 600, 900 to 360, 320 to 800)) {
                 shell("wm size ${width}x$height")
-                compose.waitUntil(10_000) { compose.activity.resources.configuration.screenWidthDp == width }
+                // Legacy configuration dp excludes navigation bars; wm size sets the full window in pixels.
+                compose.waitUntil(10_000) {
+                    val decor = compose.activity.window.decorView
+                    decor.width == width && decor.height == height
+                }
                 waitFor(clock)
                 assertEquals(
                     expected,
@@ -204,23 +204,14 @@ class AdaptiveWindowDeviceTest : InputDeviceTest() {
 
     @Test
     fun lessonAndPracticeKeepTheirCurrentContentAcrossWindowChanges() {
-        val originalSize =
-            shell("wm size")
-                .lineSequence()
-                .firstOrNull { it.startsWith("Override size:") }
-                ?.substringAfter(": ")
-                ?.trim() ?: "reset"
+        val originalSize = currentWindowSize()
         try {
             open("Learn")
             open("Two hands")
             open("Next")
             val lesson = taskContent()
             for ((width, height) in listOf(1000 to 360, 1000 to 480, 320 to 800, 1000 to 360)) {
-                shell("wm size ${width}x$height")
-                compose.waitUntil(10_000) {
-                    val config = compose.activity.resources.configuration
-                    config.screenWidthDp == width && config.screenHeightDp == height
-                }
+                resizeWindowDp(width, height)
                 assertEquals("Current lesson page after resize", lesson, taskContent())
             }
             compose.activityRule.scenario.recreate()
@@ -235,8 +226,7 @@ class AdaptiveWindowDeviceTest : InputDeviceTest() {
                 compose.onAllNodes(choices)[0].scrollToIfScrollable().performClick()
             }
             val practice = taskContent()
-            shell("wm size 320x800")
-            compose.waitUntil(10_000) { compose.activity.resources.configuration.screenWidthDp == 320 }
+            resizeWindowDp(320, 800)
             assertEquals("Current practice and answer feedback after resize", practice, taskContent())
             compose.activityRule.scenario.recreate()
             assertEquals("Current practice and answer feedback after recreation", practice, taskContent())
@@ -257,12 +247,7 @@ class AdaptiveWindowDeviceTest : InputDeviceTest() {
 
     @Test
     fun togetherKeepsChosenTimeAndTurnAcrossCompactThresholdAndRecreation() {
-        val originalSize =
-            shell("wm size")
-                .lineSequence()
-                .firstOrNull { it.startsWith("Override size:") }
-                ?.substringAfter(": ")
-                ?.trim() ?: "reset"
+        val originalSize = currentWindowSize()
         try {
             open("Play Together")
             open("Random time")
@@ -270,8 +255,7 @@ class AdaptiveWindowDeviceTest : InputDeviceTest() {
             val chosen = compose.onNode(clock).fetchSemanticsNode().config[SemanticsProperties.ContentDescription]
             open("Pass to partner")
             for (height in listOf(360, 480, 360)) {
-                shell("wm size 1000x$height")
-                compose.waitUntil(10_000) { compose.activity.resources.configuration.screenHeightDp == height }
+                resizeWindowDp(1000, height)
                 waitFor(hasText("What time is it?"))
                 compose.onNode(hasText("Show the answer") and hasClickAction()).assertExists()
             }
@@ -291,15 +275,9 @@ class AdaptiveWindowDeviceTest : InputDeviceTest() {
 
     @Test
     fun scrollPositionSurvivesShortWindowAndActivityRecreation() {
-        val originalSize =
-            shell("wm size")
-                .lineSequence()
-                .firstOrNull { it.startsWith("Override size:") }
-                ?.substringAfter(": ")
-                ?.trim() ?: "reset"
+        val originalSize = currentWindowSize()
         try {
-            shell("wm size 320x800")
-            compose.waitUntil(10_000) { compose.activity.resources.configuration.screenWidthDp == 320 }
+            resizeWindowDp(320, 800)
             open("Settings")
             val scrolling = SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange)
             val node = compose.onNode(scrolling)
@@ -308,8 +286,7 @@ class AdaptiveWindowDeviceTest : InputDeviceTest() {
             val offset = node.fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value()
             assertTrue("Settings is scrolled before resizing", offset > 0f)
             for (height in listOf(600, 300)) {
-                shell("wm size 320x$height")
-                compose.waitUntil(10_000) { compose.activity.window.decorView.height == height }
+                resizeWindowDp(320, height)
                 compose.waitForIdle()
                 val restored = node.fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value()
                 assertEquals("Scroll retained at height $height", offset, restored, 1f)
@@ -523,6 +500,27 @@ class AdaptiveWindowDeviceTest : InputDeviceTest() {
             bitmap.recycle()
         }
     }
+
+    private fun resizeWindowDp(
+        widthDp: Int,
+        heightDp: Int,
+    ) {
+        val density = compose.activity.resources.displayMetrics.density
+        val widthPx = (widthDp * density).roundToInt()
+        val heightPx = (heightDp * density).roundToInt()
+        shell("wm size ${widthPx}x$heightPx")
+        compose.waitUntil(10_000) {
+            val decor = compose.activity.window.decorView
+            decor.width == widthPx && decor.height == heightPx
+        }
+    }
+
+    private fun currentWindowSize(): String =
+        shell("wm size")
+            .lineSequence()
+            .firstOrNull { it.startsWith("Override size:") }
+            ?.substringAfter(": ")
+            ?.trim() ?: "reset"
 
     private fun shell(command: String): String =
         ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand(command)).use {

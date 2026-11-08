@@ -89,6 +89,7 @@ class ChallengeViewModel(
     }
 
     fun start() {
+        if (!services.purchases.state.value.fullAccess) return
         if (_state.value.savePending) return
         timer?.cancel()
         pending?.cancel()

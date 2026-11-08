@@ -38,6 +38,8 @@ import androidx.compose.ui.unit.dp
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.preferencesOf
 import androidx.lifecycle.viewModelScope
 import androidx.test.core.app.ApplicationProvider
 import fi.clocklings.AppServices
@@ -90,7 +92,7 @@ class ScreenshotReviewUiTest {
                     throw IOException("Synthetic personalization write failure")
             }
         val services =
-            object : AppServices by FakeServices() {
+            object : AppServices by FakeServices(fullAccess = true) {
                 override val repository = ProgressRepository(store)
             }
         val model = AppViewModel(services)
@@ -200,7 +202,7 @@ class ScreenshotReviewUiTest {
         var writes = 0
         val store =
             object : DataStore<Preferences> {
-                override val data = MutableStateFlow(emptyPreferences())
+                override val data = MutableStateFlow(preferencesOf(intPreferencesKey("stars_0") to 3))
 
                 override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences {
                     writes++
@@ -213,7 +215,7 @@ class ScreenshotReviewUiTest {
                 }
             }
         val services =
-            object : AppServices by FakeServices() {
+            object : AppServices by FakeServices(fullAccess = true) {
                 override val repository = ProgressRepository(store)
             }
         val model = AppViewModel(services)
@@ -221,7 +223,12 @@ class ScreenshotReviewUiTest {
             val settings by model.settings.collectAsState()
             CompositionLocalProvider(LocalAppViewModel provides model) {
                 ClocklingsTheme {
-                    AppearanceScreen(settings?.personalization ?: Personalization(), Progress(), {}, {})
+                    AppearanceScreen(
+                        settings?.personalization ?: Personalization(),
+                        Progress(stars = listOf(3, 0, 0, 0, 0)),
+                        {},
+                        {},
+                    )
                 }
             }
         }
@@ -255,7 +262,7 @@ class ScreenshotReviewUiTest {
         var writes = 0
         val store =
             object : DataStore<Preferences> {
-                override val data = MutableStateFlow(emptyPreferences())
+                override val data = MutableStateFlow(preferencesOf(intPreferencesKey("stars_0") to 3))
 
                 override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences {
                     writes++
@@ -264,14 +271,19 @@ class ScreenshotReviewUiTest {
                 }
             }
         val services =
-            object : AppServices by FakeServices() {
+            object : AppServices by FakeServices(fullAccess = true) {
                 override val repository = ProgressRepository(store)
             }
         val model = AppViewModel(services)
         val viewport = mutableStateOf(411 to 1f)
         setLocalizedContent(model, mutableStateOf("en"), viewport) {
             val settings by model.settings.collectAsState()
-            AppearanceScreen(settings?.personalization ?: Personalization(), Progress(), {}, {})
+            AppearanceScreen(
+                settings?.personalization ?: Personalization(),
+                Progress(stars = listOf(3, 0, 0, 0, 0)),
+                {},
+                {},
+            )
         }
         try {
             for ((index, cell) in listOf(411 to 1f, 320 to 1f, 411 to 2f, 320 to 2f).withIndex()) {
@@ -308,7 +320,7 @@ class ScreenshotReviewUiTest {
 
     @Test
     fun lockedItemDescriptionsUseTheThresholdQuantityInEveryLanguageAndDisplaySize() {
-        val model = AppViewModel(FakeServices())
+        val model = AppViewModel(FakeServices(fullAccess = true))
         val language = mutableStateOf("en")
         val viewport = mutableStateOf(411 to 1f)
         setLocalizedContent(model, language, viewport) {
@@ -345,7 +357,7 @@ class ScreenshotReviewUiTest {
     @Test
     fun wardrobeNamesKeepWholeWordsAtOneSizePerGrid() {
         val context = finnishContext()
-        val model = AppViewModel(FakeServices())
+        val model = AppViewModel(FakeServices(fullAccess = true))
         val kind = mutableStateOf(CompanionKind.DOG)
         compose.setContent {
             CompositionLocalProvider(
@@ -377,7 +389,7 @@ class ScreenshotReviewUiTest {
     @Test
     fun wardrobeSectionTitlesKeepWholeWordsAtNarrowWidthAndDoubleText() {
         val context = finnishContext()
-        val model = AppViewModel(FakeServices())
+        val model = AppViewModel(FakeServices(fullAccess = true))
         val kind = mutableStateOf(CompanionKind.CAR)
         compose.setContent {
             CompositionLocalProvider(
@@ -447,7 +459,10 @@ class ScreenshotReviewUiTest {
             ) {
                 ClocklingsTheme {
                     Box(Modifier.requiredSize(320.dp, 640.dp)) {
-                        LessonListScreen(true, Progress(), { opened = it }, {}, {})
+                        LessonListScreen(true, Progress(), fi.clocklings.domain.AccessPolicy(fullAccess = true), {
+                            opened =
+                                it
+                        }, {}, {})
                     }
                 }
             }

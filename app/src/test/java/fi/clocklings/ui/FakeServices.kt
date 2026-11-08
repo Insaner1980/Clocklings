@@ -9,7 +9,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /** Testipalvelut: muistissa oleva tallennus ja äänien kirjaus. */
-class FakeServices : AppServices {
+class FakeServices(
+    fullAccess: Boolean,
+) : AppServices {
+    override val purchases = FakePurchases(fullAccess)
     override val repository = ProgressRepository(InMemoryPreferencesStore())
     override val speechAvailable: StateFlow<Boolean> = MutableStateFlow(false)
     val sounds = mutableListOf<Sound>()

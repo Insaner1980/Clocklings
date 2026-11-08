@@ -13,7 +13,7 @@
     <string name="companion_unicorn">Enhörning</string>
     <string name="companion_car">Bil</string>
     <string name="companion_none">Bara klockan</string>
-    <string name="no_companion_hint">Alla lektioner och spel finns kvar. Du kan välja en kompis när du vill.</string>
+    <string name="no_companion_hint">Öva på klockan utan en kompis.</string>
     <string name="companion_color">Färg</string>
     <string name="color_original">Ursprunglig</string>
     <string name="color_blue">Blå</string>

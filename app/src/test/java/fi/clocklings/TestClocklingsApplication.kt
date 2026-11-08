@@ -3,6 +3,7 @@ package fi.clocklings
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import fi.clocklings.data.InMemoryPreferencesStore
+import fi.clocklings.ui.FakePurchases
 
 /**
  * The application for local Robolectric tests. Progress and settings live in memory: on the Windows
@@ -10,5 +11,7 @@ import fi.clocklings.data.InMemoryPreferencesStore
  * lost writes and made app flow tests time out. Each test gets a fresh application and a fresh store.
  */
 class TestClocklingsApplication : ClocklingsApplication() {
+    override fun purchases() = FakePurchases(fullAccess = true)
+
     override fun preferencesStore(): DataStore<Preferences> = InMemoryPreferencesStore()
 }

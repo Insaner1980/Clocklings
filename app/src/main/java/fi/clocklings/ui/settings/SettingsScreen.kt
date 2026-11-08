@@ -54,6 +54,7 @@ fun SettingsScreen(
     onLanguage: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onParent: (() -> Unit)? = null,
 ) {
     val app = LocalAppViewModel.current
     val action by app.settingsAction.collectAsStateWithLifecycle()
@@ -89,6 +90,9 @@ fun SettingsScreen(
             }
         }
         if (action.failed) Text(stringResource(R.string.settings_save_error), style = SkType.Body)
+        if (onParent != null) {
+            SkButton(stringResource(R.string.parent_title), onParent, Modifier.fillMaxWidth())
+        }
     }
     if (confirmReset) {
         ResetProgressDialog(

@@ -73,7 +73,16 @@ class SurfaceAccessibilityTest {
         val progress = Progress(stars = listOf(3, 0, 0, 0, 0), lessonsDone = Lessons.levelLessons[0].toSet())
         compose.setContent {
             view = LocalView.current
-            ClocklingsTheme { LessonListScreen(false, progress, {}, {}, {}) }
+            ClocklingsTheme {
+                LessonListScreen(
+                    false,
+                    progress,
+                    fi.clocklings.domain.AccessPolicy(fullAccess = true),
+                    {},
+                    {},
+                    {},
+                )
+            }
         }
         // The first chapter's stops are done, so the heading stop also shows the check mark.
         val first =
@@ -104,9 +113,16 @@ class SurfaceAccessibilityTest {
             ) {
                 ClocklingsTheme {
                     if (levels.value) {
-                        LevelsScreen(progress, {}, {}, {}, {})
+                        LevelsScreen(progress, fi.clocklings.domain.AccessPolicy(fullAccess = true), {}, {}, {}, {})
                     } else {
-                        LessonListScreen(false, progress, {}, {}, {})
+                        LessonListScreen(
+                            false,
+                            progress,
+                            fi.clocklings.domain.AccessPolicy(fullAccess = true),
+                            {},
+                            {},
+                            {},
+                        )
                     }
                 }
             }

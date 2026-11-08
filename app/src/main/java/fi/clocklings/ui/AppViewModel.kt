@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import fi.clocklings.AppServices
 import fi.clocklings.audio.Sound
+import fi.clocklings.domain.AccessPolicy
 import fi.clocklings.domain.CompanionColor
 import fi.clocklings.domain.CompanionKind
 import fi.clocklings.domain.Item
@@ -42,6 +43,8 @@ class AppViewModel(
     val settings: StateFlow<Settings?> =
         services.repository.settings.stateIn(viewModelScope, SharingStarted.Eagerly, null)
     val speechAvailable: StateFlow<Boolean> = services.speechAvailable
+    val purchaseState = services.purchases.state
+    val access: AccessPolicy get() = AccessPolicy(purchaseState.value.fullAccess)
     private val mutableSettingsAction = MutableStateFlow(SettingsAction())
     val settingsAction = mutableSettingsAction.asStateFlow()
 
@@ -77,7 +80,14 @@ class AppViewModel(
     fun personalize(
         onResult: (Boolean) -> Unit = {},
         transform: (Personalization) -> Personalization,
-    ) = updateSettings(onResult) { it.copy(personalization = transform(it.personalization)) }
+    ) = updateSettings(onResult) { settings ->
+        val saved = settings.personalization
+        val requested = transform(saved)
+        val allowed =
+            requested.companion == saved.companion ||
+                access.companion(requested.companion, currentProgress.totalStars)
+        settings.copy(personalization = if (allowed) requested else requested.copy(companion = saved.companion))
+    }
 
     private fun updateSettings(
         onResult: (Boolean) -> Unit = {},
@@ -141,7 +151,13 @@ class AppViewModel(
         kind: CompanionKind,
         item: Item,
         onResult: (Boolean) -> Unit = {},
-    ) = updateProgress(onResult) { it.withOutfit(kind, Wardrobe.toggle(it.outfitFor(kind), item)) }
+    ) = updateProgress(onResult) {
+        if (item.companion == kind && Wardrobe.itemOrNull(item.id) == item && access.item(item, it.totalStars)) {
+            it.withOutfit(kind, Wardrobe.toggle(it.outfitFor(kind), item))
+        } else {
+            it
+        }
+    }
 
     fun setName(
         kind: CompanionKind,
@@ -156,10 +172,11 @@ class AppViewModel(
     ) = personalize(onResult) { it.withStyle(kind, it.styleFor(kind).copy(color = color)) }
 
     /** Pelaa-napin painallus: palauttaa ennen tasoa näytettävät oppitunnit ja merkitsee ne näytetyiksi. */
-    fun startLevel(level: Int): List<String> {
+    fun startLevel(level: Int): List<String>? {
+        if (!access.level(level)) return null
         val plan = Lessons.introPlan(level, currentSettings.h24, currentProgress)
         updateProgress { it.copy(introShown = it.introShown + plan.introShown) }
-        return plan.queue
+        return access.lessonQueue(plan.queue)
     }
 }
 
