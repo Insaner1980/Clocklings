@@ -55,12 +55,17 @@ class KeyboardFocusTest {
             compose.runOnIdle { viewport.value = cell }
             val button = compose.onNodeWithText("Continue")
             compose.onNodeWithText("Other").performSemanticsAction(SemanticsActions.RequestFocus) { it() }
+            // Focus semantics change before the collected interaction has recomposed and drawn the border.
+            compose.mainClock.advanceTimeByFrame()
+            compose.waitForIdle()
             button.assertIsNotFocused()
             val before =
                 button.captureToImage().let { image ->
                     IntArray(image.width * image.height).also { image.readPixels(it) }
                 }
             button.performSemanticsAction(SemanticsActions.RequestFocus) { it() }
+            compose.mainClock.advanceTimeByFrame()
+            compose.waitForIdle()
             button.assertIsFocused()
             val after =
                 button.captureToImage().let { image ->

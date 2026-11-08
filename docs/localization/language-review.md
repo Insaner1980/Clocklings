@@ -131,7 +131,7 @@ Each first authored option (`c1`) is currently marked correct before shuffle. Pr
 
 | Stable lesson ID | Numeric target | Intended correct meaning | English / Finnish / Swedish correct label |
 | --- | --- | --- | --- |
-| `viisarit` | 240 = 04:00 | identify hour hand, not read time | The short red hand / Lyhyt punainen viisari / Den korta röda visaren |
+| `viisarit` | 240 = 04:00 | identify hour hand, not read time | The short pink hand / Lyhyt pinkki viisari / Den korta rosa visaren |
 | `kierros` | 180 = 03:00 | duration of a complete minute-hand revolution | One hour / Yksi tunti / En timme |
 | `tasan` | 540 = 09:00 | whole hour | Nine o'clock / Tasan yhdeksän / Nio |
 | `puoli` | 330 = 05:30 | half hour; FI/SV next hour is six | Half past five / Puoli kuusi / Halv sex |

@@ -3,6 +3,7 @@ package fi.clocklings.ui
 import android.content.Context
 import android.content.res.Configuration
 import androidx.test.core.app.ApplicationProvider
+import fi.clocklings.domain.AppLanguage
 import fi.clocklings.domain.Wardrobe
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -22,7 +23,17 @@ class ItemNamesTest {
     fun `names are unique within each companion in every language`() {
         val app = ApplicationProvider.getApplicationContext<Context>()
         // A known name per language proves the locale really switched instead of falling back to English.
-        val known = mapOf("en" to "Head flower", "fi" to "Kukka päässä", "sv" to "Blomma på huvudet")
+        val known =
+            mapOf(
+                "en" to "Head flower",
+                "fi" to "Kukka päässä",
+                "sv" to "Blomma på huvudet",
+                "de" to "Blume auf dem Kopf",
+                "fr" to "Fleur sur la tête",
+                "es-ES" to "Flor para la cabeza",
+                "pt-BR" to "Flor na cabeça",
+            )
+        assertEquals(AppLanguage.entries.map { it.tag }.toSet(), known.keys)
         for ((language, flower) in known) {
             val localized =
                 app.createConfigurationContext(

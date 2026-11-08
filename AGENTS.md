@@ -7,7 +7,7 @@
 - App name: **Clocklings**. Google Play title: **Clocklings: Learn to Tell Time**.
 - Read `docs/implementation/STATUS.md` for current decisions and validation evidence, and `docs/superpowers/plans/2026-10-20-public-clock-learning-app.md` for the product proposal.
 - The owner's instructions override the planning documents. Proposed features and quantities are not approved decisions.
-- Implement English first, then Finnish and one shared Swedish version. Complete all agreed features and all three languages before publication. No MVP release, curriculum mapping, or Teacher Approved work.
+- Release languages: English, Finnish, shared Swedish, German, French, Spain Spanish (`es-ES`) and Brazilian Portuguese (`pt-BR`; device `pt` and `pt-PT` also select Brazilian content). Complete all agreed features and all seven languages before publication. No MVP release, curriculum mapping, or Teacher Approved work.
 - Ask about consequential unresolved product choices before implementing dependent behavior. Decide ordinary technical details independently.
 
 ## Implementation
