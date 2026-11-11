@@ -18,6 +18,12 @@ object IntroTimeline {
     const val BACKGROUND_FADE_MS = 250L
     const val END_MS = FADE_START_MS + CONTENT_FADE_MS + BACKGROUND_FADE_MS
     const val STILL_MS = 1200L
+
+    /** The narrator greets once the intro jingle (loud for its first 1.8 s) has faded, as Home appears. */
+    const val GREETING_VOICE_MS = TICK_AT_MS + 1800L
+
+    /** Without motion there is no jingle: the greeting is spoken while the still pose shows it. */
+    const val STILL_GREETING_VOICE_MS = 300L
     const val MASCOT_START_SCALE = 0.6f
 
     fun mascotScale(t: Long): Float =

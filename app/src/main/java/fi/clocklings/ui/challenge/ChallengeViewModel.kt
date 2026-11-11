@@ -78,6 +78,9 @@ class ChallengeViewModel(
     private var timer: Job? = null
     private var pending: Job? = null
 
+    /** The end fanfare, which waits until the narrator has said that time is up. */
+    private var endSound: Job? = null
+
     init {
         viewModelScope.launch {
             val best =
@@ -93,6 +96,8 @@ class ChallengeViewModel(
         if (_state.value.savePending) return
         timer?.cancel()
         pending?.cancel()
+        endSound?.cancel()
+        services.play(Sound.CHALLENGE_GO)
         _state.update {
             it.copy(
                 phase = ChallengePhase.RUN,
@@ -152,8 +157,11 @@ class ChallengeViewModel(
 
     private suspend fun end() {
         pending?.cancel()
+        endSound?.cancel()
         _state.update { it.copy(busy = true, savePending = true) }
         val s = _state.value
+        // A retried save ends the same run again: time ran out already, so only the fanfare repeats.
+        val timeRanOut = s.phase == ChallengePhase.RUN
         var best = s.best
         var record = s.score > best
         val saved =
@@ -170,7 +178,17 @@ class ChallengeViewModel(
                 false
             }
         val newRecord = saved && record && s.score > 0
-        services.play(if (newRecord) Sound.RECORD else Sound.WIN)
+        val fanfare = if (newRecord) Sound.RECORD else Sound.WIN
+        if (timeRanOut) {
+            services.play(Sound.CHALLENGE_OVER)
+            endSound =
+                viewModelScope.launch {
+                    delay(FANFARE_AFTER_VOICE_MS)
+                    services.play(fanfare)
+                }
+        } else {
+            services.play(fanfare)
+        }
         _state.update {
             it.copy(
                 phase = ChallengePhase.END,
@@ -188,5 +206,8 @@ class ChallengeViewModel(
         private const val MOVE_MS = 350
         private const val NEXT_AFTER_CORRECT_MS = 380L
         private const val NEXT_AFTER_WRONG_MS = 1300L
+
+        /** The narrator's "Time is up!" lasts at most 1.5 s in any language. */
+        private const val FANFARE_AFTER_VOICE_MS = 1_500L
     }
 }

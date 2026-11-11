@@ -10,7 +10,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathOperation
-import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.rotate
 import fi.clocklings.ui.art.ArtTones
 import fi.clocklings.ui.art.VinylShape
@@ -32,7 +31,6 @@ import kotlin.math.sin
 // Every path, brush and stroke is built once when the map is created; the draw lambdas only paint them.
 // Hats are HEAD/FRONT items over the head; antennas follow ANTENNA and bounce; the screens replace the eyes.
 
-private const val GLOW_ALPHA = 0.3f
 private const val SCREEN_GLOW_ALPHA = 0.45f
 private const val SCREEN_GLOW_RADIUS = 21f
 
@@ -133,22 +131,6 @@ private fun propellerCap(): ItemArt {
     }
 }
 
-/** Denim necktie with sunny stripes under a little pearl collar. */
-private fun tie(): ItemArt {
-    val collar = itemShape("M100 158 L119 163 L108 178 Z M140 158 L121 163 L132 178 Z", ArtTones.Pearl)
-    val knot = itemShape("M111 160 L129 160 L125 175 L115 175 Z", ArtTones.Denim)
-    val blade = itemShape("M115 175 L125 175 L133 218 L120 232 L107 218 Z", ArtTones.Denim)
-    val stripes = svgPath("M104 192 L136 178 M104 207 L136 193 M104 222 L136 208")
-    val stripeStroke = itemStroke(4.5f)
-    return ItemArt(ArtPart.BODY, ItemLayer.FRONT) {
-        vinylShape(blade)
-        clipPath(blade.path) { drawPath(stripes, ArtTones.Sun.base, style = stripeStroke) }
-        specular(blade.bounds)
-        vinylShape(collar)
-        vinylShape(knot)
-    }
-}
-
 /**
  * A glowing screen face: [shape] at both eye places, filled with [tones], each on a soft radial glow of
  * its light tone (like the robot's own eyes), so the glow has no hard outline.
@@ -232,29 +214,6 @@ private fun headphones(): ItemArt {
     }
 }
 
-/** A golden coil spring wound around the neck joint: four large loops with a darker outline. */
-private fun spring(): ItemArt {
-    val loops = 4
-    val steps = 140
-    val coil =
-        Path().apply {
-            for (i in 0..steps) {
-                val t = i / steps.toFloat()
-                val a = 2f * PI.toFloat() * loops * t
-                val x = 88f + 64f * t - 10f * sin(a)
-                val y = 165f + 8f * 4f * t * (1f - t) + 11f * cos(a)
-                if (i == 0) moveTo(x, y) else lineTo(x, y)
-            }
-        }
-    val coilBrush = vinylBrush(coil.getBounds().inflate(3f), ArtTones.Gold)
-    val outlineStroke = itemStroke(7.5f)
-    val coilStroke = itemStroke(5f)
-    return ItemArt(ArtPart.BODY, ItemLayer.FRONT) {
-        drawPath(coil, ArtTones.Gold.shade, style = outlineStroke)
-        drawPath(coil, coilBrush, style = coilStroke)
-    }
-}
-
 /** Puffy pearl chef hat with a pleated band. */
 private fun chefHat(): ItemArt {
     val puffs =
@@ -274,36 +233,6 @@ private fun chefHat(): ItemArt {
         specular(puffs.bounds, -10f)
         vinylShape(band)
         drawPath(pleats, ArtTones.Pearl.shade, style = pleatStroke)
-    }
-}
-
-/**
- * A string of five glowing bulbs along the neckline, about 13 units apart and hanging above the chest
- * buttons. Every halo is drawn before the bulbs, so no glow washes over a neighboring bulb.
- */
-private fun lights(): ItemArt {
-    fun at(t: Float) = itemQuad(80f, 164f, 120f, 186f, 160f, 164f, t)
-    val wire =
-        Path().apply {
-            moveTo(80f, 164f)
-            quadraticTo(120f, 186f, 160f, 164f)
-        }
-    val tones = listOf(ArtTones.Ruby, ArtTones.Sun, ArtTones.Leaf, ArtTones.Sky, ArtTones.Pink)
-    val bulbs =
-        tones.mapIndexed { i, t ->
-            val c = at((i + 1) / 6f)
-            VinylShape(ovalPath(c.x, c.y + 6f, 5f, 6.5f), t)
-        }
-    val halos = bulbs.map { ovalRect(it.bounds.center.x, it.bounds.center.y, 9f) }
-    val haloColors = tones.map { it.base }
-    val wireStroke = itemStroke(2.5f)
-    return ItemArt(ArtPart.BODY, ItemLayer.FRONT) {
-        drawPath(wire, ArtTones.Metal.shade, style = wireStroke)
-        for (i in halos.indices) drawOval(haloColors[i], halos[i].topLeft, halos[i].size, alpha = GLOW_ALPHA)
-        for (i in bulbs.indices) {
-            vinylShape(bulbs[i])
-            specular(bulbs[i].bounds)
-        }
     }
 }
 
@@ -488,6 +417,79 @@ private val RightStar = ovalRect(156f, 18f, 15f)
 private val LeftTank = Rect(16f, 158f, 44f, 236f)
 private val RightTank = Rect(196f, 158f, 224f, 236f)
 
+/**
+ * A short coral hero cape with a sunny lining, traced from its reference: it hangs behind the body from
+ * a collar around the neck, fastened with a golden button.
+ */
+private fun cape(): ItemArt {
+    val cloak = itemShape(CapeTrace.CAPE, ArtTones.Knit)
+    val lining = itemShape(CapeTrace.LINING, ArtTones.Sun)
+    val collar =
+        itemShape("M78 152 Q120 144 162 152 Q171 160 160 167 Q120 177 80 167 Q69 160 78 152 Z", ArtTones.Knit)
+    val clasp = itemCircle(120f, 168f, 6f, ArtTones.Gold)
+    return ItemArt(
+        ArtPart.BODY,
+        ItemLayer.FRONT,
+        back = {
+            vinylShape(cloak)
+            vinylShape(lining)
+        },
+    ) {
+        vinylShape(collar)
+        specular(collar.bounds)
+        vinylShape(clasp)
+        specular(clasp.bounds)
+    }
+}
+
+/**
+ * A bubble pack, traced from its reference: a sunny tank behind the left shoulder with a coral cap and a
+ * coral wand whose ring holds a soap film, two bubbles drifting off it, and dark straps over the shoulders.
+ */
+private fun bubblePack(): ItemArt {
+    val tank = VinylShape(roundRectPath(5.8f, 171f, 29.6f, 215.8f, 11f), ArtTones.Sun)
+    val cap = itemShape(BubblePackTrace.CAP, ArtTones.Knit)
+    val wand = itemShape(BubblePackTrace.WAND, ArtTones.Knit)
+    val film = ovalRect(20f, 130.5f, 13.5f, 14f)
+    val bubbles = listOf(ovalRect(12f, 84f, 10f), ovalRect(27f, 100f, 5.5f))
+    val glints =
+        bubbles.map { ovalRect(it.center.x - it.width * 0.18f, it.center.y - it.height * 0.2f, it.width * 0.12f) }
+    val straps = svgPath("M82 154 C74 166 74 184 80 196 M158 154 C166 166 166 184 160 196")
+    val strapStroke = itemStroke(5f)
+    val rimStroke = itemStroke(1.2f)
+    val filmColor = ArtTones.Sky.light.copy(alpha = 0.45f)
+    val rimColor = Color.White.copy(alpha = 0.8f)
+    return ItemArt(
+        ArtPart.BODY,
+        ItemLayer.FRONT,
+        back = {
+            vinylShape(wand)
+            drawOval(filmColor, film.topLeft, film.size)
+            vinylShape(tank)
+            specular(tank.bounds)
+            vinylShape(cap)
+            for (i in bubbles.indices) {
+                drawOval(filmColor, bubbles[i].topLeft, bubbles[i].size)
+                drawOval(rimColor, bubbles[i].topLeft, bubbles[i].size, style = rimStroke)
+                drawOval(rimColor, glints[i].topLeft, glints[i].size)
+            }
+        },
+    ) {
+        drawPath(straps, ArtTones.Metal.base, style = strapStroke)
+    }
+}
+
+/** A big golden wind-up key, traced from its reference: it sticks out of the right hip on a dark hub. */
+private fun windUpKey(): ItemArt {
+    val hub = itemShape(WindUpKeyTrace.DISC, ArtTones.Metal)
+    val key = itemShape(WindUpKeyTrace.KEY, ArtTones.Gold)
+    return ItemArt(ArtPart.HAND, ItemLayer.FRONT) {
+        vinylShape(hub)
+        vinylShape(key)
+        specular(key.bounds)
+    }
+}
+
 /** The robot's item artwork, keyed by item id. Declared last so the shared tones above are ready. */
 internal val RobotItemArt: Map<String, ItemArt> =
     mapOf(
@@ -495,13 +497,13 @@ internal val RobotItemArt: Map<String, ItemArt> =
         "robot-neck-bow-tie" to bowTie(),
         "robot-extra-wrench" to wrench(),
         "robot-head-propeller" to propellerCap(),
-        "robot-neck-tie" to tie(),
+        "robot-neck-cape" to cape(),
         "robot-extra-heart-eyes" to heartEyes(),
         "robot-head-headphones" to headphones(),
-        "robot-neck-spring" to spring(),
+        "robot-extra-bubble-pack" to bubblePack(),
         "robot-extra-star-eyes" to starEyes(),
         "robot-head-chef-hat" to chefHat(),
-        "robot-neck-lights" to lights(),
+        "robot-extra-wind-up-key" to windUpKey(),
         "robot-extra-pet" to pet(),
         "robot-head-star-antennas" to starAntennas(),
         "robot-neck-medal" to medal(),

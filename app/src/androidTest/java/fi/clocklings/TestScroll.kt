@@ -1,15 +1,22 @@
 package fi.clocklings
 
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.onParent
 import androidx.compose.ui.test.performScrollTo
 
 /**
- * Pinned top bars and screens that fit without scrolling are not inside a scroll container, so
- * scroll only when the node has one.
+ * Reveal outer scroll containers before inner ones, such as the companion row below its preview.
+ * Pinned bars and content without a scroll parent need no scrolling.
  */
 fun SemanticsNodeInteraction.scrollToIfScrollable(): SemanticsNodeInteraction =
-    try {
+    apply {
+        var ancestor = fetchSemanticsNode().parent ?: return@apply
+        var parent = onParent()
+        while (SemanticsActions.ScrollBy !in ancestor.config) {
+            ancestor = ancestor.parent ?: return@apply
+            parent = parent.onParent()
+        }
+        parent.scrollToIfScrollable()
         performScrollTo()
-    } catch (_: AssertionError) {
-        this
     }

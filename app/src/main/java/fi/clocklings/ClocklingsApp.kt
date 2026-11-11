@@ -26,6 +26,7 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import fi.clocklings.audio.Sound
+import fi.clocklings.audio.greetingVoice
 import fi.clocklings.domain.AccessPolicy
 import fi.clocklings.domain.Lessons
 import fi.clocklings.ui.AppViewModel
@@ -44,6 +45,7 @@ import fi.clocklings.ui.game.GameRoute
 import fi.clocklings.ui.game.ResultScreen
 import fi.clocklings.ui.home.HomeDestination
 import fi.clocklings.ui.home.HomeScreen
+import fi.clocklings.ui.intro.IntroGreetingVoiceEffect
 import fi.clocklings.ui.intro.IntroOverlay
 import fi.clocklings.ui.intro.coveredByIntro
 import fi.clocklings.ui.lesson.LessonListScreen
@@ -114,6 +116,7 @@ fun ClocklingsApp(
                     ConfettiHost {
                         // Aloitusnäkymä jokaisella käynnistyksellä; ei palaa näkyviin, kun näkymä luodaan uudelleen.
                         var introDone by rememberSaveable { mutableStateOf(false) }
+                        var greeted by rememberSaveable { mutableStateOf(false) }
                         val backStack = rememberNavBackStack(ScreenSavedState, Screen.Home)
                         DisposableEffect(backStack.last()) {
                             onDispose { app.stopSpeech() }
@@ -322,6 +325,12 @@ fun ClocklingsApp(
                                 onTick = { app.play(Sound.INTRO) },
                                 onDone = { introDone = true },
                             )
+                        }
+                        if (!greeted) {
+                            IntroGreetingVoiceEffect { greeting ->
+                                greeted = true
+                                app.play(greetingVoice(greeting))
+                            }
                         }
                     }
                 }

@@ -40,13 +40,13 @@
     <string name="item_robot_neck_bow_tie">Gravata-borboleta</string>
     <string name="item_robot_extra_wrench">Chave de boca</string>
     <string name="item_robot_head_propeller">Boné com hélice</string>
-    <string name="item_robot_neck_tie">Gravata</string>
+    <string name="item_robot_neck_cape">Capa de herói</string>
     <string name="item_robot_extra_heart_eyes">Tela com olhos de coração</string>
     <string name="item_robot_head_headphones">Fones de ouvido</string>
-    <string name="item_robot_neck_spring">Colar de mola</string>
+    <string name="item_robot_extra_bubble_pack">Mochila de bolhas</string>
     <string name="item_robot_extra_star_eyes">Tela com olhos de estrela</string>
     <string name="item_robot_head_chef_hat">Chapéu de chef</string>
-    <string name="item_robot_neck_lights">Colar luminoso</string>
+    <string name="item_robot_extra_wind_up_key">Chave de corda</string>
     <string name="item_robot_extra_pet">Bichinho robô</string>
     <string name="item_robot_head_star_antennas">Antenas de estrela</string>
     <string name="item_robot_neck_medal">Medalha de ouro</string>
@@ -79,12 +79,12 @@
     <string name="item_dinosaur_neck_bow_tie">Gravata-borboleta</string>
     <string name="item_dinosaur_head_party_hat">Chapéu de festa</string>
     <string name="item_dinosaur_extra_umbrella">Guarda-chuva</string>
-    <string name="item_dinosaur_neck_lei">Colar de flores</string>
+    <string name="item_dinosaur_extra_swim_ring">Boia de pato</string>
     <string name="item_dinosaur_head_hard_hat">Capacete de obra</string>
     <string name="item_dinosaur_extra_kite">Pipa</string>
     <string name="item_dinosaur_neck_binoculars">Binóculos</string>
     <string name="item_dinosaur_neck_medal">Medalha</string>
-    <string name="item_dinosaur_head_explorer_hat">Chapéu de explorador</string>
+    <string name="item_dinosaur_extra_ice_cream">Sorvete</string>
     <string name="item_dinosaur_extra_skateboard">Skate</string>
     <!-- Bunny -->
     <string name="item_bunny_neck_ribbon">Laço de fita</string>

@@ -7,20 +7,19 @@ import fi.clocklings.domain.CompanionKind
 
 /** Artwork pigments; learning text and hand roles continue to use SkColors. */
 object PersonalizationColors {
-    val Cream = Color(0xFFFFEBD0)
-    val Cat = Color(0xFFE9A05D)
-    val Dog = Color(0xFFC58A62)
-    val DogEar = Color(0xFF83543F)
-    val Robot = Color(0xFF83BFCB)
-    val Dragon = Color(0xFFAE94DC)
-    val Dinosaur = Color(0xFF86B98C)
-    val Bunny = Color(0xFFEBCBA6)
+    val Cream = Color(0xFFFBE7BE)
+    val Cat = Color(0xFFEFA04C)
+    val Dog = Color(0xFFCE8B50)
+    val DogEar = Color(0xFF7A4428)
+    val Robot = Color(0xFF5DB6BA)
+    val Dragon = Color(0xFFA77BDD)
+    val Dinosaur = Color(0xFF7DBE74)
+    val Bunny = Color(0xFFF2CFA2)
     val Unicorn = Color(0xFFF8F1F3)
-    val UnicornPatch = Color(0xFFF6CFDA)
     val UnicornHoof = Color(0xFFBBA0E0)
     val ManePink = Color(0xFFF4A3C4)
     val ManeBlue = Color(0xFFA6CBF2)
-    val Car = Color(0xFFEE7F55)
+    val Car = Color(0xFFF07A2E)
     val CarTire = Color(0xFF7D6488)
     val CarGlass = Color(0xFFAFC0E6)
     val Blue = Color(0xFF86BDED)
@@ -31,10 +30,12 @@ object PersonalizationColors {
     // Per-kind color options where a generic option would look like the kind's own Original color.
     val RobotBlue = Color(0xFF5B95DA)
     val Cheek = Color(0xFFF3A1AB)
+    val Salmon = Color(0xFFEE9189)
     val Scarf = Color(0xFFD4586C)
     val Metal = Color(0xFF385B71)
     val Screen = Color(0xFF203D4F)
     val Glow = Color(0xFFBEF4E3)
+    val ScreenMint = Color(0xFF86EFCB)
     val Space = Color(0xFF444777)
     val SpaceLight = Color(0xFFA6A6DE)
     val Forest = Color(0xFF547B57)
@@ -52,7 +53,10 @@ object PersonalizationColors {
 
     // Vinyl toy pigments: one base color each, the light and shade tones come from vinylTones.
     val ContactShadow = Color(0xFF5A3A2A)
-    val EyeInk = Color(0xFF2B2230)
+    val EyeInk = Color(0xFF2A1C1E)
+    val EyeIris = Color(0xFF9A6240)
+    val EyeIrisViolet = Color(0xFF9566D6)
+    val Cocoa = Color(0xFF5B3526)
     val Knit = Color(0xFFE2583E)
     val Teal = Color(0xFF2FA39A)
     val Gold = Color(0xFFF2B83C)
@@ -87,7 +91,12 @@ object PersonalizationColors {
     fun dinosaurMarking(color: CompanionColor): Color =
         darken(companion(CompanionKind.DINOSAUR, color), DINOSAUR_MARKING)
 
-    private const val DINOSAUR_MARKING = 0.8f
+    private const val DINOSAUR_MARKING = 0.7f
+
+    /** The robot's joints, ear discs and screen bezel: a deeper tone of its shell color, as in the reference. */
+    fun robotJoint(color: CompanionColor): Color = darken(companion(CompanionKind.ROBOT, color), ROBOT_JOINT)
+
+    private const val ROBOT_JOINT = 0.6f
 
     fun companion(
         kind: CompanionKind,

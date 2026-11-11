@@ -186,7 +186,8 @@ class ChallengeViewModelTest {
             assertEquals(ChallengePhase.END, s.phase)
             assertEquals(1, s.score)
             assertTrue(s.newRecord)
-            assertEquals(Sound.RECORD, services.sounds.last())
+            assertEquals(Sound.CHALLENGE_GO, services.sounds.first())
+            assertEquals(listOf(Sound.CHALLENGE_OVER, Sound.RECORD), services.sounds.takeLast(2))
             assertEquals(
                 1,
                 services.repository.progress
@@ -218,5 +219,25 @@ class ChallengeViewModelTest {
             vm.start()
             assertEquals(2, vm.state.value.runId)
             assertEquals(1f, vm.state.value.remainingFraction(dispatcher.scheduler.currentTime * 1_000_000))
+        }
+
+    @Test
+    fun `the fanfare follows the narrator and a quick restart silences it`() =
+        scope.runTest {
+            val vm = ChallengeViewModel(false, services, Random(4))
+            vm.start()
+            advanceTimeBy(60_001)
+            runCurrent()
+            assertEquals(ChallengePhase.END, vm.state.value.phase)
+            assertEquals(Sound.CHALLENGE_OVER, services.sounds.last())
+            advanceTimeBy(1_501)
+            assertEquals(Sound.WIN, services.sounds.last())
+            vm.start()
+            advanceTimeBy(60_001)
+            runCurrent()
+            vm.start()
+            advanceTimeBy(2_000)
+            assertEquals(Sound.CHALLENGE_GO, services.sounds.last())
+            assertEquals(1, services.sounds.count { it == Sound.WIN })
         }
 }

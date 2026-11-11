@@ -59,7 +59,7 @@ class GameViewModelTest {
             vm.pick(answer)
             assertEquals(0, vm.state.value.taskIndex)
             assertEquals(1, vm.state.value.celebrate)
-            assertEquals(listOf(Sound.OK), services.sounds)
+            assertEquals(listOf(Sound.QUESTION_READ, Sound.OK), services.sounds)
             advanceTimeBy(1)
             runCurrent()
             assertEquals(1, vm.state.value.taskIndex)
@@ -70,6 +70,11 @@ class GameViewModelTest {
         level: Int = 0,
         h24: Boolean = false,
     ) = GameViewModel(level, h24, services, Random(11))
+
+    private fun GameViewModel.revealReadAnswer() {
+        val initial = state.value
+        initial.options.filter { it != initial.task.time }.forEach(::pick)
+    }
 
     private fun TestScope.revealSetAnswer(vm: GameViewModel): Int {
         vm.pick(vm.state.value.task.time)
@@ -118,11 +123,37 @@ class GameViewModelTest {
             assertEquals(OptionState.CORRECT, s.optionStates[answer])
             assertTrue(s.feedback is GameFeedback.Praise)
             assertEquals(1, s.celebrate)
-            assertEquals(listOf(Sound.OK), services.sounds)
+            assertEquals(listOf(Sound.QUESTION_READ, Sound.OK), services.sounds)
             advanceTimeBy(1600)
             assertEquals(1, vm.state.value.taskIndex)
             assertEquals(TaskType.SET, vm.state.value.task.type)
             assertTrue(vm.state.value.interactive)
+            assertEquals(Sound.QUESTION_SET, services.sounds.last())
+        }
+
+    @Test
+    fun `the narrator reads a hand hint once the wrong-answer sound has faded`() =
+        scope.runTest {
+            val vm = game(level = 2)
+            vm.pick(vm.state.value.task.time)
+            advanceTimeBy(1600)
+            val target = vm.state.value.task.time
+            vm.onClockChange((target + 30) % 720)
+            vm.done()
+            assertTrue((vm.state.value.feedback as GameFeedback.HintText).hint is Hint.SetMinute)
+            advanceTimeBy(1249)
+            assertEquals(Sound.BAD, services.sounds.last())
+            advanceTimeBy(2)
+            assertEquals(Sound.HINT_MINUTE, services.sounds.last())
+        }
+
+    @Test
+    fun `an answer before the hint is read cancels the stale hint`() =
+        scope.runTest {
+            val vm = game()
+            vm.revealReadAnswer()
+            advanceTimeBy(5_000)
+            assertTrue(services.sounds.none { it == Sound.HINT_HOUR || it == Sound.HINT_MINUTE })
         }
 
     @Test
@@ -240,10 +271,7 @@ class GameViewModelTest {
     fun `two wrong answers then next records SHOWN`() =
         scope.runTest {
             val vm = game()
-            val s0 = vm.state.value
-            val wrong = s0.options.filter { it != s0.task.time }
-            vm.pick(wrong[0])
-            vm.pick(wrong[1])
+            vm.revealReadAnswer()
             vm.next()
             assertEquals(1, vm.state.value.taskIndex)
             assertEquals(listOf(DotOutcome.SHOWN), vm.state.value.outcomes)

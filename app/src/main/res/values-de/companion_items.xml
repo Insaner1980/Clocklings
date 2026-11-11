@@ -41,13 +41,13 @@
     <string name="item_robot_neck_bow_tie">Fliege</string>
     <string name="item_robot_extra_wrench">Schraubenschlüssel</string>
     <string name="item_robot_head_propeller">Propellermütze</string>
-    <string name="item_robot_neck_tie">Krawatte</string>
+    <string name="item_robot_neck_cape">Heldenumhang</string>
     <string name="item_robot_extra_heart_eyes">Bildschirm mit Herzaugen</string>
     <string name="item_robot_head_headphones">Kopfhörer</string>
-    <string name="item_robot_neck_spring">Federkragen</string>
+    <string name="item_robot_extra_bubble_pack">Seifenblasen-Rucksack</string>
     <string name="item_robot_extra_star_eyes">Bildschirm mit Sternenaugen</string>
     <string name="item_robot_head_chef_hat">Kochmütze</string>
-    <string name="item_robot_neck_lights">Leuchtkette</string>
+    <string name="item_robot_extra_wind_up_key">Aufziehschlüssel</string>
     <string name="item_robot_extra_pet">Roboterhaustier</string>
     <string name="item_robot_head_star_antennas">Sternenantennen</string>
     <string name="item_robot_neck_medal">Goldmedaille</string>
@@ -82,12 +82,12 @@
     <string name="item_dinosaur_neck_bow_tie">Fliege</string>
     <string name="item_dinosaur_head_party_hat">Partyhut</string>
     <string name="item_dinosaur_extra_umbrella">Regenschirm</string>
-    <string name="item_dinosaur_neck_lei">Blumenkette</string>
+    <string name="item_dinosaur_extra_swim_ring">Enten-Schwimmring</string>
     <string name="item_dinosaur_head_hard_hat">Bauhelm</string>
     <string name="item_dinosaur_extra_kite">Flugdrachen</string>
     <string name="item_dinosaur_neck_binoculars">Fernglas</string>
     <string name="item_dinosaur_neck_medal">Medaille</string>
-    <string name="item_dinosaur_head_explorer_hat">Entdeckerhut</string>
+    <string name="item_dinosaur_extra_ice_cream">Eis</string>
     <string name="item_dinosaur_extra_skateboard">Skateboard</string>
 
     <!-- Bunny -->

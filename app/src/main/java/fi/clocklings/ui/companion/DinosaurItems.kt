@@ -4,7 +4,9 @@
 package fi.clocklings.ui.companion
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.ClipOp
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.rotate
@@ -14,10 +16,12 @@ import fi.clocklings.ui.art.ovalPath
 import fi.clocklings.ui.art.ovalRect
 import fi.clocklings.ui.art.roundRectPath
 import fi.clocklings.ui.art.specular
+import fi.clocklings.ui.art.specularRect
 import fi.clocklings.ui.art.svgPath
 import fi.clocklings.ui.art.vinylBrush
 import fi.clocklings.ui.art.vinylShape
 import fi.clocklings.ui.components.starPath
+import fi.clocklings.ui.theme.PersonalizationColors
 
 // Every path, brush and stroke is built once when the map is created; the draw lambdas only paint them.
 // The dinosaur faces the viewer's right: its back (and anything worn on it) is on the left, and held
@@ -213,9 +217,6 @@ private fun umbrella(): ItemArt {
     }
 }
 
-/** Flower lei: eight flowers in four colors on leaves along the neckline. */
-private fun lei(): ItemArt = itemFlowerLei(::neckAt, 8, 6f, FlowerPetals(6.2f, 5.8f), 29f)
-
 /** Sunny hard hat with a raised ridge, a wide brim and a pearl star sticker. */
 private fun hardHat(): ItemArt {
     val brim = itemShape("M58 64 Q114 50 176 62 Q190 68 176 74 Q114 64 58 74 Q48 70 58 64 Z", ArtTones.Gold)
@@ -319,26 +320,6 @@ private fun medal(): ItemArt {
     }
 }
 
-/** Straw explorer's pith helmet with a wide brim, an olive band and a green feather. */
-private fun explorerHat(): ItemArt {
-    val brim = VinylShape(ovalPath(116f, 62f, 66f, 12f), ArtTones.Straw)
-    val dome = itemShape("M74 62 Q72 14 116 12 Q160 14 158 60 Q116 70 74 62 Z", ArtTones.Straw)
-    val band = itemShape("M74 50 Q116 60 158 48 L158 60 Q116 70 74 62 Z", ArtTones.Olive)
-    val feather = itemShape("M80 52 Q60 22 72 6 Q88 26 86 52 Z", ArtTones.Leaf)
-    val quill = svgPath("M83 52 Q74 28 72 10")
-    val button = itemCircle(116f, 13f, 4f, ArtTones.Olive)
-    val quillStroke = itemStroke(1.5f)
-    return ItemArt(ArtPart.HEAD, ItemLayer.FRONT) {
-        vinylShape(feather)
-        drawPath(quill, ArtTones.Leaf.shade, style = quillStroke)
-        vinylShape(brim)
-        vinylShape(dome)
-        specular(dome.bounds, -12f)
-        vinylShape(band)
-        vinylShape(button)
-    }
-}
-
 /** A teal skateboard with sunny wheels and stars under the feet. */
 private fun skateboard(): ItemArt {
     val deck =
@@ -366,6 +347,70 @@ private fun skateboard(): ItemArt {
     }
 }
 
+/**
+ * A big two-scoop ice cream, traced from its reference and placed as on the sheet: the far hand reaches
+ * out and closes around the lower half of the waffle cone, and the cone leans so the scoops stand beside
+ * the jaw. The rig draws the fist over the cone and the scoops over the snout.
+ */
+private fun iceCream(): ItemArt {
+    val cone = itemShape(IceCreamTrace.CONE, ArtTones.Gold)
+    // The waffle: two sets of diagonals across the cone's bounds, clipped to it.
+    val waffle =
+        Path().apply {
+            val b = cone.bounds
+            var d = -b.height
+            while (d < b.width) {
+                moveTo(b.left + d, b.top)
+                lineTo(b.left + d + b.height, b.bottom)
+                moveTo(b.right - d, b.top)
+                lineTo(b.right - d - b.height, b.bottom)
+                d += WAFFLE_STEP
+            }
+        }
+    val lower = itemShape(IceCreamTrace.BLUE, ArtTones.Sky)
+    val upper = itemShape(IceCreamTrace.PINK, ArtTones.Pink)
+    val waffleStroke = itemStroke(1.3f)
+    val shine = specularRect(180f, 136f, 9f, 5f)
+    return ItemArt(ArtPart.HAND, ItemLayer.FRONT) {
+        rotate(ICE_CREAM_LEAN_DEG, IceCreamPivot) {
+            vinylShape(cone)
+            clipPath(cone.path) { drawPath(waffle, ArtTones.Gold.shade, alpha = 0.7f, style = waffleStroke) }
+            vinylShape(lower)
+            vinylShape(upper)
+            specular(shine)
+        }
+    }
+}
+
+private const val WAFFLE_STEP = 8f
+private const val ICE_CREAM_LEAN_DEG = 15f
+private val IceCreamPivot = Offset(190f, 170f)
+
+/** The area where the rig redraws the scoops over the snout. */
+internal val IceCreamScoops = Rect(150f, 100f, 240f, 181f)
+
+/**
+ * A sunny duck swim ring around the waist, traced from its reference and placed as on the sheet. The
+ * whole ring is drawn behind the body; its front band, below the hole, and the duck's head are drawn
+ * again in front of the body and the arms' ends, so the dinosaur stands in the ring with its hands on it.
+ */
+private fun swimRing(): ItemArt {
+    val ring = itemShape(SwimRingTrace.RING, ArtTones.Sun)
+    val beak = itemShape(SwimRingTrace.BEAK, ArtTones.Knit)
+    val eye = ovalRect(169.8f, 187f, 3.2f, 4.4f)
+    val eyeGlint = ovalRect(168.8f, 185.2f, 1f)
+    val shine = specularRect(98f, 220f, 24f, 5f)
+    // Below the hole's front edge, and everything on the right where the duck's head rises.
+    val front = svgPath("M40 201 L92 201 Q128 215 163 201 L150 160 L240 160 L240 270 L40 270 Z")
+    return ItemArt(ArtPart.BODY, ItemLayer.FRONT, back = { vinylShape(ring) }) {
+        clipPath(front) { vinylShape(ring) }
+        specular(shine)
+        vinylShape(beak)
+        drawOval(PersonalizationColors.EyeInk, eye.topLeft, eye.size)
+        drawOval(Color.White, eyeGlint.topLeft, eyeGlint.size)
+    }
+}
+
 /** The dinosaur's item artwork, keyed by item id. Declared last so the shared tones above are ready. */
 internal val DinosaurItemArt: Map<String, ItemArt> =
     mapOf(
@@ -378,11 +423,11 @@ internal val DinosaurItemArt: Map<String, ItemArt> =
         "dinosaur-neck-bow-tie" to bowTie(),
         "dinosaur-head-party-hat" to partyHat(),
         "dinosaur-extra-umbrella" to umbrella(),
-        "dinosaur-neck-lei" to lei(),
+        "dinosaur-extra-swim-ring" to swimRing(),
         "dinosaur-head-hard-hat" to hardHat(),
         "dinosaur-extra-kite" to kite(),
         "dinosaur-neck-binoculars" to binoculars(),
         "dinosaur-neck-medal" to medal(),
-        "dinosaur-head-explorer-hat" to explorerHat(),
+        "dinosaur-extra-ice-cream" to iceCream(),
         "dinosaur-extra-skateboard" to skateboard(),
     )

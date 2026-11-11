@@ -171,13 +171,13 @@
     <string name="item_hair_pitkat">Kultaiset hiukset</string>
     <string name="item_dress_tahti">Tähtimekko</string>
     <string name="item_head_kukat">Kukkaseppele</string>
-    <string name="item_extra_laukku">Laukku</string>
+    <string name="item_extra_strawberry_bag">Mansikkalaukku</string>
     <string name="item_shoes_saappaat">Violetit saappaat</string>
     <string name="item_hair_kiharat">Vaaleanpunaiset kiharat</string>
-    <string name="item_dress_prinsessa">Prinsessamekko</string>
+    <string name="item_dress_overalls">Haalarit</string>
     <string name="item_head_kruunu">Kruunu</string>
     <string name="item_extra_siivet">Perhosen siivet</string>
-    <string name="item_shoes_kimalle">Kimaltavat kengät</string>
+    <string name="item_shoes_roller_skates">Rullaluistimet</string>
     <string name="item_hair_sateenkaari">Sateenkaarihiukset</string>
     <string name="item_dress_sateenkaari">Sateenkaarimekko</string>
     <string name="koulu_title">Opi</string>

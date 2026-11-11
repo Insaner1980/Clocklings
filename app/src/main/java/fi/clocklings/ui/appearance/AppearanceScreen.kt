@@ -44,7 +44,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.max
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import fi.clocklings.R
 import fi.clocklings.audio.companionVoice
 import fi.clocklings.domain.AccessPolicy
@@ -79,6 +78,7 @@ import fi.clocklings.ui.components.SwatchTile
 import fi.clocklings.ui.components.TopBar
 import fi.clocklings.ui.components.WordSafeText
 import fi.clocklings.ui.components.adaptiveGridColumns
+import fi.clocklings.ui.observeAccessPolicy
 import fi.clocklings.ui.rememberReduceMotion
 import fi.clocklings.ui.sharedClocklingsElement
 import fi.clocklings.ui.theme.PersonalizationColors
@@ -101,8 +101,7 @@ fun AppearanceScreen(
     onParent: () -> Unit = {},
 ) {
     val app = LocalAppViewModel.current
-    val purchase by app.purchaseState.collectAsStateWithLifecycle()
-    val access = AccessPolicy(purchase.fullAccess)
+    val access = app.observeAccessPolicy()
     val save = remember(app) { RetryableSave() }
     val onChange: ((Personalization) -> Personalization) -> Unit = { transform ->
         save.run { app.personalize(it, transform) }

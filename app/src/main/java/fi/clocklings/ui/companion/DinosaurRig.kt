@@ -1,4 +1,4 @@
-// Literal coordinates place the dinosaur in its 240 x 300 design grid.
+// Literal coordinates were measured on the reference sheet in the 240 x 300 design grid.
 @file:Suppress("MagicNumber")
 
 package fi.clocklings.ui.companion
@@ -8,39 +8,43 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.lerp
 import fi.clocklings.domain.CompanionColor
 import fi.clocklings.domain.CompanionKind
 import fi.clocklings.domain.Outfit
+import fi.clocklings.domain.Slot
 import fi.clocklings.ui.art.ArtTones
 import fi.clocklings.ui.art.VinylShape
 import fi.clocklings.ui.art.contactShadow
 import fi.clocklings.ui.art.groundShadow
 import fi.clocklings.ui.art.ovalPath
 import fi.clocklings.ui.art.ovalRect
+import fi.clocklings.ui.art.rimmedEye
 import fi.clocklings.ui.art.specular
 import fi.clocklings.ui.art.specularRect
 import fi.clocklings.ui.art.svgPath
+import fi.clocklings.ui.art.unitBrush
+import fi.clocklings.ui.art.unitOval
 import fi.clocklings.ui.art.vinylBrush
 import fi.clocklings.ui.art.vinylShape
 import fi.clocklings.ui.art.vinylTones
 import fi.clocklings.ui.theme.PersonalizationColors
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.sin
 
 /**
- * The dinosaur as a shaded vinyl toy, after the reference: standing upright and turned toward the
- * viewer's right, with a big round head and a long snout, rounded spikes down the back of the head,
- * the back and the tail, darker spots on the back, a cream belly, short arms and big feet. The body
- * breathes around the feet, the head tilts around the neck and partDeg swings the tail up around its
- * root. Held items ([ArtPart.HAND]) are drawn before the arms, which hold them; the backpack is drawn
- * there too, so its shoulder strap runs under the back arm.
+ * The dinosaur as a shaded vinyl toy, traced from the large three-quarter view of the owner's
+ * reference sheet: standing upright and turned toward the viewer's right. The outlines of the head
+ * with its long snout, the body with its arms and feet, the tail, the leaf-shaped spikes down the back
+ * and the cream belly are [DinosaurTrace] paths; the arms, the feet, the claws and the darker spots are
+ * forms placed where they were measured on the sheet.
+ *
+ * The body breathes around the feet, the head tilts around the neck and partDeg swings the tail up
+ * around its root. Held items ([ArtPart.HAND]) are drawn before the arms, which hold them; the backpack
+ * is drawn there too, so its shoulder strap runs under the back arm.
  */
 internal object DinosaurRig : AnimalRig(
     // The crops keep every item of the slot whole: the head crop holds the hats and the head spikes and ends
@@ -56,6 +60,8 @@ internal object DinosaurRig : AnimalRig(
             "dinosaur-extra-umbrella" to Rect(2f, 0f, 240f, 238f),
             "dinosaur-extra-kite" to Rect(0f, 0f, 218f, 218f),
             "dinosaur-extra-skateboard" to Rect(10f, 80f, 230f, 300f),
+            "dinosaur-extra-swim-ring" to Rect(50f, 136f, 212f, 298f),
+            "dinosaur-extra-ice-cream" to Rect(110f, 100f, 230f, 220f),
         ),
 ) {
     /** Hide brushes for every companion color, built once and indexed by the color's ordinal. */
@@ -70,33 +76,41 @@ internal object DinosaurRig : AnimalRig(
         groundShadow(Ground)
         posedBody(pose) {
             items(outfit, ArtPart.BODY, ItemLayer.BEHIND)
-            rotate(pose.partDeg, TailPivot) { tail(hide) }
-            spikes(BackSpikes, hide.backSpikes)
+            rotate(pose.partDeg, TailPivot) {
+                drawPath(TailSpikes, hide.tailSpikes)
+                drawPath(TailPath, hide.tail)
+                drawPath(TailSpots, hide.spots)
+            }
+            val iceCream = outfit[Slot.EXTRA] == ICE_CREAM
+            drawPath(BackSpikes, hide.backSpikes)
             drawPath(BodyPath, hide.body)
             clipPath(BodyPath) {
                 drawPath(BodySpots, hide.spots)
                 vinylShape(Belly)
+                // The belly is traced around the far hand of the plain pose; that hand now holds the cone,
+                // so the belly is whole there and the cone lies against it.
+                if (iceCream) drawOval(Belly.brush, BellyUnderHand.topLeft, BellyUnderHand.size)
+                contactShadow(ChinShadow)
             }
-            specular(BodyShine)
-            hide.limbs.draw(this, outfit)
-            contactShadow(HeadShadow)
+            (if (iceCream) hide.holdingLimbs else hide.limbs).draw(this, outfit)
+            // Only the fist shows, right of the cone: the arm stays hidden behind the cone and the body.
+            if (iceCream) fist(hide)
             rotate(pose.headTiltDeg, Neck) { head(hide, outfit, pose.blink) }
+            // The scoops stand in front of the snout: the ice cream is drawn again above the hand.
+            if (iceCream) {
+                clipRect(IceCreamScoops.left, IceCreamScoops.top, IceCreamScoops.right, IceCreamScoops.bottom) {
+                    items(outfit, ArtPart.HAND, ItemLayer.FRONT)
+                }
+            }
         }
     }
 
-    private fun DrawScope.tail(hide: DinosaurHide) {
-        spikes(TailSpikes, hide.tailSpikes)
-        drawPath(TailPath, hide.tail)
-        clipPath(TailPath) { drawPath(TailSpots, hide.spots) }
-    }
-
-    /** Rounded spikes: the fill, and a round-joined outline in the same brush that softens the tips. */
-    private fun DrawScope.spikes(
-        path: Path,
-        brush: Brush,
-    ) {
-        drawPath(path, brush)
-        drawPath(path, brush, style = SpikeStroke)
+    /** The fist around the cone, as measured on the sheet: the fingers' lobe below, the knuckles' lobe over it. */
+    private fun DrawScope.fist(hide: DinosaurHide) {
+        contactShadow(FistShadow)
+        rotate(FIST_DEG, FistLower.center) { unitOval(FistLower, hide.dot) }
+        rotate(FIST_DEG, FistUpper.center) { unitOval(FistUpper, hide.dot) }
+        specular(FistUpper)
     }
 
     private fun DrawScope.head(
@@ -104,14 +118,14 @@ internal object DinosaurRig : AnimalRig(
         outfit: Outfit,
         blink: Float,
     ) {
-        spikes(HeadSpikes, hide.headSpikes)
         drawPath(HeadPath, hide.head)
-        clipPath(HeadPath) { drawPath(HeadSpots, hide.spots) }
         specular(HeadShine, HEAD_SHINE_DEG)
         specular(SnoutShine)
-        cheeks(CheekLeft, CheekRight, ArtTones.CoolCheekColor)
-        glossyEyes(EyeLeft, EyeRight, EYE_RX, EYE_RY, blink)
-        drawPath(Nostrils, hide.shade)
+        drawOval(ArtTones.CoolCheekColor, Cheek.topLeft, Cheek.size)
+        drawPath(Brows, hide.crease, style = BrowStroke)
+        rimmedEye(EyeNear, EYE_RX, EYE_RY, blink, ArtTones.EyeInk)
+        rimmedEye(EyeFar, FAR_EYE_RX, FAR_EYE_RY, blink, ArtTones.EyeInk)
+        drawPath(Nostrils, hide.crease)
         drawPath(Mouth, PersonalizationColors.EyeInk, style = MouthStroke)
         items(outfit, ArtPart.HEAD, ItemLayer.FRONT)
     }
@@ -123,144 +137,118 @@ private class DinosaurHide(
 ) {
     private val tones = vinylTones(PersonalizationColors.companion(CompanionKind.DINOSAUR, color))
     private val marking = vinylTones(PersonalizationColors.dinosaurMarking(color))
-    val shade: Color = tones.shade
-    val spots: Color = marking.base
-    val tail: Brush = vinylBrush(TailPath.getBounds(), tones)
-    val body: Brush = vinylBrush(BodyPath.getBounds(), tones)
-    val limbs = ClawedLimbs(ArmLeft to ArmRight, ArmStroke, FootLeft to FootRight, Claws, tones)
-    val head: Brush = vinylBrush(HeadPath.getBounds(), tones)
-    val headSpikes: Brush = vinylBrush(HeadSpikes.getBounds(), marking)
-    val backSpikes: Brush = vinylBrush(BackSpikes.getBounds(), marking)
-    val tailSpikes: Brush = vinylBrush(TailSpikes.getBounds(), marking)
+
+    /** The brows and the nostrils: a deep tone of the hide. */
+    val crease: Color = lerp(tones.shade, Color.Black, CREASE_DEPTH)
+    val spots: Color = tones.shade
+    val tail = vinylBrush(TailPath, tones)
+    val body = vinylBrush(BodyPath, tones)
+    val limbs = ClawedLimbs(ArmLeft to ArmRight, ArmStroke, FootLeft to FootRight, Claws, tones, armShadow = false)
+
+    /** The limbs while the far hand holds the ice cream out beside the jaw. */
+    val holdingLimbs =
+        ClawedLimbs(ArmLeft to ArmTucked, ArmStroke, FootLeft to FootRight, Claws, tones, armShadow = false)
+    val dot: Brush = unitBrush(tones)
+    val head = vinylBrush(HeadPath, tones)
+    val backSpikes = vinylBrush(BackSpikes, marking)
+    val tailSpikes = vinylBrush(TailSpikes, marking)
 }
 
-/**
- * Rounded spikes whose bases sit at the given points just inside the outline: each spike is
- * (x, y, direction in degrees, size), and it points [size] x 1.35 outward from its base.
- */
-private fun spikePath(vararg spikes: FloatArray) =
-    Path().apply {
-        for (spike in spikes) {
-            val x = spike[0]
-            val y = spike[1]
-            val deg = spike[2]
-            val size = spike[3]
-            val a = deg * (PI.toFloat() / HALF_TURN_DEG)
-            val dx = cos(a)
-            val dy = sin(a)
-            val half = size * SPIKE_HALF_WIDTH
-            val length = size * SPIKE_LENGTH
-            val bulge = SPIKE_BULGE
-            moveTo(x - dy * half, y + dx * half)
-            quadraticTo(
-                x + dx * length * bulge - dy * half * bulge,
-                y + dy * length * bulge + dx * half * bulge,
-                x + dx * length,
-                y + dy * length,
-            )
-            quadraticTo(
-                x + dx * length * bulge + dy * half * bulge,
-                y + dy * length * bulge - dx * half * bulge,
-                x + dy * half,
-                y - dx * half,
-            )
-            close()
-        }
-    }
-
-private fun spots(vararg spots: Float) =
-    Path().apply {
-        for (i in spots.indices step 3) addPath(ovalPath(spots[i], spots[i + 1], spots[i + 2]))
-    }
-
-private const val HALF_TURN_DEG = 180f
-private const val SPIKE_HALF_WIDTH = 0.62f
-private const val SPIKE_LENGTH = 1.35f
-private const val SPIKE_BULGE = 0.55f
 private const val HEAD_SHINE_DEG = -20f
-private const val EYE_RX = 10f
-private const val EYE_RY = 12.5f
-private const val ARM_WIDTH = 15f
+private const val EYE_RX = 12.5f
+private const val EYE_RY = 13.8f
+private const val FAR_EYE_RX = 8f
+private const val FAR_EYE_RY = 12f
+private const val ARM_WIDTH = 21f
+private const val FIST_DEG = -24f
+private const val CREASE_DEPTH = 0.15f
 
-private val Neck = Offset(120f, 150f)
-private val TailPivot = Offset(92f, 246f)
+private val Neck = Offset(130f, 148f)
+private val TailPivot = Offset(82f, 250f)
 
 private val Ground = ovalRect(116f, 284f, 100f, 11f)
-private val HeadShadow = ovalRect(124f, 152f, 54f, 12f)
 
-private val SpikeStroke = Stroke(6f, cap = StrokeCap.Round, join = StrokeJoin.Round)
-
-private val TailPath =
-    svgPath("M88 220 C64 236 36 246 14 254 C5 257 5 267 16 267 C46 271 80 270 106 262 Z")
+private val TailPath = svgPath(DinosaurTrace.TAIL)
 private val TailSpikes =
-    spikePath(
-        floatArrayOf(62f, 238f, -110f, 10f),
-        floatArrayOf(42f, 246f, -105f, 8f),
-        floatArrayOf(25f, 252f, -100f, 6f),
-    )
-private val TailSpots = spots(52f, 254f, 4.5f, 34f, 259f, 3.5f)
+    Path().apply {
+        addPath(svgPath(DinosaurTrace.SPIKE_TAIL_ROOT))
+        addPath(svgPath(DinosaurTrace.SPIKE_TAIL_TIP))
+    }
+private val TailSpots =
+    Path().apply {
+        addPath(ovalPath(64.8f, 240.7f, 6.5f, 5.5f))
+        addPath(ovalPath(48.2f, 246.8f, 5f, 4.2f))
+    }
 
-private val BodyPath =
-    svgPath("M98 130 C134 124 168 150 172 200 C178 244 162 276 120 278 C84 280 64 262 62 224 C60 188 70 142 98 130 Z")
+/** The spikes behind the head and down the back: they stay with the body when the head tilts. */
 private val BackSpikes =
-    spikePath(
-        floatArrayOf(80f, 144f, 172f, 17f),
-        floatArrayOf(70f, 170f, 172f, 17f),
-        floatArrayOf(64f, 196f, 168f, 16f),
-        floatArrayOf(64f, 222f, 160f, 14f),
-    )
-private val BodySpots = spots(80f, 184f, 6f, 72f, 206f, 5f, 90f, 214f, 4f, 82f, 234f, 6.5f, 98f, 194f, 3.5f)
-private val Belly = VinylShape(ovalPath(136f, 218f, 30f, 50f), ArtTones.Cream)
-private val BodyShine = specularRect(150f, 176f, 8f, 5f)
+    Path().apply {
+        addPath(svgPath(DinosaurTrace.SPIKES_UPPER))
+        addPath(svgPath(DinosaurTrace.SPIKE_BACK))
+    }
 
-private val ArmLeft = svgPath("M108 190 Q112 202 120 208")
-private val ArmRight = svgPath("M158 186 Q166 198 176 204")
+private val BodyPath = svgPath(DinosaurTrace.BODY)
+private val BodySpots =
+    Path().apply {
+        addPath(ovalPath(88.6f, 188.4f, 6f, 9f))
+        addPath(ovalPath(87.2f, 214.2f, 7f, 11f))
+    }
+
+/** The cream belly: the traced part, continued down between the feet where the shading hid it from the trace. */
+private val Belly =
+    VinylShape(
+        Path().apply { op(svgPath(DinosaurTrace.BELLY), ovalPath(147.5f, 237f, 28.5f, 28f), PathOperation.Union) },
+        ArtTones.Cream,
+    )
+private val ChinShadow = ovalRect(134f, 150f, 36f, 9f)
+private val BellyUnderHand = ovalRect(165f, 191f, 10f, 18f)
+
+// The near arm lies across the belly; the far hand shows beside it.
+private val ArmLeft = svgPath("M108 171 Q110 190 132 193")
+private val ArmRight = svgPath("M172 176 Q178 182 176 190")
+
+/** While the far hand holds the ice cream, the limbs' own far arm is a stub under the fist. */
+private val ArmTucked = svgPath("M196 197.5 L196.5 198.5")
+
+// The fist's two lobes, measured on the ice cream sheet.
+private val FistUpper = ovalRect(197.4f, 193.8f, 10.4f, 8f)
+private val FistLower = ovalRect(192.8f, 202f, 9.4f, 7.4f)
+private val FistShadow = ovalRect(193f, 199f, 13f, 12f)
+private const val ICE_CREAM = "dinosaur-extra-ice-cream"
 private val ArmStroke = itemStroke(ARM_WIDTH)
 
-private val FootLeft = ovalRect(92f, 272f, 28f, 13f)
-private val FootRight = ovalRect(150f, 273f, 30f, 13f)
+private val FootLeft = ovalRect(101.6f, 268f, 26.7f, 14.5f)
+private val FootRight = ovalRect(159.6f, 265.6f, 27.6f, 13.2f)
 
 /** The body and feet as one outline, for items that show only where they come out from behind the dinosaur. */
-internal val DinosaurBodySilhouette: Path =
-    Path().apply {
-        addPath(BodyPath)
-        addOval(FootLeft)
-        addOval(FootRight)
-    }
+internal val DinosaurBodySilhouette: Path = BodyPath
 
 private val Claws =
     VinylShape(
         Path().apply {
-            for (x in floatArrayOf(98f, 106f, 113f, 158f, 166f, 173f)) addPath(ovalPath(x, 278f, 3f, 2.6f))
+            addPath(ovalPath(96.2f, 277f, 6f, 5.6f))
+            addPath(ovalPath(110.3f, 276.6f, 6f, 5.6f))
+            addPath(ovalPath(122f, 276f, 5.4f, 5.2f))
+            addPath(ovalPath(167.5f, 274.4f, 5.5f, 5.2f))
+            addPath(ovalPath(178.8f, 273f, 5f, 4.8f))
+            addPath(ovalPath(186f, 272.1f, 3f, 4f))
         },
         ArtTones.Cream,
     )
 
-private val HeadPath =
-    svgPath(
-        "M112 42 C148 40 168 56 172 78 C196 76 222 92 222 114 C222 136 198 146 170 146 " +
-            "C150 146 130 144 116 142 C80 142 62 120 62 94 C62 64 82 42 112 42 Z",
-    )
-private val HeadSpikes =
-    spikePath(
-        floatArrayOf(95f, 49f, -105f, 11f),
-        floatArrayOf(79f, 59f, -135f, 14f),
-        floatArrayOf(68f, 78f, -160f, 16f),
-        floatArrayOf(65f, 102f, 180f, 17f),
-        floatArrayOf(71f, 126f, 165f, 16f),
-    )
-private val HeadSpots = spots(76f, 82f, 4.5f, 84f, 68f, 3.5f)
-private val HeadShine = specularRect(96f, 60f, 20f, 9f)
-private val SnoutShine = specularRect(194f, 96f, 12f, 5f)
+private val HeadPath = svgPath(DinosaurTrace.HEAD)
+private val HeadShine = specularRect(112f, 62f, 20f, 9f)
+private val SnoutShine = specularRect(186f, 88f, 12f, 5f)
 
-private val CheekLeft = ovalRect(94f, 118f, 12f, 7f)
-private val CheekRight = ovalRect(146f, 116f, 9f, 6f)
-private val EyeLeft = Offset(102f, 92f)
-private val EyeRight = Offset(152f, 84f)
+private val Cheek = ovalRect(115.5f, 116.6f, 11.5f, 7.5f)
+private val Brows = svgPath("M101.5 76 Q104 66.5 116 65.5 M151.5 57 Q157 53 163 59")
+private val BrowStroke = itemStroke(3.5f)
+private val EyeNear = Offset(120f, 93f)
+private val EyeFar = Offset(164.6f, 78.5f)
 private val Nostrils =
     Path().apply {
-        addPath(ovalPath(200f, 100f, 3f, 2.2f))
-        addPath(ovalPath(212f, 105f, 3f, 2.2f))
+        addPath(ovalPath(192.2f, 95.3f, 3.5f, 4f))
+        addPath(ovalPath(207.5f, 93f, 2.2f, 3.6f))
     }
-private val Mouth = svgPath("M146 128 Q176 144 206 124")
+private val Mouth = svgPath("M144.5 119.5 Q168.5 139.5 202.5 114.5")
 private val MouthStroke = itemStroke(2.5f)

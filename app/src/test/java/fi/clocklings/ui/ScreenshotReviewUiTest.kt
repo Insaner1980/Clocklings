@@ -198,21 +198,11 @@ class ScreenshotReviewUiTest {
     @Test
     fun olderCompanionSaveDoesNotReplaceTheLaterSettledChoice() {
         val pending = Channel<CompletableDeferred<Unit>>(Channel.UNLIMITED)
-        val mutex = Mutex()
-        var writes = 0
         val store =
-            object : DataStore<Preferences> {
-                override val data = MutableStateFlow(preferencesOf(intPreferencesKey("stars_0") to 3))
-
-                override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences {
-                    writes++
-                    return mutex.withLock {
-                        val release = CompletableDeferred<Unit>()
-                        pending.send(release)
-                        release.await()
-                        transform(data.value).also { data.value = it }
-                    }
-                }
+            CompanionSaveStore {
+                val release = CompletableDeferred<Unit>()
+                pending.send(release)
+                release.await()
             }
         val services =
             object : AppServices by FakeServices(fullAccess = true) {
@@ -234,14 +224,14 @@ class ScreenshotReviewUiTest {
         }
         try {
             compose.onNodeWithTag("choose_companion_CAT").performScrollTo().performClick()
-            compose.waitUntil(10_000) { writes == 1 }
+            compose.waitUntil(10_000) { store.writes == 1 }
             val first = pending.tryReceive().getOrThrow()
             compose.onNodeWithTag("choose_companion_DOG").performScrollTo().performClick()
-            compose.waitUntil(10_000) { writes == 2 }
+            compose.waitUntil(10_000) { store.writes == 2 }
             compose.runOnIdle { first.complete(Unit) }
             compose.waitForIdle()
             compose.runOnIdle {
-                assertEquals("An old committed selection must not enqueue a new pager selection", 2, writes)
+                assertEquals("An old committed selection must not enqueue a new pager selection", 2, store.writes)
                 pending.tryReceive().getOrThrow().complete(Unit)
             }
             compose.waitUntil(10_000) {
@@ -249,7 +239,7 @@ class ScreenshotReviewUiTest {
                     ?.personalization
                     ?.companion == CompanionKind.DOG
             }
-            compose.runOnIdle { assertEquals(2, writes) }
+            compose.runOnIdle { assertEquals(2, store.writes) }
         } finally {
             model.viewModelScope.cancel()
             pending.cancel()
@@ -259,16 +249,9 @@ class ScreenshotReviewUiTest {
     @Test
     fun companionRetryKeepsThePreviewAfterSwitchingTabsAcrossDisplaySizes() {
         var reject = true
-        var writes = 0
         val store =
-            object : DataStore<Preferences> {
-                override val data = MutableStateFlow(preferencesOf(intPreferencesKey("stars_0") to 3))
-
-                override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences {
-                    writes++
-                    if (reject) throw IOException("Synthetic companion write failure")
-                    return transform(data.value).also { data.value = it }
-                }
+            CompanionSaveStore {
+                if (reject) throw IOException("Synthetic companion write failure")
             }
         val services =
             object : AppServices by FakeServices(fullAccess = true) {
@@ -310,11 +293,28 @@ class ScreenshotReviewUiTest {
                     .performScrollTo()
                     .assertIsDisplayed()
                 compose.runOnIdle {
-                    assertEquals("$cell: retry must not trigger another write", (index + 1) * 2, writes)
+                    assertEquals("$cell: retry must not trigger another write", (index + 1) * 2, store.writes)
                 }
             }
         } finally {
             model.viewModelScope.cancel()
+        }
+    }
+
+    private class CompanionSaveStore(
+        private val beforeWrite: suspend () -> Unit,
+    ) : DataStore<Preferences> {
+        override val data = MutableStateFlow(preferencesOf(intPreferencesKey("stars_0") to 3))
+        private val mutex = Mutex()
+        var writes = 0
+            private set
+
+        override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences {
+            writes++
+            return mutex.withLock {
+                beforeWrite()
+                transform(data.value).also { data.value = it }
+            }
         }
     }
 

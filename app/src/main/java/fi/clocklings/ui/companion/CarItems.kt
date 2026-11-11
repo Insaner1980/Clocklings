@@ -10,7 +10,6 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
-import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.drawscope.withTransform
 import fi.clocklings.ui.art.ArtTones
 import fi.clocklings.ui.art.VinylShape
@@ -51,11 +50,20 @@ private inline fun DrawScope.onWheels(
 /** Draws hubcap [block], built around the origin at radius [HUB], on both side hubs. */
 private inline fun DrawScope.onHubs(block: DrawScope.() -> Unit) = onWheels(CarHubs, HUB, block)
 
-/** Draws roof [block], written for a roof top at (120, 70), on the car's roof. */
-private inline fun DrawScope.onRoof(block: DrawScope.() -> Unit) = translate(ROOF_DX, ROOF_DY, block)
+/**
+ * Draws roof [block], written for a roof standing on (120, 77), on the sports car's low roof: moved onto
+ * the roof and scaled down to its narrower width.
+ */
+private inline fun DrawScope.onRoof(block: DrawScope.() -> Unit) =
+    withTransform({
+        translate(RoofTop.x - RoofDrawn.x, RoofTop.y - RoofDrawn.y)
+        scale(ROOF_SCALE, ROOF_SCALE, RoofDrawn)
+    }, block)
 
-private const val ROOF_DX = -5f
-private const val ROOF_DY = 43f
+/** Where the roof items are drawn standing, and where they stand on the car's roof. */
+private val RoofDrawn = Offset(120f, 77f)
+private val RoofTop = Offset(98f, 164f)
+private const val ROOF_SCALE = 0.72f
 
 /** Lines from the origin to radius [length], [count] of them evenly spaced, the first pointing up. */
 private fun spokes(
@@ -98,14 +106,25 @@ private fun plate(): ItemArt {
     val ink = Stroke(1.6f)
     val digits = itemStroke(2.2f)
     return ItemArt(ArtPart.BODY, ItemLayer.FRONT) {
-        vinylShape(plate)
-        specular(plate.bounds)
-        vinylShape(face)
-        drawPath(face.path, C.EyeInk, style = ink)
-        drawPath(hands, C.EyeInk, style = ink)
-        drawPath(twelve, C.EyeInk, style = digits)
+        // Drawn at its first size and fitted onto the lower lip, below the smile.
+        withTransform({
+            translate(PlateOn.x - PlateDrawn.x, PlateOn.y - PlateDrawn.y)
+            scale(PLATE_SCALE, PLATE_SCALE, PlateDrawn)
+        }) {
+            vinylShape(plate)
+            specular(plate.bounds)
+            vinylShape(face)
+            drawPath(face.path, C.EyeInk, style = ink)
+            drawPath(hands, C.EyeInk, style = ink)
+            drawPath(twelve, C.EyeInk, style = digits)
+        }
     }
 }
+
+/** The plate's center as drawn, and where it sits on the lip. */
+private val PlateDrawn = Offset(156f, 256.5f)
+private val PlateOn = Offset(166f, 262f)
+private const val PLATE_SCALE = 0.7f
 
 /** Silver sport rims with six spokes. */
 private fun sportRims(): ItemArt = rims(ArtTones.Steel, ArtTones.Steel.shade, 6)
@@ -130,12 +149,12 @@ private fun suitcase(): ItemArt {
     }
 }
 
-/** Round dark sunglasses over the eyes, the near arm reaching back along the side. */
+/** Dark sunglasses over the headlight eyes, the near arm reaching back along the side. */
 private fun sunglasses(): ItemArt {
-    val lenses = VinylShape(itemPath(ovalPath(116f, 216f, 19f, 15f), ovalPath(194f, 215f, 19f, 15f)), ArtTones.EyeInk)
-    val frame = svgPath("M135 212 Q155 205 175 212 M97 212 L82 204 M213 211 L222 205")
+    val lenses = VinylShape(itemPath(ovalPath(123f, 229f, 21f, 14f), ovalPath(209f, 227f, 14.5f, 13f)), ArtTones.EyeInk)
+    val frame = svgPath("M143 225 Q170 216 195 222 M103 226 L88 216 M223 224 L229 219")
     val frameStroke = itemStroke(4f)
-    val glints = svgPath("M106 209 L114 204 M184 208 L192 203")
+    val glints = svgPath("M111 223 L119 218 M201 221 L207 216")
     val glintStroke = itemStroke(3f)
     return ItemArt(ArtPart.BODY, ItemLayer.FRONT) {
         drawPath(frame, C.EyeInk, style = frameStroke)
@@ -173,33 +192,23 @@ private fun offRoadTires(): ItemArt {
 private const val TREAD_BLOCKS = 14
 
 /**
- * Race car kit: a rear spoiler on the back of the car, twin white stripes over the hood, a white
- * number roundel on the door and a lip spoiler under the bumper.
+ * Race car kit: twin white stripes down the hood between the eyes, a white number roundel on the door
+ * and a steel splitter under the lower lip. The car has its own spoiler.
  */
 private fun raceCar(): ItemArt {
-    // The spoiler sits on the rear deck below the roof line: its near end plate and strut show from
-    // the side, and the wing runs back across the car behind the cabin.
-    val struts = svgPath("M34 178 L36 194")
-    val strutStroke = itemStroke(5f)
-    val wing = itemShape("M20 173 L60 164 L61 172 L21 182 Z", ArtTones.Steel)
-    val plate = itemShape("M16 168 L23 167 L24 190 L17 191 Z", ArtTones.Steel)
     val stripes =
-        itemShape("M138 175 L146 175 L148 197 L140 197 Z M152 175 L160 175 L161 197 L153 197 Z", ArtTones.Pearl)
-    // The roundel sits under the door handle, clear of the rear tire.
-    val roundel = itemCircle(43f, 214f, 9f, ArtTones.Pearl)
-    val one = svgPath("M41 209.5 L44 207.5 L44 220.5")
-    val oneStroke = itemStroke(2.5f)
-    val lip = VinylShape(roundRectPath(96f, 266f, 210f, 274f, 4f), ArtTones.Steel)
-    return ItemArt(ArtPart.BODY, ItemLayer.FRONT, back = {
-        drawPath(struts, ArtTones.Steel.shade, style = strutStroke)
-        vinylShape(wing)
-        vinylShape(plate)
-        specular(wing.bounds)
-    }) {
+        itemShape("M146 199 L154 199 L162 238 L154 238 Z M158 199 L166 199 L175 236 L167 236 Z", ArtTones.Pearl)
+    // The roundel sits on the door, between the side vent and the front wheel.
+    val roundel = itemCircle(54f, 214f, 7f, ArtTones.Pearl)
+    val one = svgPath("M52.5 210.5 L55 209 L55 219")
+    val oneStroke = itemStroke(2.2f)
+    val splitter = VinylShape(roundRectPath(100f, 268f, 228f, 275f, 3.5f), ArtTones.Steel)
+    return ItemArt(ArtPart.BODY, ItemLayer.FRONT) {
         vinylShape(stripes)
         vinylShape(roundel)
         drawPath(one, C.EyeInk, style = oneStroke)
-        vinylShape(lip)
+        vinylShape(splitter)
+        specular(splitter.bounds)
     }
 }
 
@@ -224,9 +233,9 @@ private fun surfboard(): ItemArt {
 
 /** A steel bull bar in front of the bumper with two yellow fog lights. */
 private fun bullBar(): ItemArt {
-    val bar = svgPath("M98 272 L98 247 Q98 238 107 238 L205 238 Q214 238 214 247 L214 272 M98 256 L214 256")
-    val barStroke = itemStroke(6f)
-    val lights = VinylShape(itemPath(ovalPath(124f, 264f, 6f), ovalPath(188f, 264f, 6f)), ArtTones.Sun)
+    val bar = svgPath("M106 280 L106 264 Q106 257 113 257 L215 257 Q222 257 222 264 L222 280 M106 270 L222 270")
+    val barStroke = itemStroke(5f)
+    val lights = VinylShape(itemPath(ovalPath(130f, 263.5f, 5.5f), ovalPath(198f, 263.5f, 5.5f)), ArtTones.Sun)
     return ItemArt(ArtPart.BODY, ItemLayer.FRONT) {
         drawPath(bar, ArtTones.Steel.base, style = barStroke)
         vinylShape(lights)
@@ -285,22 +294,23 @@ private const val FLAG_ROWS = 4
 
 /** Fire engine: a red and a blue flashing light on the mirrors and a ladder leaning behind the car. */
 private fun fireEngine(): ItemArt {
-    val rails = svgPath("M20 196 L62 56 M34 200 L76 60")
+    val rails = svgPath("M20 236 L58 112 M34 240 L72 116")
     val railStroke = itemStroke(5f)
     val rungs =
         Path().apply {
             for (k in 1..7) {
                 val t = k / 8f
-                moveTo(20f + 42f * t, 196f - 140f * t)
-                lineTo(34f + 42f * t, 200f - 140f * t)
+                moveTo(20f + 38f * t, 236f - 124f * t)
+                lineTo(34f + 38f * t, 240f - 124f * t)
             }
         }
     val rungStroke = itemStroke(3.5f)
-    val red = itemCircle(67.4f, 171f, 7.5f, ArtTones.Ruby)
-    val blue = itemCircle(199.4f, 166.5f, 7.5f, ArtTones.Denim)
+    // The lights stand on the mirrors.
+    val red = itemCircle(63f, 177f, 6.5f, ArtTones.Ruby)
+    val blue = itemCircle(179f, 175.5f, 6f, ArtTones.Denim)
     val bases =
         VinylShape(
-            itemPath(roundRectPath(58f, 173f, 77f, 179f, 3f), roundRectPath(190f, 168.5f, 209f, 174.5f, 3f)),
+            itemPath(roundRectPath(55f, 181f, 71f, 186f, 2.5f), roundRectPath(172f, 179f, 186f, 184f, 2.5f)),
             ArtTones.Steel,
         )
     val glowRed = ArtTones.Ruby.light.copy(alpha = 0.35f)
@@ -309,8 +319,8 @@ private fun fireEngine(): ItemArt {
         drawPath(rungs, ArtTones.Pearl.shade, style = rungStroke)
         drawPath(rails, ArtTones.Steel.base, style = railStroke)
     }) {
-        drawCircle(glowRed, 13f, Offset(67.4f, 170f))
-        drawCircle(glowBlue, 13f, Offset(199.4f, 165.5f))
+        drawCircle(glowRed, 11.5f, Offset(63f, 176f))
+        drawCircle(glowBlue, 11f, Offset(179f, 174.5f))
         vinylShape(red)
         vinylShape(blue)
         vinylShape(bases)
@@ -321,10 +331,10 @@ private fun fireEngine(): ItemArt {
 
 /** A yellow snowplow blade in front of the bumper, with black warning stripes. */
 private fun snowplow(): ItemArt {
-    val blade = itemShape("M86 252 Q154 240 222 250 L226 282 Q154 274 82 286 Z", ArtTones.Sun)
-    val stripes = svgPath("M108 246 L100 284 M138 244 L130 280 M168 244 L160 278 M198 246 L190 278")
+    val blade = itemShape("M94 258 Q162 250 230 256 L232 284 Q162 278 90 290 Z", ArtTones.Sun)
+    val stripes = svgPath("M116 254 L108 290 M146 252 L138 286 M176 252 L168 284 M206 254 L198 284")
     val stripeStroke = Stroke(7f)
-    val edge = svgPath("M82 286 Q154 274 226 282")
+    val edge = svgPath("M90 290 Q162 278 232 284")
     val edgeStroke = itemStroke(4f)
     return ItemArt(ArtPart.BODY, ItemLayer.FRONT) {
         vinylShape(blade)
@@ -386,13 +396,13 @@ private fun rallyLights(): ItemArt {
  * flame shooting out and a lightning bolt on the door.
  */
 private fun rocketCar(): ItemArt {
-    val farFin = itemShape("M60 190 L46 130 Q46 122 54 128 L84 182 Z", ArtTones.Ruby)
-    val nearFin = itemShape("M30 214 L8 148 Q6 138 16 144 L54 192 Z", ArtTones.Ruby)
-    val nozzle = itemShape("M27 203 L10 198 L10 228 L27 223 Z", ArtTones.Steel)
-    val outer = itemShape("M11 200 Q-14 213 11 226 Z", ArtTones.Knit)
-    val inner = itemShape("M11 205 Q-2 213 11 221 Z", ArtTones.Sun)
-    // Between the door handle and the rear tire.
-    val bolt = itemShape("M48 204 L39 215 L44.5 215 L40.5 223 L53 211 L47.5 211 L52 204 Z", ArtTones.Sun)
+    val farFin = itemShape("M66 182 L54 136 Q54 128 62 134 L88 176 Z", ArtTones.Ruby)
+    val nearFin = itemShape("M34 214 L12 160 Q10 150 20 156 L56 196 Z", ArtTones.Ruby)
+    val nozzle = itemShape("M22 212 L6 207 L6 237 L22 232 Z", ArtTones.Steel)
+    val outer = itemShape("M7 209 Q-16 222 7 235 Z", ArtTones.Knit)
+    val inner = itemShape("M7 214 Q-4 222 7 230 Z", ArtTones.Sun)
+    // On the door, between the side vent and the front wheel.
+    val bolt = itemShape("M58 207 L49 218 L54.5 218 L50.5 226 L63 214 L57.5 214 L62 207 Z", ArtTones.Sun)
     return ItemArt(ArtPart.BODY, ItemLayer.FRONT, back = {
         vinylShape(farFin)
         vinylShape(nearFin)

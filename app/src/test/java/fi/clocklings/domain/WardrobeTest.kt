@@ -80,7 +80,7 @@ class WardrobeTest {
         val o = Outfit.Default.with(Slot.EXTRA, "extra-siivet")
         assertEquals("extra-siivet", o[Slot.EXTRA])
         assertEquals("shoes-tossut", o[Slot.SHOES])
-        assertFalse(o.isOn(Wardrobe.item("extra-laukku")))
+        assertFalse(o.isOn(Wardrobe.item("extra-strawberry-bag")))
         assertTrue(o.isOn(Wardrobe.item("extra-siivet")))
     }
 
@@ -95,10 +95,10 @@ class WardrobeTest {
                     Slot.HEAD to "head-rusetti",
                 ),
             )
-        val item = Wardrobe.item("extra-laukku")
+        val item = Wardrobe.item("extra-strawberry-bag")
         val preview = outfit.previewFor(item)
         assertEquals(setOf(Slot.HAIR, Slot.DRESS, Slot.SHOES, Slot.EXTRA), preview.items.keys)
-        assertEquals("extra-laukku", preview[Slot.EXTRA])
+        assertEquals("extra-strawberry-bag", preview[Slot.EXTRA])
     }
 
     @Test

@@ -18,7 +18,7 @@
     <string name="purchase_owned">Vollversion freigeschaltet.</string>
     <string name="purchase_restored">Vollversion wiederhergestellt.</string>
     <string name="purchase_not_owned">Für das aktuelle Google Play-Konto wurde kein Kauf der Vollversion gefunden.</string>
-    <string name="purchase_failed">Der Kauf konnte nicht geprüft werden. Bereits bestätigter Zugriff bleibt erhalten. Bitte versuche es erneut.</string>
+    <string name="purchase_failed">Der Kauf konnte nicht geprüft werden. Bitte versuche es erneut.</string>
     <string name="purchase_acknowledgement_pending">Der volle Zugriff ist verfügbar. Die Bestätigung an Google Play muss erneut versucht werden.</string>
     <string name="purchase_retry">Erneut versuchen</string>
     <string name="purchase_restore">Käufe wiederherstellen</string>

@@ -60,9 +60,13 @@ class LocalPurchaseVerifier(
             null
         }
 
+    @Suppress("kotlin:S4790")
     private fun validSignature(receipt: PurchaseReceipt): Boolean {
         val publicKey = key ?: return false
         // Play's purchase-data protocol uses RSA PKCS#1 v1.5 with SHA-1, not an app-selected hash.
+        // Protocol reference: TrivialDrive Security.java in Google's billing sample:
+        // https://dl.google.com/android/repository/play_billing_r05.zip
+        // nosemgrep: kotlin.lang.security.use-of-sha1.use-of-sha1
         val verifier = Signature.getInstance("SHA1withRSA")
         verifier.initVerify(publicKey)
         verifier.update(receipt.json.toByteArray(Charsets.UTF_8))

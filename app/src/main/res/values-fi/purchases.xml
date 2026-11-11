@@ -18,7 +18,7 @@
     <string name="purchase_owned">Täysversio on avattu.</string>
     <string name="purchase_restored">Täysversio on palautettu.</string>
     <string name="purchase_not_owned">Nykyiseltä Google Play -tililtä ei löytynyt täysversion ostoa.</string>
-    <string name="purchase_failed">Ostoa ei voitu tarkistaa. Aiemmin varmennettu käyttöoikeus säilyy. Yritä uudelleen.</string>
+    <string name="purchase_failed">Ostoa ei voitu tarkistaa. Yritä uudelleen.</string>
     <string name="purchase_acknowledgement_pending">Täysversio on käytössä. Vahvistus Google Playlle vaatii uuden yrityksen.</string>
     <string name="purchase_retry">Yritä uudelleen</string>
     <string name="purchase_restore">Palauta ostot</string>

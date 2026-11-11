@@ -9,6 +9,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Bitmap
 import android.graphics.Rect
+import android.os.Build
 import android.os.Bundle
 import android.os.ParcelFileDescriptor.AutoCloseInputStream
 import android.os.SystemClock
@@ -341,10 +342,8 @@ class NativeProviderDeviceTest : InputDeviceTest() {
     fun controlledImeTwoUndoTwoRedo() {
         openField()
         useBareFieldIfRequested()
-        lateinit var clipboard: ClipboardManager
-        instrumentation.runOnMainSync { clipboard = compose.activity.getSystemService(ClipboardManager::class.java) }
-        var previous: ClipData? = null
-        instrumentation.runOnMainSync { previous = clipboard.primaryClip }
+        val clipboard = compose.runOnIdle { compose.activity.getSystemService(ClipboardManager::class.java) }
+        val previous = compose.runOnIdle { clipboard.primaryClip }
         try {
             compose.waitUntil(5_000) {
                 instrumentation.uiAutomation.windows.any {
@@ -386,7 +385,11 @@ class NativeProviderDeviceTest : InputDeviceTest() {
             }
         } finally {
             instrumentation.runOnMainSync {
-                previous?.let(clipboard::setPrimaryClip) ?: clipboard.setPrimaryClip(ClipData.newPlainText("", ""))
+                restoreClipboard(clipboard, previous)
+                if (Build.VERSION.SDK_INT >= 28) {
+                    assertEquals("Clipboard presence must be restored", previous != null, clipboard.hasPrimaryClip())
+                    record("Clipboard restored: before=${previous != null}, after=${clipboard.hasPrimaryClip()}")
+                }
             }
         }
     }
@@ -597,5 +600,16 @@ class NativeProviderDeviceTest : InputDeviceTest() {
 
     private fun record(message: String) {
         instrumentation.sendStatus(2, Bundle().apply { putString("stream", "$message\n") })
+    }
+}
+
+internal fun restoreClipboard(
+    clipboard: ClipboardManager,
+    previous: ClipData?,
+) {
+    when {
+        previous != null -> clipboard.setPrimaryClip(previous)
+        Build.VERSION.SDK_INT >= 28 -> clipboard.clearPrimaryClip()
+        else -> clipboard.setPrimaryClip(ClipData.newPlainText("", ""))
     }
 }

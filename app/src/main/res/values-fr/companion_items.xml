@@ -41,13 +41,13 @@
     <string name="item_robot_neck_bow_tie">Nœud papillon</string>
     <string name="item_robot_extra_wrench">Clé de mécanicien</string>
     <string name="item_robot_head_propeller">Casquette à hélice</string>
-    <string name="item_robot_neck_tie">Cravate</string>
+    <string name="item_robot_neck_cape">Cape de héros</string>
     <string name="item_robot_extra_heart_eyes">Écran aux yeux en cœur</string>
     <string name="item_robot_head_headphones">Casque audio</string>
-    <string name="item_robot_neck_spring">Collier à ressort</string>
+    <string name="item_robot_extra_bubble_pack">Sac à bulles</string>
     <string name="item_robot_extra_star_eyes">Écran aux yeux en étoile</string>
     <string name="item_robot_head_chef_hat">Toque de cuisine</string>
-    <string name="item_robot_neck_lights">Collier lumineux</string>
+    <string name="item_robot_extra_wind_up_key">Clé à remonter</string>
     <string name="item_robot_extra_pet">Animal robot</string>
     <string name="item_robot_head_star_antennas">Antennes étoilées</string>
     <string name="item_robot_neck_medal">Médaille d’or</string>
@@ -82,12 +82,12 @@
     <string name="item_dinosaur_neck_bow_tie">Nœud papillon</string>
     <string name="item_dinosaur_head_party_hat">Chapeau de fête</string>
     <string name="item_dinosaur_extra_umbrella">Parapluie</string>
-    <string name="item_dinosaur_neck_lei">Collier de fleurs</string>
+    <string name="item_dinosaur_extra_swim_ring">Bouée canard</string>
     <string name="item_dinosaur_head_hard_hat">Casque de chantier</string>
     <string name="item_dinosaur_extra_kite">Cerf-volant</string>
     <string name="item_dinosaur_neck_binoculars">Jumelles</string>
     <string name="item_dinosaur_neck_medal">Médaille</string>
-    <string name="item_dinosaur_head_explorer_hat">Chapeau d’explorateur</string>
+    <string name="item_dinosaur_extra_ice_cream">Glace</string>
     <string name="item_dinosaur_extra_skateboard">Skateboard</string>
 
     <!-- Bunny -->

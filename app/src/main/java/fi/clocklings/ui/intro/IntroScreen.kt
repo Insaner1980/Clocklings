@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.min
 import fi.clocklings.R
 import fi.clocklings.domain.ClockTime
+import fi.clocklings.domain.Greeting
 import fi.clocklings.domain.timeLanguage
 import fi.clocklings.ui.greetingText
 import fi.clocklings.ui.locale.LocalAppLanguage
@@ -116,6 +117,22 @@ fun Modifier.coveredByIntro(covered: Boolean): Modifier =
     focusProperties { onEnter = { if (covered) cancelFocusChange() } }
         .focusGroup()
         .then(if (covered) Modifier.clearAndSetSemantics { } else Modifier)
+
+/**
+ * Hands the intro's greeting to [onGreeting] for the narrator once the jingle has faded. It lives
+ * beside the overlay, not in it, because the greeting is spoken as the overlay leaves.
+ */
+@Composable
+fun IntroGreetingVoiceEffect(onGreeting: (Greeting) -> Unit) {
+    val reduceMotion = rememberReduceMotion()
+    val language = LocalAppLanguage.current
+    val currentOnGreeting by rememberUpdatedState(onGreeting)
+    LaunchedEffect(Unit) {
+        val greeting = timeLanguage(language).greeting(ClockTime.now())
+        delay(if (reduceMotion) T.STILL_GREETING_VOICE_MS else T.GREETING_VOICE_MS)
+        currentOnGreeting(greeting)
+    }
+}
 
 @Composable
 private fun IntroTimelineEffect(

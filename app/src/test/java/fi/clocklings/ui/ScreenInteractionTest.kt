@@ -37,7 +37,6 @@ import fi.clocklings.domain.Personalization
 import fi.clocklings.domain.Progress
 import fi.clocklings.domain.Settings
 import fi.clocklings.ui.appearance.LocalPersonalization
-import fi.clocklings.ui.ask.AskScreen
 import fi.clocklings.ui.companion.companionAspectRatio
 import fi.clocklings.ui.game.ResultScreen
 import fi.clocklings.ui.home.HomeDestination
@@ -316,27 +315,14 @@ class ScreenInteractionTest {
     fun togetherPhaseActionsStayVisibleWithoutScrollingAndTheAnswerShowsAfterReveal() {
         val viewport = mutableStateOf(360 to 1f)
         val model = AppViewModel(FakeServices(fullAccess = true))
-        compose.setContent {
-            val base = LocalDensity.current
-            CompositionLocalProvider(
-                LocalAppViewModel provides model,
-                LocalDensity provides Density(base.density, viewport.value.second),
-            ) {
-                ClocklingsTheme {
-                    Box(Modifier.requiredSize(viewport.value.first.dp, 640.dp)) {
-                        AskScreen(false, false, false, {})
-                    }
-                }
-            }
-        }
-        val cells = listOf(360 to 1f, 320 to 1f, 360 to 2f, 320 to 2f)
+        compose.setAskContent(model, viewport)
 
         fun assertActionVisible(label: String) {
-            for (cell in cells) {
+            for (cell in TestViewports) {
                 compose.runOnIdle { viewport.value = cell }
                 compose.onNodeWithText(label).assertIsDisplayed()
             }
-            compose.runOnIdle { viewport.value = cells.first() }
+            compose.runOnIdle { viewport.value = TestViewports.first() }
         }
         assertActionVisible("Pass to partner")
         compose.onNodeWithText("Pass to partner").performClick()
@@ -355,7 +341,7 @@ class ScreenInteractionTest {
         var scroll = compose.onNode(hasScrollAction()).fetchSemanticsNode()
         assertEquals(0f, scroll.config[SemanticsProperties.VerticalScrollAxisRange].value())
         assertActionVisible("Pass to partner")
-        for (cell in cells) {
+        for (cell in TestViewports) {
             compose.runOnIdle { viewport.value = cell }
             compose.onNodeWithText("Pass to partner").performClick()
             compose.onNodeWithText("Show the answer").performClick()

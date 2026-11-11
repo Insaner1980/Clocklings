@@ -47,7 +47,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import fi.clocklings.R
 import fi.clocklings.audio.Sound
 import fi.clocklings.domain.AccessPolicy
@@ -76,6 +75,7 @@ import fi.clocklings.ui.components.SwatchTile
 import fi.clocklings.ui.components.TopBar
 import fi.clocklings.ui.components.WordSafeText
 import fi.clocklings.ui.itemName
+import fi.clocklings.ui.observeAccessPolicy
 import fi.clocklings.ui.slotName
 import fi.clocklings.ui.theme.PersonalizationColors
 import fi.clocklings.ui.theme.Section
@@ -99,8 +99,7 @@ fun WardrobeScreen(
     onParent: () -> Unit = {},
 ) {
     val app = LocalAppViewModel.current
-    val purchase by app.purchaseState.collectAsStateWithLifecycle()
-    val access = AccessPolicy(purchase.fullAccess)
+    val access = app.observeAccessPolicy()
     var name by rememberSaveable(kind) { mutableStateOf(progress.nameFor(kind)) }
     val (saveName, nameRetry) = rememberNameSave(kind, name)
     val colorSave = remember(app, kind) { RetryableSave() }

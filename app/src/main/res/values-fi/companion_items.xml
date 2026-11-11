@@ -36,13 +36,13 @@
     <string name="item_robot_neck_bow_tie">Rusettisolmuke</string>
     <string name="item_robot_extra_wrench">Jakoavain</string>
     <string name="item_robot_head_propeller">Propellilakki</string>
-    <string name="item_robot_neck_tie">Solmio</string>
+    <string name="item_robot_neck_cape">Sankariviitta</string>
     <string name="item_robot_extra_heart_eyes">Sydänsilmät</string>
     <string name="item_robot_head_headphones">Kuulokkeet</string>
-    <string name="item_robot_neck_spring">Jousikaulus</string>
+    <string name="item_robot_extra_bubble_pack">Kuplareppu</string>
     <string name="item_robot_extra_star_eyes">Tähtisilmät</string>
     <string name="item_robot_head_chef_hat">Kokinhattu</string>
-    <string name="item_robot_neck_lights">Valokaulanauha</string>
+    <string name="item_robot_extra_wind_up_key">Vetoavain</string>
     <string name="item_robot_extra_pet">Robottilemmikki</string>
     <string name="item_robot_head_star_antennas">Tähtiantennit</string>
     <string name="item_robot_neck_medal">Kultamitali</string>
@@ -73,12 +73,12 @@
     <string name="item_dinosaur_neck_bow_tie">Rusettisolmuke</string>
     <string name="item_dinosaur_head_party_hat">Juhlahattu</string>
     <string name="item_dinosaur_extra_umbrella">Sateenvarjo</string>
-    <string name="item_dinosaur_neck_lei">Kukkakaulanauha</string>
+    <string name="item_dinosaur_extra_swim_ring">Ankkauimarengas</string>
     <string name="item_dinosaur_head_hard_hat">Suojakypärä</string>
     <string name="item_dinosaur_extra_kite">Leija</string>
     <string name="item_dinosaur_neck_binoculars">Kiikarit</string>
     <string name="item_dinosaur_neck_medal">Mitali</string>
-    <string name="item_dinosaur_head_explorer_hat">Tutkijan hattu</string>
+    <string name="item_dinosaur_extra_ice_cream">Jäätelö</string>
     <string name="item_dinosaur_extra_skateboard">Rullalauta</string>
 
     <!-- Bunny -->
