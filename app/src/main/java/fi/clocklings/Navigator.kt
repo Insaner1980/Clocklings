@@ -8,6 +8,7 @@ import fi.clocklings.domain.AccessPolicy
 @Stable
 class Navigator(
     private val stack: MutableList<NavKey>,
+    private val beforeNavigate: () -> Unit = {},
     private val access: () -> AccessPolicy,
 ) {
     init {
@@ -26,22 +27,26 @@ class Navigator(
     }
 
     fun push(screen: Screen) {
+        beforeNavigate()
         stack.add(screen.accessibleDestination(access()))
     }
 
     fun pop() {
+        beforeNavigate()
         if (stack.size > 1) stack.removeAt(stack.lastIndex)
         stack[stack.lastIndex] = (stack.last() as Screen).accessibleDestination(access())
     }
 
     /** Korvaa päällimmäisen näkymän (esim. peli → tulos), jolloin takaisin vie edelliseen näkymään. */
     fun replace(screen: Screen) {
+        beforeNavigate()
         val target = screen.accessibleDestination(access())
         if (stack.size > 1) stack[stack.lastIndex] = target else stack.add(target)
     }
 
     /** Palaa pinossa näkymään [screen] tai lisää sen kodin päälle. */
     fun popTo(screen: Screen) {
+        beforeNavigate()
         val target = screen.accessibleDestination(access())
         val index = stack.indexOfLast { it == target }
         if (index >= 0) {

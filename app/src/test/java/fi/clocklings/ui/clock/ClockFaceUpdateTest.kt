@@ -1,6 +1,7 @@
 package fi.clocklings.ui.clock
 
-import android.os.Looper
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.view.View
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.CompositionLocalProvider
@@ -9,6 +10,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
@@ -30,8 +33,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.Shadows.shadowOf
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.roundToInt
@@ -79,8 +80,8 @@ class ClockFaceUpdateTest {
                 )
             }
             compose.runOnIdle { assertEquals(195, command.value.time) }
-            awaitCommittedFrame(view)
-            val pixels = clock.captureToImage().toPixelMap()
+            val bounds = clock.fetchSemanticsNode().boundsInRoot
+            val pixels = captureClock(view, bounds)
             val scale = pixels.width / ClockSpec.VIEW_SIZE
             val centre = (ClockSpec.CENTER - ClockSpec.VIEW_ORIGIN) * scale
             val angle = Math.toRadians(102.0)
@@ -102,19 +103,24 @@ class ClockFaceUpdateTest {
         }
     }
 
-    private fun awaitCommittedFrame(view: View) {
-        val committed = AtomicBoolean()
-        compose.runOnIdle {
-            assertTrue(view.isHardwareAccelerated)
-            // API 37 native PixelCopy can return the previous surface despite Compose being idle.
-            view.viewTreeObserver.registerFrameCommitCallback { committed.set(true) }
-            view.invalidate()
-        }
-        compose.waitForIdle()
-        compose.waitUntil(2_000) {
-            // The render thread can post its commit callback after the first idle pass.
-            shadowOf(Looper.getMainLooper()).idle()
-            committed.get()
+    private fun captureClock(
+        view: View,
+        bounds: Rect,
+    ) = compose.runOnIdle {
+        // Draw current Compose content synchronously; PixelCopy may retain an older surface.
+        val bitmap =
+            Bitmap.createBitmap(
+                bounds.width.roundToInt(),
+                bounds.height.roundToInt(),
+                Bitmap.Config.ARGB_8888,
+            )
+        try {
+            val canvas = Canvas(bitmap)
+            canvas.translate(-bounds.left, -bounds.top)
+            view.draw(canvas)
+            bitmap.asImageBitmap().toPixelMap()
+        } finally {
+            bitmap.recycle()
         }
     }
 

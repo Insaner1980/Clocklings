@@ -12,6 +12,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import fi.clocklings.domain.CompanionKind
+import fi.clocklings.domain.Item
 import fi.clocklings.domain.Outfit
 import fi.clocklings.domain.Progress
 import fi.clocklings.domain.Settings
@@ -145,8 +146,19 @@ class ProgressRepository(
                 Outfit()
             }
         }
-        return kind.slots.fold(Outfit()) { outfit, slot ->
-            outfit.with(slot, this[outfitKey(kind, slot)]?.let { ownItem(kind, slot, it)?.id })
+        val current =
+            kind.slots.fold(Outfit()) { outfit, slot ->
+                val item = this[outfitKey(kind, slot)]?.let { ownItem(kind, slot, it) }
+                outfit.with(slot, item?.takeIf { it.slot == slot }?.id)
+            }
+        // Keep a valid item already in the destination slot. Competing legacy items follow slot order.
+        return kind.slots.fold(current) { outfit, slot ->
+            val replacement = this[outfitKey(kind, slot)]?.let { ownItem(kind, slot, it) }
+            if (replacement != null && outfit[replacement.slot] == null) {
+                outfit.with(replacement.slot, replacement.id)
+            } else {
+                outfit
+            }
         }
     }
 
@@ -154,7 +166,12 @@ class ProgressRepository(
         kind: CompanionKind,
         slot: Slot,
         id: String,
-    ) = Wardrobe.itemOrNull(id)?.takeIf { it.companion == kind && it.slot == slot }
+    ): Item? {
+        val replacement = REPLACED_ITEMS[id]?.takeIf { (sourceSlot, _) -> sourceSlot == slot }
+        return Wardrobe
+            .itemOrNull(replacement?.second ?: id)
+            ?.takeIf { it.companion == kind && (replacement != null || it.slot == slot) }
+    }
 
     private fun MutablePreferences.write(p: Progress) {
         STARS.forEachIndexed { i, key -> this[key] = p.stars[i] }
@@ -180,6 +197,18 @@ class ProgressRepository(
         val HELP = booleanPreferencesKey("help")
         val H24 = booleanPreferencesKey("h24")
         val APP_LANGUAGE = stringPreferencesKey("app_language")
+
+        val REPLACED_ITEMS =
+            mapOf(
+                "extra-laukku" to (Slot.EXTRA to "extra-strawberry-bag"),
+                "dress-prinsessa" to (Slot.DRESS to "dress-overalls"),
+                "shoes-kimalle" to (Slot.SHOES to "shoes-roller-skates"),
+                "robot-neck-tie" to (Slot.NECK to "robot-neck-cape"),
+                "robot-neck-spring" to (Slot.NECK to "robot-extra-bubble-pack"),
+                "robot-neck-lights" to (Slot.NECK to "robot-extra-wind-up-key"),
+                "dinosaur-neck-lei" to (Slot.NECK to "dinosaur-extra-swim-ring"),
+                "dinosaur-head-explorer-hat" to (Slot.HEAD to "dinosaur-extra-ice-cream"),
+            )
 
         /** Companions with an outfit and a name: the doll and every animal. */
         val DRESSABLE = CompanionKind.entries.filter { it.slots.isNotEmpty() }

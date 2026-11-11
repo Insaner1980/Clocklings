@@ -116,12 +116,9 @@ fun ClocklingsApp(
                     ConfettiHost {
                         // Aloitusnäkymä jokaisella käynnistyksellä; ei palaa näkyviin, kun näkymä luodaan uudelleen.
                         var introDone by rememberSaveable { mutableStateOf(false) }
-                        var greeted by rememberSaveable { mutableStateOf(false) }
                         val backStack = rememberNavBackStack(ScreenSavedState, Screen.Home)
-                        DisposableEffect(backStack.last()) {
-                            onDispose { app.stopSpeech() }
-                        }
-                        val nav = remember(backStack) { Navigator(backStack) { app.access } }
+                        // Stop the old screen's speech before the next ViewModel can start its narration.
+                        val nav = remember(backStack, app) { Navigator(backStack, app::stopSpeech) { app.access } }
                         // Ignore repeated or delayed callbacks from a destination that has already left.
                         val go = { from: Screen, screen: Screen ->
                             nav.ifCurrent(from) {
@@ -326,11 +323,8 @@ fun ClocklingsApp(
                                 onDone = { introDone = true },
                             )
                         }
-                        if (!greeted) {
-                            IntroGreetingVoiceEffect { greeting ->
-                                greeted = true
-                                app.play(greetingVoice(greeting))
-                            }
+                        IntroGreetingVoiceEffect(active = backStack.last() == Screen.Home) { greeting ->
+                            app.play(greetingVoice(greeting))
                         }
                     }
                 }

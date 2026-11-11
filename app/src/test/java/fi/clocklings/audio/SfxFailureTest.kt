@@ -74,7 +74,7 @@ class SfxFailureTest {
             try {
                 awaitLoading(sfx)
                 assertTrue("Load failure must not escape the sound scope: $errors", errors.isEmpty())
-                val samples = ReflectionHelpers.getField<Map<Sound, Int>>(sfx, "samples")
+                val samples = ReflectionHelpers.getField<Map<Sound, *>>(sfx, "samples")
                 assertTrue("Failed sample must not be retained", Sound.BAD !in samples)
                 val pool = ReflectionHelpers.getField<SoundPool>(sfx, "pool")
                 val shadow = Shadow.extract<FailingPool>(pool)

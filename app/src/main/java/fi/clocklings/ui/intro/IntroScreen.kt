@@ -19,8 +19,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -123,13 +126,20 @@ fun Modifier.coveredByIntro(covered: Boolean): Modifier =
  * beside the overlay, not in it, because the greeting is spoken as the overlay leaves.
  */
 @Composable
-fun IntroGreetingVoiceEffect(onGreeting: (Greeting) -> Unit) {
+fun IntroGreetingVoiceEffect(
+    active: Boolean,
+    onGreeting: (Greeting) -> Unit,
+) {
+    var finished by rememberSaveable { mutableStateOf(false) }
     val reduceMotion = rememberReduceMotion()
     val language = LocalAppLanguage.current
     val currentOnGreeting by rememberUpdatedState(onGreeting)
-    LaunchedEffect(Unit) {
+    LaunchedEffect(active) {
+        if (!active) finished = true
+        if (finished) return@LaunchedEffect
         val greeting = timeLanguage(language).greeting(ClockTime.now())
         delay(if (reduceMotion) T.STILL_GREETING_VOICE_MS else T.GREETING_VOICE_MS)
+        finished = true
         currentOnGreeting(greeting)
     }
 }

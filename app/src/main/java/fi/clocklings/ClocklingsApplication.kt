@@ -81,7 +81,10 @@ class AppContainer(
         if (resumedActivities > 0) speech.speak(text)
     }
 
-    override fun stopSpeech() = speech.stop()
+    override fun stopSpeech() {
+        speech.stop()
+        sfx.stopNarration()
+    }
 
     override fun setSpeechLanguage(language: AppLanguage) {
         speech.setLanguage(language)

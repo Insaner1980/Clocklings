@@ -1444,10 +1444,11 @@ internal fun fi.clocklings.ui.home.rememberHomeTime(readTime: kotlin.Function0<k
     - readTime: STABLE (function type)
 
 @Composable
-public fun fi.clocklings.ui.intro.IntroGreetingVoiceEffect(onGreeting: kotlin.Function1<fi.clocklings.domain.Greeting, kotlin.Unit>): kotlin.Unit
+public fun fi.clocklings.ui.intro.IntroGreetingVoiceEffect(active: kotlin.Boolean, onGreeting: kotlin.Function1<fi.clocklings.domain.Greeting, kotlin.Unit>): kotlin.Unit
   skippable: true
   restartable: true
   params:
+    - active: STABLE (primitive type)
     - onGreeting: STABLE (function type)
 
 @Composable

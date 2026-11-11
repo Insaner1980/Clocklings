@@ -49,7 +49,12 @@ class Sfx(
     /** The latest stream of each clip, so a replay restarts it like an AudioTrack. */
     private val streams = mutableMapOf<Sound, Int>()
 
-    @Volatile private var samples: Map<Sound, Int> = emptyMap()
+    private data class Sample(
+        val id: Int,
+        val language: AppLanguage?,
+    )
+
+    @Volatile private var samples: Map<Sound, Sample> = emptyMap()
 
     /** Serializes loading, so the shared and the narration loaders never overwrite each other. */
     private val loading = Mutex()
@@ -80,10 +85,11 @@ class Sfx(
     private fun load(
         resources: Context,
         sound: Sound,
+        language: AppLanguage? = null,
     ) {
         val clip = sound.clip ?: return
         runCatching { pool.load(resources, clip, 1).also { check(it != 0) { "SoundPool rejected clip" } } }
-            .onSuccess { samples = samples + (sound to it) }
+            .onSuccess { samples = samples + (sound to Sample(it, language)) }
             .onFailure { Log.w(TAG, "Could not load sound $sound", it) }
     }
 
@@ -92,8 +98,11 @@ class Sfx(
      * new clips have loaded, narration stays silent rather than speaking another language.
      */
     fun setLanguage(language: AppLanguage) {
-        if (this.language == language) return
-        this.language = language
+        synchronized(streams) {
+            if (this.language == language) return
+            this.language = language
+            stopNarration()
+        }
         scope.launch(ioDispatcher) {
             loading.withLock {
                 // A later choice supersedes this one before any work is wasted on it.
@@ -101,11 +110,11 @@ class Sfx(
                 val previous = samples.filterKeys { it.narration }
                 samples = samples - previous.keys
                 previous.values.forEach { sample ->
-                    pool.unload(sample)
-                    synchronized(loaded) { loaded -= sample }
+                    pool.unload(sample.id)
+                    synchronized(loaded) { loaded -= sample.id }
                 }
                 val localized = localizedContext(language)
-                Sound.entries.filter { it.narration }.forEach { load(localized, it) }
+                Sound.entries.filter { it.narration }.forEach { load(localized, it, language) }
             }
         }
     }
@@ -163,15 +172,31 @@ class Sfx(
         sound: Sound,
         rate: Float,
     ) {
-        val sample = samples[sound]?.takeIf { synchronized(loaded) { it in loaded } } ?: return
         synchronized(streams) {
+            val sample = samples[sound] ?: return
+            if (
+                (sound.narration && sample.language != language) ||
+                !synchronized(loaded) { sample.id in loaded }
+            ) {
+                return
+            }
             // A new voice cuts off the previous one, e.g. while browsing companions.
             streams.filterKeys { it == sound || (sound.voice && it.voice) }.forEach { (playing, stream) ->
                 pool.stop(stream)
                 streams -= playing
             }
-            val stream = pool.play(sample, FULL_VOLUME, FULL_VOLUME, 0, NO_LOOP, rate)
+            val stream = pool.play(sample.id, FULL_VOLUME, FULL_VOLUME, 0, NO_LOOP, rate)
             if (stream == 0) Log.w(TAG, "Ääntä $sound ei voitu soittaa") else streams[sound] = stream
+        }
+    }
+
+    /** Stops screen-specific narration while preserving companion voices and other effects. */
+    fun stopNarration() {
+        synchronized(streams) {
+            streams.filterKeys { it.narration }.forEach { (sound, stream) ->
+                pool.stop(stream)
+                streams -= sound
+            }
         }
     }
 
