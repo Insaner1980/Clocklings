@@ -18,7 +18,7 @@
     <string name="purchase_owned">Versión completa desbloqueada.</string>
     <string name="purchase_restored">Versión completa restaurada.</string>
     <string name="purchase_not_owned">No se ha encontrado una compra de la versión completa en la cuenta de Google Play actual.</string>
-    <string name="purchase_failed">No se ha podido comprobar la compra. Se conserva el acceso verificado anteriormente. Vuelve a intentarlo.</string>
+    <string name="purchase_failed">No se ha podido comprobar la compra. Vuelve a intentarlo.</string>
     <string name="purchase_acknowledgement_pending">El acceso completo está disponible. Hay que volver a intentar la confirmación con Google Play.</string>
     <string name="purchase_retry">Volver a intentar</string>
     <string name="purchase_restore">Restaurar compras</string>

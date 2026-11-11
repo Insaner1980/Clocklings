@@ -42,13 +42,13 @@
     <string name="item_robot_neck_bow_tie">Bow tie</string>
     <string name="item_robot_extra_wrench">Wrench</string>
     <string name="item_robot_head_propeller">Propeller cap</string>
-    <string name="item_robot_neck_tie">Tie</string>
+    <string name="item_robot_neck_cape">Hero cape</string>
     <string name="item_robot_extra_heart_eyes">Heart-eyes screen</string>
     <string name="item_robot_head_headphones">Headphones</string>
-    <string name="item_robot_neck_spring">Spring collar</string>
+    <string name="item_robot_extra_bubble_pack">Bubble pack</string>
     <string name="item_robot_extra_star_eyes">Star-eyes screen</string>
     <string name="item_robot_head_chef_hat">Chef hat</string>
-    <string name="item_robot_neck_lights">Light-up necklace</string>
+    <string name="item_robot_extra_wind_up_key">Wind-up key</string>
     <string name="item_robot_extra_pet">Robot pet</string>
     <string name="item_robot_head_star_antennas">Star antennas</string>
     <string name="item_robot_neck_medal">Gold medal</string>
@@ -83,12 +83,12 @@
     <string name="item_dinosaur_neck_bow_tie">Bow tie</string>
     <string name="item_dinosaur_head_party_hat">Party hat</string>
     <string name="item_dinosaur_extra_umbrella">Umbrella</string>
-    <string name="item_dinosaur_neck_lei">Flower lei</string>
+    <string name="item_dinosaur_extra_swim_ring">Duck swim ring</string>
     <string name="item_dinosaur_head_hard_hat">Hard hat</string>
     <string name="item_dinosaur_extra_kite">Kite</string>
     <string name="item_dinosaur_neck_binoculars">Binoculars</string>
     <string name="item_dinosaur_neck_medal">Medal</string>
-    <string name="item_dinosaur_head_explorer_hat">Explorer hat</string>
+    <string name="item_dinosaur_extra_ice_cream">Ice cream</string>
     <string name="item_dinosaur_extra_skateboard">Skateboard</string>
 
     <!-- Bunny -->

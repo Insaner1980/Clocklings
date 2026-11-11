@@ -149,7 +149,7 @@ fun ClockFace(
                 contentDescription = description
                 stateDescription = themeLabel
                 if (interactive) {
-                    customActions = clockActions(state, addLabel, subtractLabel)
+                    customActions = clockActions(state, addLabel, subtractLabel) { currentInteractive }
                 }
             }.onFocusChanged { focused = it.isFocused }
             .clockKeyboard(state, interactive, focused)
@@ -752,14 +752,23 @@ private fun clockActions(
     state: ClockState,
     addLabel: String,
     subtractLabel: String,
+    interactive: () -> Boolean,
 ) = listOf(
     CustomAccessibilityAction(addLabel) {
-        state.nudge(1)
-        true
+        if (interactive()) {
+            state.nudge(1)
+            true
+        } else {
+            false
+        }
     },
     CustomAccessibilityAction(subtractLabel) {
-        state.nudge(-1)
-        true
+        if (interactive()) {
+            state.nudge(-1)
+            true
+        } else {
+            false
+        }
     },
 )
 
@@ -793,7 +802,7 @@ private fun rememberClockState(
         }
     }
     LaunchedEffect(period) { state.updatePeriod(period) }
-    LaunchedEffect(command) { state.apply(command) }
+    LaunchedEffect(command.id) { state.apply(command) }
 
     return state
 }

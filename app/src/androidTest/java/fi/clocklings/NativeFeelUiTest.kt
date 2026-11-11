@@ -20,6 +20,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import fi.clocklings.domain.AccessPolicy
 import fi.clocklings.domain.AppLanguage
 import fi.clocklings.domain.Progress
 import fi.clocklings.domain.Settings
@@ -159,6 +160,9 @@ class NativeFeelUiTest {
 
     @Test
     fun pagerSwipeAndThumbnailSelectionSurviveRecreation() {
+        runBlocking {
+            environment.repository.updateProgress { it.copy(stars = listOf(AccessPolicy.COMPANION_STARS, 0, 0, 0, 0)) }
+        }
         click("My Companion")
         compose.onNodeWithTag("companion_pager").performTouchInput { swipeLeft() }
         compose.waitUntil(10_000) {

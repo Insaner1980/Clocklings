@@ -49,7 +49,7 @@ class SettingsSpeechLayoutTest {
             }
         }
         for (entry in AppLanguage.entries) {
-            for (cell in listOf(360 to 1f, 320 to 1f, 360 to 2f, 320 to 2f)) {
+            for (cell in TestViewports) {
                 compose.runOnIdle {
                     language.value = entry
                     viewport.value = cell

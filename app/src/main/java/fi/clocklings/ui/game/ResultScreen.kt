@@ -34,6 +34,7 @@ import fi.clocklings.R
 import fi.clocklings.Screen
 import fi.clocklings.audio.Sound
 import fi.clocklings.audio.companionVoice
+import fi.clocklings.audio.resultVoice
 import fi.clocklings.domain.AccessPolicy
 import fi.clocklings.domain.CompanionKind
 import fi.clocklings.domain.Item
@@ -141,8 +142,8 @@ fun ResultScreen(
 
 /**
  * The companion's celebration on the first visit, or null when returning to the same result.
- * As it starts, the unlock sound plays for new items; the companion speaks then or, after an
- * unlock, once the new outfit has spun in.
+ * As it starts, the narrator reads the headline; with new items the unlock sound plays instead and
+ * the narrator announces the reward once the new outfit has spun in. The companion speaks last.
  */
 @Composable
 private fun rememberDollCelebration(
@@ -160,7 +161,11 @@ private fun rememberDollCelebration(
         if (newItems.isNotEmpty()) {
             currentOnSound(Sound.UNLOCK, 1f)
             delay(VOICE_AFTER_UNLOCK_MS)
+            currentOnSound(Sound.RESULT_REWARD, 1f)
+        } else {
+            currentOnSound(resultVoice(stars), 1f)
         }
+        delay(COMPANION_AFTER_NARRATION_MS)
         companionVoice(kind)?.let { currentOnSound(it, 1f) }
     }
     return remember(firstVisit) { if (firstVisit) dollCelebration(outfit, newItems, stars) else null }
@@ -218,8 +223,11 @@ private const val RESULT_CONFETTI = 120
 /** Nukke alkaa juhlia, kun kolmas tähti on ponnahtanut esiin. */
 private const val DOLL_CELEBRATE_DELAY_MS = 1_100L
 
-/** The companion speaks after the spin into the new outfit, as the unlock sound fades. */
+/** The narrator announces the reward after the spin into the new outfit, as the unlock sound fades. */
 private const val VOICE_AFTER_UNLOCK_MS = 1_200L
+
+/** The companion speaks once the narrator's line (at most 1.9 s in any language) has ended. */
+private const val COMPANION_AFTER_NARRATION_MS = 2_000L
 
 /** Each star sounds higher: root, major third and fifth as SoundPool playback rates. */
 private val STAR_RATES = floatArrayOf(1f, 1.26f, 1.498f)

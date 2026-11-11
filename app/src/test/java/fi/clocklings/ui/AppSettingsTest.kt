@@ -5,12 +5,15 @@ import androidx.datastore.preferences.core.Preferences
 import fi.clocklings.AppServices
 import fi.clocklings.data.InMemoryPreferencesStore
 import fi.clocklings.data.ProgressRepository
+import fi.clocklings.domain.CompanionColor
 import fi.clocklings.domain.CompanionKind
 import fi.clocklings.domain.Progress
 import fi.clocklings.domain.Settings
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -22,6 +25,52 @@ import java.io.IOException
 @OptIn(ExperimentalCoroutinesApi::class)
 class AppSettingsTest {
     @get:Rule val main = MainDispatcherRule()
+
+    @Test
+    fun delayedCustomizationSuccessDoesNotDismissAnUnrelatedSettingsFailure() =
+        runTest(main.dispatcher) {
+            for (settingsUpdate in listOf(false, true)) {
+                val store = SettingsTestStore()
+                val repository = ProgressRepository(store)
+                val app = AppViewModel(services(repository))
+                runCurrent()
+                val release = CompletableDeferred<Unit>()
+                val results = mutableListOf<Boolean>()
+                store.beforeWrite = { release.await() }
+                if (settingsUpdate) {
+                    app.setColor(CompanionKind.CAT, CompanionColor.BLUE) { results += it }
+                } else {
+                    app.setName(CompanionKind.CAT, "Mia") { results += it }
+                }
+                runCurrent()
+                assertTrue(results.isEmpty())
+                store.beforeWrite = {}
+                store.fail = true
+                app.setSound(false)
+                runCurrent()
+                assertTrue(app.settingsAction.value.failed)
+
+                store.fail = false
+                release.complete(Unit)
+                runCurrent()
+
+                if (settingsUpdate) {
+                    assertEquals(
+                        CompanionColor.BLUE,
+                        repository.settings
+                            .first()
+                            .personalization
+                            .styleFor(CompanionKind.CAT)
+                            .color,
+                    )
+                } else {
+                    assertEquals("Mia", repository.progress.first().nameFor(CompanionKind.CAT))
+                }
+                assertEquals(listOf(true), results)
+                assertTrue(repository.settings.first().sound)
+                assertTrue(app.settingsAction.value.failed)
+            }
+        }
 
     @Test
     fun failedSettingsWriteLeavesCommittedValuesAndCanRetry() =
@@ -133,8 +182,10 @@ private class SettingsTestStore : DataStore<Preferences> {
     override val data = delegate.data
     var fail = false
     var writes = 0
+    var beforeWrite: suspend () -> Unit = {}
 
     override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences {
+        beforeWrite()
         if (fail) throw IOException("Synthetic settings failure")
         writes++
         return delegate.updateData(transform)

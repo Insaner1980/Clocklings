@@ -26,6 +26,7 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import fi.clocklings.audio.Sound
+import fi.clocklings.audio.greetingVoice
 import fi.clocklings.domain.AccessPolicy
 import fi.clocklings.domain.Lessons
 import fi.clocklings.ui.AppViewModel
@@ -44,6 +45,7 @@ import fi.clocklings.ui.game.GameRoute
 import fi.clocklings.ui.game.ResultScreen
 import fi.clocklings.ui.home.HomeDestination
 import fi.clocklings.ui.home.HomeScreen
+import fi.clocklings.ui.intro.IntroGreetingVoiceEffect
 import fi.clocklings.ui.intro.IntroOverlay
 import fi.clocklings.ui.intro.coveredByIntro
 import fi.clocklings.ui.lesson.LessonListScreen
@@ -115,10 +117,8 @@ fun ClocklingsApp(
                         // Aloitusnäkymä jokaisella käynnistyksellä; ei palaa näkyviin, kun näkymä luodaan uudelleen.
                         var introDone by rememberSaveable { mutableStateOf(false) }
                         val backStack = rememberNavBackStack(ScreenSavedState, Screen.Home)
-                        DisposableEffect(backStack.last()) {
-                            onDispose { app.stopSpeech() }
-                        }
-                        val nav = remember(backStack) { Navigator(backStack) { app.access } }
+                        // Stop the old screen's speech before the next ViewModel can start its narration.
+                        val nav = remember(backStack, app) { Navigator(backStack, app::stopSpeech) { app.access } }
                         // Ignore repeated or delayed callbacks from a destination that has already left.
                         val go = { from: Screen, screen: Screen ->
                             nav.ifCurrent(from) {
@@ -322,6 +322,9 @@ fun ClocklingsApp(
                                 onTick = { app.play(Sound.INTRO) },
                                 onDone = { introDone = true },
                             )
+                        }
+                        IntroGreetingVoiceEffect(active = backStack.last() == Screen.Home) { greeting ->
+                            app.play(greetingVoice(greeting))
                         }
                     }
                 }

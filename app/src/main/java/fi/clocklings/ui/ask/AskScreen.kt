@@ -99,11 +99,12 @@ fun AskScreen(
                 onRandom,
                 onAsk = {
                     app.play(Sound.POP)
+                    app.play(Sound.QUESTION_READ)
                     phase = AskPhase.ASK
                 },
                 onReveal = { phase = AskPhase.REVEALED },
                 onSwap = {
-                    setter = PLAYER_NUMBER_SUM - setter
+                    if (phase == AskPhase.REVEALED) setter = PLAYER_NUMBER_SUM - setter
                     phase = AskPhase.SET
                 },
             )

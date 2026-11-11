@@ -3,6 +3,7 @@ package fi.clocklings.ui
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import fi.clocklings.AppServices
+import fi.clocklings.audio.Sound
 import fi.clocklings.data.InMemoryPreferencesStore
 import fi.clocklings.data.ProgressRepository
 import fi.clocklings.domain.CompanionKind
@@ -140,13 +141,24 @@ class PersistenceFailureTest {
     @Test
     fun failedChallengeSaveEndsTheTimerWithoutClaimingASavedRecord() =
         runTest(main.dispatcher) {
-            val challenge = ChallengeViewModel(false, services, Random(3))
+            val sounds = mutableListOf<Sound>()
+            val recording =
+                object : AppServices by services {
+                    override fun play(
+                        sound: Sound,
+                        force: Boolean,
+                        rate: Float,
+                    ) {
+                        sounds += sound
+                    }
+                }
+            val challenge = ChallengeViewModel(false, recording, Random(3))
             challenge.start()
             runCurrent()
             challenge.pick(challenge.state.value.question)
             store.failure = IOException("Synthetic write failure")
             advanceTimeBy(60_001)
-            advanceUntilIdle()
+            runCurrent()
             assertEquals(ChallengePhase.END, challenge.state.value.phase)
             assertEquals(1, challenge.state.value.score)
             assertEquals(0, challenge.state.value.best)
@@ -164,6 +176,7 @@ class PersistenceFailureTest {
             assertEquals(1, challenge.state.value.score)
             assertTrue(challenge.state.value.newRecord)
             assertFalse(challenge.state.value.saveFailed)
+            assertEquals(listOf(Sound.CHALLENGE_GO, Sound.OK, Sound.CHALLENGE_OVER, Sound.RECORD), sounds)
         }
 
     @Test

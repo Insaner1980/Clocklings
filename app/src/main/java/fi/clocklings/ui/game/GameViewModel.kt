@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import fi.clocklings.AppServices
 import fi.clocklings.Screen
 import fi.clocklings.audio.Sound
+import fi.clocklings.audio.hintVoice
 import fi.clocklings.domain.AccessPolicy
 import fi.clocklings.domain.ClockTime
 import fi.clocklings.domain.Hint
@@ -22,7 +23,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -108,8 +108,32 @@ class GameViewModel(
     private var clockValue = 0
     private var advanceJob: Job? = null
 
+    /** A hint the narrator is about to read once the wrong-answer sound has faded. */
+    private var hintVoiceJob: Job? = null
+
     private val _state = MutableStateFlow(taskState(0, mistakes = 0, celebrate = 0, from = null))
     val state: StateFlow<GameUiState> = _state.asStateFlow()
+
+    init {
+        announce(_state.value.task)
+    }
+
+    /** The narrator reads each task's instruction, since read and set tasks take turns. */
+    private fun announce(task: Task) {
+        hintVoiceJob?.cancel()
+        services.play(if (task.type == TaskType.READ) Sound.QUESTION_READ else Sound.QUESTION_SET)
+    }
+
+    /** Reads which hand [hint] is about once the wrong-answer sound has faded. */
+    private fun readHint(hint: Hint) {
+        hintVoiceJob?.cancel()
+        val voice = hintVoice(hint) ?: return
+        hintVoiceJob =
+            viewModelScope.launch {
+                delay(HINT_VOICE_DELAY_MS)
+                services.play(voice)
+            }
+    }
 
     private fun taskState(
         index: Int,
@@ -168,6 +192,7 @@ class GameViewModel(
             return
         }
         services.play(Sound.BAD)
+        hintVoiceJob?.cancel()
         val wrong =
             s.copy(
                 mistakes = s.mistakes + 1,
@@ -183,7 +208,9 @@ class GameViewModel(
                     showNext = true,
                 )
             } else {
-                wrong.copy(feedback = GameFeedback.HintText(Hints.forRead(s.task.time, time)))
+                val hint = Hints.forRead(s.task.time, time)
+                readHint(hint)
+                wrong.copy(feedback = GameFeedback.HintText(hint))
             }
     }
 
@@ -197,6 +224,7 @@ class GameViewModel(
             return
         }
         services.play(Sound.BAD)
+        hintVoiceJob?.cancel()
         val wrong = s.copy(mistakes = s.mistakes + 1, taskMistakes = s.taskMistakes + 1)
         _state.value =
             if (wrong.taskMistakes >= MAX_TRIES) {
@@ -209,11 +237,14 @@ class GameViewModel(
                     showNext = true,
                 )
             } else {
-                wrong.copy(feedback = GameFeedback.HintText(Hints.forSet(s.task.time, v)))
+                val hint = Hints.forSet(s.task.time, v)
+                readHint(hint)
+                wrong.copy(feedback = GameFeedback.HintText(hint))
             }
     }
 
     private fun success(s: GameUiState) {
+        hintVoiceJob?.cancel()
         services.play(Sound.OK)
         val isSet = s.task.type == TaskType.SET
         _state.value =
@@ -255,6 +286,7 @@ class GameViewModel(
             finish(s)
         } else {
             _state.value = taskState(nextIndex, s.mistakes, s.celebrate, s)
+            announce(_state.value.task)
         }
     }
 
@@ -263,8 +295,13 @@ class GameViewModel(
         viewModelScope.launch {
             try {
                 val stars = Levels.stars(s.mistakes)
-                val before = services.repository.progress.first()
-                services.repository.updateProgress { it.withLevelResult(level, stars) }
+                var previousBest = 0
+                var starsBefore = 0
+                services.repository.updateProgress {
+                    previousBest = it.stars[level]
+                    starsBefore = it.totalStars
+                    it.withLevelResult(level, stars)
+                }
                 services.play(Sound.WIN)
                 _state.update {
                     it.copy(
@@ -272,8 +309,8 @@ class GameViewModel(
                             Screen.Result(
                                 level = level,
                                 stars = stars,
-                                previousBest = before.stars[level],
-                                starsBefore = before.totalStars,
+                                previousBest = previousBest,
+                                starsBefore = starsBefore,
                             ),
                     )
                 }
@@ -290,5 +327,8 @@ class GameViewModel(
         const val SUCCESS_MOVE_MS = 300
         const val REVEAL_MS = 1400
         const val SUCCESS_PAUSE_MS = 1500L
+
+        /** The wrong-answer sound has faded by then (it is loud for its first 1.2 s). */
+        const val HINT_VOICE_DELAY_MS = 1250L
     }
 }

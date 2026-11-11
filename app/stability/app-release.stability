@@ -1444,6 +1444,14 @@ internal fun fi.clocklings.ui.home.rememberHomeTime(readTime: kotlin.Function0<k
     - readTime: STABLE (function type)
 
 @Composable
+public fun fi.clocklings.ui.intro.IntroGreetingVoiceEffect(active: kotlin.Boolean, onGreeting: kotlin.Function1<fi.clocklings.domain.Greeting, kotlin.Unit>): kotlin.Unit
+  skippable: true
+  restartable: true
+  params:
+    - active: STABLE (primitive type)
+    - onGreeting: STABLE (function type)
+
+@Composable
 public fun fi.clocklings.ui.intro.IntroOverlay(onTick: kotlin.Function0<kotlin.Unit>, onDone: kotlin.Function0<kotlin.Unit>, modifier: androidx.compose.ui.Modifier): kotlin.Unit
   skippable: true
   restartable: true
@@ -1614,6 +1622,12 @@ public fun fi.clocklings.ui.locale.AppLocaleProvider(repository: fi.clocklings.d
     - modifier: STABLE (marked @Stable or @Immutable)
     - controller: STABLE (marked @Stable or @Immutable)
     - content: STABLE (composable function type)
+
+@Composable
+public fun fi.clocklings.ui.observeAccessPolicy(): fi.clocklings.domain.AccessPolicy
+  skippable: false
+  restartable: false
+  params:
 
 @Composable
 private fun fi.clocklings.ui.parent.AdultGate(onContinue: kotlin.Function0<kotlin.Unit>, onCancel: kotlin.Function0<kotlin.Unit>): kotlin.Unit

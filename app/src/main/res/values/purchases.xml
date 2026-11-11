@@ -18,7 +18,7 @@
     <string name="purchase_owned">Full version unlocked.</string>
     <string name="purchase_restored">Full version restored.</string>
     <string name="purchase_not_owned">No full-version purchase was found for the current Google Play account.</string>
-    <string name="purchase_failed">The purchase could not be checked. Previously verified access is kept. Please try again.</string>
+    <string name="purchase_failed">The purchase could not be checked. Please try again.</string>
     <string name="purchase_acknowledgement_pending">Full access is available. Confirmation with Google Play needs another attempt.</string>
     <string name="purchase_retry">Try again</string>
     <string name="purchase_restore">Restore purchases</string>

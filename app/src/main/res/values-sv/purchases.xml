@@ -18,7 +18,7 @@
     <string name="purchase_owned">Fullversionen är upplåst.</string>
     <string name="purchase_restored">Fullversionen har återställts.</string>
     <string name="purchase_not_owned">Inget köp av fullversionen hittades för det aktuella Google Play-kontot.</string>
-    <string name="purchase_failed">Köpet kunde inte kontrolleras. Tidigare verifierad åtkomst behålls. Försök igen.</string>
+    <string name="purchase_failed">Köpet kunde inte kontrolleras. Försök igen.</string>
     <string name="purchase_acknowledgement_pending">Full åtkomst är tillgänglig. Bekräftelsen till Google Play behöver ett nytt försök.</string>
     <string name="purchase_retry">Försök igen</string>
     <string name="purchase_restore">Återställ köp</string>

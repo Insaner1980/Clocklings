@@ -154,13 +154,13 @@
     <string name="item_hair_pitkat">Cabelo dourado</string>
     <string name="item_dress_tahti">Vestido de estrelas</string>
     <string name="item_head_kukat">Coroa de flores</string>
-    <string name="item_extra_laukku">Bolsa</string>
+    <string name="item_extra_strawberry_bag">Bolsa de morango</string>
     <string name="item_shoes_saappaat">Botas roxas</string>
     <string name="item_hair_kiharat">Cachos cor-de-rosa</string>
-    <string name="item_dress_prinsessa">Vestido de princesa</string>
+    <string name="item_dress_overalls">Jardineira</string>
     <string name="item_head_kruunu">Coroa</string>
     <string name="item_extra_siivet">Asas de borboleta</string>
-    <string name="item_shoes_kimalle">Sapatos brilhantes</string>
+    <string name="item_shoes_roller_skates">Patins</string>
     <string name="item_hair_sateenkaari">Cabelo de arco-íris</string>
     <string name="item_dress_sateenkaari">Vestido de arco-íris</string>
     <string name="koulu_title">Aprender</string>

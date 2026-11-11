@@ -171,13 +171,13 @@
     <string name="item_hair_pitkat">Gyllene hår</string>
     <string name="item_dress_tahti">Stjärnklänning</string>
     <string name="item_head_kukat">Blomsterkrans</string>
-    <string name="item_extra_laukku">Väska</string>
+    <string name="item_extra_strawberry_bag">Jordgubbsväska</string>
     <string name="item_shoes_saappaat">Lila stövlar</string>
     <string name="item_hair_kiharat">Rosa lockar</string>
-    <string name="item_dress_prinsessa">Prinsessklänning</string>
+    <string name="item_dress_overalls">Hängselbyxor</string>
     <string name="item_head_kruunu">Krona</string>
     <string name="item_extra_siivet">Fjärilsvingar</string>
-    <string name="item_shoes_kimalle">Glittriga skor</string>
+    <string name="item_shoes_roller_skates">Rullskridskor</string>
     <string name="item_hair_sateenkaari">Regnbågshår</string>
     <string name="item_dress_sateenkaari">Regnbågsklänning</string>
     <string name="koulu_title">Lär dig</string>

@@ -154,13 +154,13 @@
     <string name="item_hair_pitkat">Pelo dorado</string>
     <string name="item_dress_tahti">Vestido de estrellas</string>
     <string name="item_head_kukat">Corona de flores</string>
-    <string name="item_extra_laukku">Bolso</string>
+    <string name="item_extra_strawberry_bag">Bolso de fresa</string>
     <string name="item_shoes_saappaat">Botas moradas</string>
     <string name="item_hair_kiharat">Rizos rosas</string>
-    <string name="item_dress_prinsessa">Vestido de princesa</string>
+    <string name="item_dress_overalls">Peto</string>
     <string name="item_head_kruunu">Corona</string>
     <string name="item_extra_siivet">Alas de mariposa</string>
-    <string name="item_shoes_kimalle">Zapatos brillantes</string>
+    <string name="item_shoes_roller_skates">Patines</string>
     <string name="item_hair_sateenkaari">Pelo arcoíris</string>
     <string name="item_dress_sateenkaari">Vestido arcoíris</string>
     <string name="koulu_title">Aprender</string>

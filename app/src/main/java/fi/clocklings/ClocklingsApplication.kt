@@ -11,7 +11,7 @@ import fi.clocklings.audio.Sound
 import fi.clocklings.audio.Speech
 import fi.clocklings.billing.Purchases
 import fi.clocklings.billing.UnconfiguredPurchases
-import fi.clocklings.billing.createPlayPurchases
+import fi.clocklings.billing.createAppPurchases
 import fi.clocklings.data.ProgressRepository
 import fi.clocklings.domain.AppLanguage
 import kotlinx.coroutines.CoroutineScope
@@ -49,6 +49,7 @@ interface AppServices {
 
     fun stopSpeech()
 
+    /** The content language of text-to-speech and of the recorded narration. */
     fun setSpeechLanguage(language: AppLanguage)
 
     fun refreshSpeech()
@@ -80,9 +81,15 @@ class AppContainer(
         if (resumedActivities > 0) speech.speak(text)
     }
 
-    override fun stopSpeech() = speech.stop()
+    override fun stopSpeech() {
+        speech.stop()
+        sfx.stopNarration()
+    }
 
-    override fun setSpeechLanguage(language: AppLanguage) = speech.setLanguage(language)
+    override fun setSpeechLanguage(language: AppLanguage) {
+        speech.setLanguage(language)
+        sfx.setLanguage(language)
+    }
 
     override fun refreshSpeech() = speech.refresh()
 
@@ -104,7 +111,7 @@ class AppContainer(
 open class ClocklingsApplication : Application() {
     val container: AppContainer by lazy { AppContainer(this, preferencesStore(), purchases()) }
 
-    protected open fun purchases(): Purchases = createPlayPurchases(this)
+    protected open fun purchases(): Purchases = createAppPurchases(this)
 
     /** Where progress and settings are kept: the app's preferences file. Local JVM tests keep them in memory. */
     protected open fun preferencesStore(): DataStore<Preferences> = dataStore

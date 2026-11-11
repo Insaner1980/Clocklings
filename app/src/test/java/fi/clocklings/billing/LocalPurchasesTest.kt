@@ -29,6 +29,24 @@ class LocalPurchasesTest {
     private fun TestScope.service(verifier: LocalPurchaseVerifier = SignedPurchases.verifier()) =
         LocalPurchases(gateway, verifier, store, backgroundScope)
 
+    private fun TestScope.beginPausedPurchase(): LocalPurchases {
+        val service = service()
+        service.onForeground()
+        runCurrent()
+        service.buy(Activity())
+        service.onBackground()
+        return service
+    }
+
+    private fun TestScope.resumeWithOwnedPurchase(): LocalPurchases {
+        val service = beginPausedPurchase()
+        gateway.owned = StoreResult.Success(listOf(SignedPurchases.purchase(acknowledged = true)))
+        service.onForeground()
+        runCurrent()
+        assertTrue(service.state.value.fullAccess)
+        return service
+    }
+
     @Test fun launchDoesNotGrantButVerifiedPurchaseAndDuplicateUpdatesAcknowledgeOnce() =
         runTest {
             val service = service()
@@ -108,11 +126,7 @@ class LocalPurchasesTest {
 
     @Test fun bufferedCancellationReconcilesCompletedOwnershipOnResume() =
         runTest {
-            val service = service()
-            service.onForeground()
-            runCurrent()
-            service.buy(Activity())
-            service.onBackground()
+            val service = beginPausedPurchase()
             val receipt = SignedPurchases.purchase()
             gateway.owned = StoreResult.Success(listOf(receipt))
             gateway.update(StoreResult.Failure(StoreFailure.CANCELLED))
@@ -129,15 +143,7 @@ class LocalPurchasesTest {
 
     @Test fun cancellationReconcilesRevokedOwnershipAfterAResumeQuery() =
         runTest {
-            val service = service()
-            service.onForeground()
-            runCurrent()
-            service.buy(Activity())
-            service.onBackground()
-            gateway.owned = StoreResult.Success(listOf(SignedPurchases.purchase(acknowledged = true)))
-            service.onForeground()
-            runCurrent()
-            assertTrue(service.state.value.fullAccess)
+            val service = resumeWithOwnedPurchase()
             gateway.owned = StoreResult.Success(emptyList())
             gateway.update(StoreResult.Failure(StoreFailure.CANCELLED))
             runCurrent()
@@ -149,15 +155,7 @@ class LocalPurchasesTest {
 
     @Test fun cancelledRefreshFailurePreservesCachedAccessAndRetriesRevocation() =
         runTest {
-            val service = service()
-            service.onForeground()
-            runCurrent()
-            service.buy(Activity())
-            service.onBackground()
-            gateway.owned = StoreResult.Success(listOf(SignedPurchases.purchase(acknowledged = true)))
-            service.onForeground()
-            runCurrent()
-            assertTrue(service.state.value.fullAccess)
+            val service = resumeWithOwnedPurchase()
             gateway.owned = StoreResult.Failure(StoreFailure.UNAVAILABLE)
             gateway.update(StoreResult.Failure(StoreFailure.CANCELLED))
             runCurrent()
@@ -174,11 +172,7 @@ class LocalPurchasesTest {
 
     @Test fun purchaseCallbackWhilePausedRequiresFreshMatchingOwnershipOnResume() =
         runTest {
-            val service = service()
-            service.onForeground()
-            runCurrent()
-            service.buy(Activity())
-            service.onBackground()
+            val service = beginPausedPurchase()
             gateway.update(StoreResult.Success(listOf(SignedPurchases.purchase(token = "callback-token"))))
             runCurrent()
             assertFalse(service.state.value.fullAccess)
@@ -192,11 +186,7 @@ class LocalPurchasesTest {
 
     @Test fun purchaseCompletingWhilePausedIsVerifiedAndAcknowledgedAfterResume() =
         runTest {
-            val service = service()
-            service.onForeground()
-            runCurrent()
-            service.buy(Activity())
-            service.onBackground()
+            val service = beginPausedPurchase()
             val receipt = SignedPurchases.purchase()
             gateway.owned = StoreResult.Success(listOf(receipt))
             gateway.update(gateway.owned)
@@ -210,11 +200,7 @@ class LocalPurchasesTest {
 
     @Test fun resumeWithoutPurchaseCallbackRefreshesOwnershipAndReleasesTheFlow() =
         runTest {
-            val service = service()
-            service.onForeground()
-            runCurrent()
-            service.buy(Activity())
-            service.onBackground()
+            val service = beginPausedPurchase()
             gateway.owned = StoreResult.Success(listOf(SignedPurchases.purchase()))
             service.onForeground()
             runCurrent()
@@ -240,11 +226,7 @@ class LocalPurchasesTest {
 
     @Test fun cancellationAfterResumeIsNotOverwrittenByAnInFlightOwnershipQuery() =
         runTest {
-            val service = service()
-            service.onForeground()
-            runCurrent()
-            service.buy(Activity())
-            service.onBackground()
+            val service = beginPausedPurchase()
             val gate = CompletableDeferred<Unit>()
             gateway.queryGate = gate
             service.onForeground()

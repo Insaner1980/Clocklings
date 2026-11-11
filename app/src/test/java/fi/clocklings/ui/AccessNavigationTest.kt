@@ -9,6 +9,20 @@ import org.junit.Test
 
 class AccessNavigationTest {
     @Test
+    fun navigationStopsOldSpeechBeforeChangingTheDestination() {
+        val stack = mutableListOf<NavKey>(Screen.Home)
+        val stoppedAt = mutableListOf<NavKey>()
+        val nav = Navigator(stack, beforeNavigate = { stoppedAt += stack.last() }) { AccessPolicy(true) }
+        nav.push(Screen.Settings)
+        nav.replace(Screen.Levels)
+        nav.popTo(Screen.Home)
+        nav.push(Screen.Settings)
+        nav.pop()
+        assertEquals(listOf(Screen.Home, Screen.Settings, Screen.Levels, Screen.Home, Screen.Settings), stoppedAt)
+        assertEquals(listOf(Screen.Home), stack)
+    }
+
+    @Test
     fun restoredQueuesKeepOnlyAccessibleLessonsAndCannotStartPaidPractice() {
         val stack = mutableListOf<NavKey>(Screen.Home, Screen.Lesson(listOf("viisarit", "puoli", "tasan"), 4))
         Navigator(stack) { AccessPolicy(fullAccess = false) }

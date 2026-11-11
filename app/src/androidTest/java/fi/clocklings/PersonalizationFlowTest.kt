@@ -19,6 +19,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performCustomAccessibilityActionWithLabel
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import fi.clocklings.domain.AccessPolicy
 import fi.clocklings.domain.CompanionKind
 import fi.clocklings.domain.Progress
 import fi.clocklings.domain.Settings
@@ -53,7 +54,9 @@ class PersonalizationFlowTest {
             originalSettings =
                 app.container.repository.settings
                     .first()
-            app.container.repository.resetProgress()
+            app.container.repository.updateProgress {
+                Progress(stars = listOf(AccessPolicy.COMPANION_STARS, 0, 0, 0, 0))
+            }
             app.container.repository.updateSettings { Settings(sound = false) }
         }
 

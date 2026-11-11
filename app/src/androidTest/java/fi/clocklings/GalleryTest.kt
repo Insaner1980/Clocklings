@@ -1,12 +1,14 @@
 package fi.clocklings
 
 import android.graphics.Bitmap
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
@@ -14,8 +16,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.test.ComposeTimeoutException
@@ -40,8 +44,10 @@ import fi.clocklings.domain.colorOptions
 import fi.clocklings.ui.clock.ClockCommand
 import fi.clocklings.ui.clock.ClockFace
 import fi.clocklings.ui.companion.CompanionPose
+import fi.clocklings.ui.companion.CompanionRig
 import fi.clocklings.ui.companion.CompanionView
 import fi.clocklings.ui.companion.RobotRig
+import fi.clocklings.ui.companion.rigFor
 import fi.clocklings.ui.itemName
 import fi.clocklings.ui.theme.ClocklingsTheme
 import fi.clocklings.ui.theme.SkColors
@@ -98,6 +104,109 @@ class GalleryTest {
     }
 
     /**
+     * Saves `bare-large`: the companion named by the `kind` instrumentation argument, drawn bare and
+     * still through its rig at 3 px per design unit, for close comparison against its reference.
+     */
+    @Test
+    fun bareLarge() {
+        val name = InstrumentationRegistry.getArguments().getString("kind") ?: CompanionKind.BUNNY.name
+        val rig = rigFor(CompanionKind.valueOf(name))!!
+        compose.setContent {
+            ClocklingsTheme {
+                GalleryColumn {
+                    androidx.compose.foundation.Canvas(
+                        Modifier.requiredSize(
+                            with(LocalDensity.current) { (rig.width * BARE_SCALE).toDp() },
+                            with(LocalDensity.current) { (rig.height * BARE_SCALE).toDp() },
+                        ),
+                    ) {
+                        drawContext.transform.scale(BARE_SCALE, BARE_SCALE, androidx.compose.ui.geometry.Offset.Zero)
+                        with(rig) { draw(CompanionColor.ORIGINAL, Outfit(), CompanionPose()) }
+                    }
+                }
+            }
+        }
+        save("bare-large")
+    }
+
+    /**
+     * Saves `moving-parts`: every companion drawn straight through its rig at the far ends of its
+     * motion, first with the arm raised and the tail or ears swung one way, then swung the other way.
+     */
+    @Test
+    fun movingParts() {
+        val poses =
+            listOf(
+                CompanionPose(armDeg = 95f, partDeg = 18f),
+                CompanionPose(armDeg = 120f, partDeg = -18f),
+            )
+        val kinds = CompanionKind.entries.filter { it != CompanionKind.NONE }
+        compose.setContent {
+            ClocklingsTheme {
+                GalleryColumn {
+                    kinds.chunked(3).forEach { row ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            row.forEach { kind ->
+                                val rig = rigFor(kind)!!
+                                val outfit = if (kind == CompanionKind.HUMAN) Outfit.Default else Outfit()
+                                poses.forEach { pose ->
+                                    RigCanvas(rig, outfit, pose, Modifier.size(width = 62.dp, height = 106.dp))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        save("moving-parts")
+    }
+
+    /** Saves `closed-eyes`: every companion drawn straight through its rig at blink 1, the left arm raised. */
+    @Test
+    fun closedEyes() {
+        val closed = CompanionPose(blink = 1f)
+        compose.setContent {
+            ClocklingsTheme {
+                GalleryColumn {
+                    CompanionKind.entries.filter { it != CompanionKind.NONE }.chunked(GALLERY_COLUMNS).forEach { row ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            row.forEach { kind ->
+                                val rig = rigFor(kind)!!
+                                val outfit = if (kind == CompanionKind.HUMAN) Outfit.Default else Outfit()
+                                RigCanvas(
+                                    rig,
+                                    outfit,
+                                    closed,
+                                    Modifier.size(width = TILE_WIDTH.dp, height = TILE_HEIGHT.dp),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        save("closed-eyes")
+    }
+
+    /** Saves `doll-crops`: the doll's items as wardrobe thumbnails, cropped to the item in the wardrobe's art size. */
+    @Test
+    fun dollCrops() {
+        val items = Wardrobe.itemsFor(CompanionKind.HUMAN)
+        compose.setContent {
+            ClocklingsTheme {
+                GalleryColumn {
+                    items.chunked(GALLERY_COLUMNS).forEach { row ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            row.forEach { ItemTile(CompanionKind.HUMAN, it, cropped = true) }
+                        }
+                    }
+                }
+            }
+        }
+        save("doll-crops")
+    }
+
+    /**
      * Saves `doll-large`: the default doll, a princess look (crown, princess dress, boots, bag) and a
      * long-hair look with wings, next to the approved cat sample at the same height.
      */
@@ -106,9 +215,9 @@ class GalleryTest {
         val princess =
             Outfit.Default
                 .with(Slot.HEAD, "head-kruunu")
-                .with(Slot.DRESS, "dress-prinsessa")
+                .with(Slot.DRESS, "dress-overalls")
                 .with(Slot.SHOES, "shoes-saappaat")
-                .with(Slot.EXTRA, "extra-laukku")
+                .with(Slot.EXTRA, "extra-strawberry-bag")
         val fairy =
             Outfit.Default
                 .with(Slot.HAIR, "hair-pitkat")
@@ -181,7 +290,7 @@ class GalleryTest {
                 CompanionColor.BLUE to
                     Outfit()
                         .with(Slot.HEAD, "robot-head-headphones")
-                        .with(Slot.NECK, "robot-neck-lights")
+                        .with(Slot.NECK, "robot-neck-cape")
                         .with(Slot.EXTRA, "robot-extra-heart-eyes"),
             )
         val blinking =
@@ -205,16 +314,15 @@ class GalleryTest {
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         blinking.forEach { outfit ->
-                            androidx.compose.foundation.Canvas(
+                            RigCanvas(
+                                rig,
+                                outfit,
+                                closed,
                                 Modifier.size(
                                     width = (LARGE_WIDTH / 2).dp,
                                     height = (LARGE_WIDTH * TILE_HEIGHT / TILE_WIDTH / 2).dp,
                                 ),
-                            ) {
-                                val s = minOf(size.width / rig.width, size.height / rig.height)
-                                drawContext.transform.scale(s, s, androidx.compose.ui.geometry.Offset.Zero)
-                                with(rig) { draw(CompanionColor.ORIGINAL, outfit, closed) }
-                            }
+                            )
                         }
                     }
                 }
@@ -240,15 +348,15 @@ class GalleryTest {
     @Test
     fun dinosaurInEveryItem() = companionInEveryItem(CompanionKind.DINOSAUR)
 
-    /** Two large dinosaur looks: Original with explorer hat and binoculars, Blue with party hat and lei. */
+    /** Two large dinosaur looks: Original with the ice cream and binoculars, Blue with party hat and the swim ring. */
     @Test
     fun dinosaurSampleLooks() =
         companionLarge(
             CompanionKind.DINOSAUR,
             CompanionColor.ORIGINAL to
-                Outfit().with(Slot.HEAD, "dinosaur-head-explorer-hat").with(Slot.NECK, "dinosaur-neck-binoculars"),
+                Outfit().with(Slot.EXTRA, "dinosaur-extra-ice-cream").with(Slot.NECK, "dinosaur-neck-binoculars"),
             CompanionColor.BLUE to
-                Outfit().with(Slot.HEAD, "dinosaur-head-party-hat").with(Slot.NECK, "dinosaur-neck-lei"),
+                Outfit().with(Slot.HEAD, "dinosaur-head-party-hat").with(Slot.EXTRA, "dinosaur-extra-swim-ring"),
         )
 
     @Test
@@ -443,6 +551,20 @@ class GalleryTest {
     }
 
     @Composable
+    private fun RigCanvas(
+        rig: CompanionRig,
+        outfit: Outfit,
+        pose: CompanionPose,
+        modifier: Modifier = Modifier,
+    ) {
+        Canvas(modifier) {
+            val scale = minOf(size.width / rig.width, size.height / rig.height)
+            drawContext.transform.scale(scale, scale, Offset.Zero)
+            with(rig) { draw(CompanionColor.ORIGINAL, outfit, pose) }
+        }
+    }
+
+    @Composable
     private fun GalleryColumn(content: @Composable ColumnScope.() -> Unit) {
         Column(
             Modifier.testTag("galleria").background(SkColors.Bg).padding(8.dp),
@@ -459,5 +581,6 @@ class GalleryTest {
         const val TILE_WIDTH = 90
         const val TILE_HEIGHT = 112
         const val LARGE_WIDTH = 300
+        const val BARE_SCALE = 3f
     }
 }

@@ -1,8 +1,11 @@
 package fi.clocklings.ui
 
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import fi.clocklings.AppServices
 import fi.clocklings.audio.Sound
@@ -96,7 +99,6 @@ class AppViewModel(
         viewModelScope.launch {
             try {
                 services.repository.updateSettings(transform)
-                mutableSettingsAction.update { it.copy(failed = false) }
                 onResult(true)
             } catch (_: IOException) {
                 mutableSettingsAction.update { it.copy(failed = true) }
@@ -112,7 +114,6 @@ class AppViewModel(
         viewModelScope.launch {
             try {
                 services.repository.updateProgress(transform)
-                mutableSettingsAction.update { it.copy(failed = false) }
                 onResult(true)
             } catch (_: IOException) {
                 mutableSettingsAction.update { it.copy(failed = true) }
@@ -186,3 +187,9 @@ data class SettingsAction(
 )
 
 val LocalAppViewModel = staticCompositionLocalOf<AppViewModel> { error("AppViewModel puuttuu") }
+
+@Composable
+fun AppViewModel.observeAccessPolicy(): AccessPolicy {
+    val purchase by purchaseState.collectAsStateWithLifecycle()
+    return AccessPolicy(purchase.fullAccess)
+}

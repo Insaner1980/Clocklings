@@ -10,6 +10,7 @@ object SkDollColors {
     val Skin = Color(0xFFFFD8C2)
     val White = Color(0xFFFFFFFF)
     val Mouth = Color(0xFFC2255C)
+    val Lash = Color(0xFF3A2418)
 
     val HairBrown = Color(0xFF8D5524)
     val HairGold = Color(0xFFF2B53A)
@@ -21,7 +22,6 @@ object SkDollColors {
     val DotsBg = Color(0xFFF783AC)
     val StarsBg = Color(0xFF4DABF7)
     val StarYellow = Color(0xFFFFE066)
-    val Princess = Color(0xFFD0BFFF)
     val PrincessLight = Color(0xFFE5DBFF)
     val Gold = Color(0xFFFCC419)
     val GoldDeep = Color(0xFFF08C00)
@@ -40,6 +40,9 @@ object SkDollColors {
     val FlowerViolet = Color(0xFFB197FC)
     val FlowerCenter = Color(0xFFFFD43B)
     val Jewel = Color(0xFF339AF0)
-    val Bag = Color(0xFFF06595)
-    val BagDeep = Color(0xFFC2255C)
+    val Overalls = Color(0xFF2FB8AE)
+    val Shirt = Color(0xFFFCEFCB)
+    val Coral = Color(0xFFF2705E)
+    val Leaf = Color(0xFF6DBE4E)
+    val Seed = Color(0xFFFFEBB5)
 }

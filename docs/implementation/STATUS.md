@@ -566,3 +566,66 @@ All recommendations of the review were accepted by the owner.
 - Validation: 24 focused JVM tests, debug app/test APK builds, ktlint, Detekt, lint (0 errors / 4 existing update warnings) and debug/release stability checks passed. Tests retain the original challenge animation assertions and add exact action-focus, node-identity and scroll preservation across layout thresholds.
 - Dedicated API 36 emulator checks passed for 320 dp, 200% text and their combination, tablet/laptop/short windows, all seven compact-screen languages, live resizing/rotation/recreation, state/scroll retention, keyboard, native mouse and real IME. After the last compact lesson playback-row change, all seven compact-screen languages, the 1000 x 360 / 100% and 200% screen-family journeys, lesson/practice state preservation and the full keyboard lesson passed again. Ten final compact captures were visually inspected; unaffected matrix evidence was retained. Screenshot baselines and test assertions were not weakened.
 - [Correction report, final images and evidence](../../reports/adaptive-layouts/compact/REPORT.md) supersede the rejected short-window captures. Actual Chromebook/Googlebook runtime, physical trackpad and TalkBack remain unverified. No commit, push, PR or deferred publication work. The dedicated emulator and its helpers stopped. Automatic approval review blocked deletion of seven disposable files and the owned emulator temporary directory; exact safe removal commands are in the correction report.
+
+### Recorded narrator voice — 9 November 2026
+
+The owner recorded the 14 narrator lines of `docs/audio/voice-lines.md` (Finnish in their own voice) in all seven languages. They are in `res/raw` (English) and `res/raw-fi`, `raw-sv`, `raw-de`, `raw-fr`, `raw-es`, `raw-pt-rBR` under the same names, so one `R.raw.voice_*` id resolves per language. Placement:
+
+- Intro: the time-of-day greeting (the same `Greeting` as the intro text) is spoken once the intro jingle has faded, `TICK_AT_MS + 1.8 s`, just as Home appears; with reduced motion (no jingle) after 0.3 s. Once per launch, not on recreation.
+- Game levels: every task starts with its instruction, "What time is it?" or "Set the clock to this time" (read and set tasks alternate). After a first mistake whose hint is about the hour or minute hand, the matching hand line is read 1.25 s after the wrong-answer sound; another answer or the next task cancels a pending hint.
+- Play Together: "What time is it?" when the setter passes the clock to the partner.
+- Result: as the celebration starts (1.1 s) the narrator reads the headline (Wonderful / Well done / Keep exploring by stars). With unlocked items the unlock sound plays then instead, and "You earned a reward!" follows 1.2 s later. The companion voice now comes 2 s after the narrator line.
+- Minute challenge: "Start!" when a run starts; "Time is up!" when it ends, followed 1.5 s later by the success or record fanfare. A retried save replays only the fanfare; a new run cancels a pending fanfare.
+- Lessons, Explore and the challenge questions have no narration.
+
+Implementation: `Sound.narration` marks the lines; they are voices, so one speaker talks at a time. `Sfx.setLanguage` (called from `AppServices.setSpeechLanguage`) loads them through a context localized to the app language and replaces them on a language change; until loaded, narration is silent, as with the other clips. Narration follows the sound setting.
+
+- Validation: 471 JVM tests pass, including the new `NarrationResourcesTest` (every language resolves every line to its own recording), `SoundTest` mappings and game/challenge ordering tests. `assembleDebug`, `ktlintCheck`, `detekt` and debug/release `stabilityCheck` pass; the stability baseline was regenerated for the new `IntroGreetingVoiceEffect` and the existing uncommitted `observeAccessPolicy`. No emulator or device run; nothing was listened to. UI layout is unchanged.
+
+## Companion art polish after the owner's references — 10 November 2026
+
+The owner supplied new reference sheets for all nine companions (made with ChatGPT) because the characters did not look premium, and asked for the art to be brought to them. Uncommitted on `codex/full-unlock`.
+
+- Shared shading (`VinylShading.kt`): the shaded tone no longer mixes toward ink, which greyed every pigment. A saturated pigment deepens and keeps more of its red (yellow shades to ochre, blue to violet); a near-white pigment shades to a light lilac. The gradient stops are softer.
+- Shared face: `glossyEye` has an iris glow (brown by default, violet for the unicorn and the dragon), its large highlight is on the lit side, and a closed eye is a happy arch instead of a straight line. `brows()` in `CompanionRig.kt` draws brows for the animals.
+- Robot: one shell color with deeper joints of the same color (`PersonalizationColors.robotJoint`), a boxy soft head, mint oval eyes, brows and cheeks on the screen, mitten hands and domed feet. Item anchors are unchanged.
+- Doll: redrawn in the reference proportions (large head, side-swept fringe, pigtails with ties, lashes, brows, nose, puff sleeves under the dress, scalloped collar, domed shoes). All 18 items and the thumbnail crops moved to the new geometry; `hair-letit` is the reference pigtails.
+- Cat and dog: a sitting pear body with front legs, haunches and back paws; the cat has rounded ears and brows. Bunny: cream belly and paws, front teeth. Dinosaur: rounder, deeper spikes and a stronger blush.
+- Original pigments were brought to the reference colors (cat, dog, robot, dragon, dinosaur, bunny, car, cream).
+- `GalleryTest` gained `dollCrops` and `closedEyes`.
+- Not done: the references' happy open-mouth expression; the unicorn and the car were not redrawn (only the shared shading, eyes and car pigment changed).
+
+## Cat traced from the reference sheet — 11 November 2026
+
+The owner judged the hand-drawn redraws not to match the references, limbs in particular, and chose tracing the references into vectors over using the rendered images as bitmaps (the characters must stay animated). The cat is the trial.
+
+- `CatTrace.kt` is generated: the outlines of the head with ears, the body, the tail, the inner ears, the stripes, the brows and the nose with the mouth, traced from the front view of the reference sheet into the 240 x 300 grid. `CatRig.kt` fills them and adds the haunches, front legs, four paws and chest patch as forms on creases measured on the sheet, clipped to the traced body outline. Item anchors are unchanged; the glasses moved to the new eyes.
+- `rimmedEye` (dark rim, white, iris) joins `glossyEye` in `VinylShading.kt`. The shared shading is softer: the shade keeps the pigment's strongest channel and gains saturation, the light mixes 36 % toward white, and the specular highlight is fainter.
+- Tracing tools (not committed, `reports/` is ignored): `reports/companions/tools/trace.js`, `gridview.js`, `gen-kotlin.js` and the per-character configuration `cat.js`.
+- Validation: cat gallery tests on `emulator-5590`, all 16 items checked by eye. JVM tests: one run failed in `ClockFaceUpdateTest.retainedAnswerUpdatesDoNotSnapTheHandDuringAnActiveDrag`, which passed when its class was run again alone; the test and `ClockFace.kt` carry earlier uncommitted changes unrelated to this work.
+- Open: the owner's verdict on the traced cat before the other eight companions are traced the same way.
+
+## Seven companions traced from the reference sheets — 11 November 2026
+
+After the owner accepted the traced cat, the dog, bunny, dragon, robot and doll were traced from the front views of their reference sheets and the dinosaur from its large three-quarter view, the same way as the cat: generated `<Kind>Trace.kt` outlines (`DollTrace.kt` for the doll), with limbs, paws, joints and face details placed on creases measured on the sheet. The unicorn and the car were left as they are: both were traced from earlier owner references and only share the new shading and eyes.
+
+- Item anchors were kept. The robot's held item is lifted 13 units to the traced hand; the doll's default sleeves are part of the traced dress, and only the princess and rainbow dresses paint their own sleeves over it.
+- `pawPath` in `CompanionRig.kt` is shared by the cat and the dog.
+- Validation: gallery tests for every traced companion on `emulator-5590`; each compared by eye with its reference, and the item sheets of the dog, bunny, dragon, robot, dinosaur and doll looked over at thumbnail size. Thumbnail crops, animation and the app screens were not rechecked after tracing.
+
+## Eight accessories replaced from the owner's references — 11 November 2026
+
+The owner asked ChatGPT which accessories to replace and supplied a reference sheet for each replacement. Each was traced with the same tools (`reports/companions/tools/items.js`) and fitted onto its companion.
+
+- Robot: tie → hero cape (`robot-neck-cape`), spring collar → bubble pack (`robot-extra-bubble-pack`), light-up necklace → wind-up key (`robot-extra-wind-up-key`).
+- Dinosaur: flower lei → duck swim ring (`dinosaur-extra-swim-ring`), explorer hat → ice cream (`dinosaur-extra-ice-cream`).
+- Doll: princess dress → overalls (`dress-overalls`), glitter shoes → roller skates (`shoes-roller-skates`), bag → strawberry bag (`extra-strawberry-bag`).
+- Decided without the owner: the new ids, and the slots. The bubble pack, the wind-up key, the swim ring and the ice cream are Extras, so the robot now has two neck items and six extras, and the dinosaur three head, three neck and eight extra items. Star thresholds stay those of the replaced items. Names were written for all seven languages and have not been reviewed by a native speaker.
+- Validation: 16 items per companion still holds; JVM tests pass; gallery tests for the robot, dinosaur and doll on `emulator-5590`, item sheets checked by eye. The wardrobe thumbnails of the new items and saved outfits that hold a removed id were not checked.
+
+## PR 16 CI and review corrections — 12 November 2026
+
+- Both failing GitHub Android jobs timed out in the frame-commit wait of `ClockFaceUpdateTest`. Its active-drag check now draws the current View into a bitmap synchronously and retains the pixel assertion at all four width/font-scale combinations. A negative control restoring the old `LaunchedEffect(command)` bug failed at the pixel assertion, rather than a rendering timeout.
+- CodeRabbit, Greptile and Codex posted six comments covering four distinct issues. Navigation now stops recorded narration alongside TTS before the next screen starts, preserving unrelated effects. Leaving Home cancels the pending greeting permanently for that launch, including after state restoration. Narration samples carry their language, so a queued reload cannot leave the old language playable.
+- All eight replaced accessory IDs migrate on read and are persisted under their new IDs/slots on the next progress save. An existing valid item in the target slot wins; competing dinosaur replacements use Head before Neck. Tests cover all eight mappings, save/reopen, removing an item, reset, occupied target slots and invalid source slots/companions.
+- Validation: 498 JVM tests executed with zero failures, errors or skips; `assembleDebug`, `ktlintCheck`, `detekt`, `lintDebug` (0 errors / 4 warnings), and debug/release `stabilityCheck` passed. Clock and navigation tests include 320 dp width, 200% font scale and their combination. The baseline change only adds the stable `active` parameter to the greeting effect. No emulator, physical-device or listening run; `lc`/`sc` remain owner-run, and the new GitHub CI result is not yet verified.

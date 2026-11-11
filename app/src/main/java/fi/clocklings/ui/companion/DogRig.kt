@@ -1,4 +1,4 @@
-// Literal coordinates place the dog in its 240 x 300 design grid.
+// Literal coordinates were measured on the reference sheet in the 240 x 300 design grid.
 @file:Suppress("MagicNumber")
 
 package fi.clocklings.ui.companion
@@ -8,8 +8,11 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.lerp
 import fi.clocklings.domain.CompanionColor
 import fi.clocklings.domain.CompanionKind
 import fi.clocklings.domain.Outfit
@@ -18,21 +21,26 @@ import fi.clocklings.ui.art.VinylShape
 import fi.clocklings.ui.art.contactShadow
 import fi.clocklings.ui.art.ovalPath
 import fi.clocklings.ui.art.ovalRect
+import fi.clocklings.ui.art.rimmedEye
 import fi.clocklings.ui.art.specular
 import fi.clocklings.ui.art.specularRect
 import fi.clocklings.ui.art.svgPath
+import fi.clocklings.ui.art.unitBrush
+import fi.clocklings.ui.art.unitOval
 import fi.clocklings.ui.art.vinylBrush
-import fi.clocklings.ui.art.vinylOval
 import fi.clocklings.ui.art.vinylShape
 import fi.clocklings.ui.art.vinylTones
 import fi.clocklings.ui.theme.PersonalizationColors
 
 /**
- * The dog as a shaded vinyl toy, after the reference: a wagging tail, a sitting body with haunches and
- * a cream belly, paws, a round head with a dark patch over the right eye, floppy dark ears, a cream
- * muzzle with a large glossy nose, a smile and a pink tongue. The body breathes around the feet, the
- * head tilts around the neck, and partDeg wags the tail and flops the right ear outward. The ears
- * hang in front of the head, so hats ([ItemLayer.FRONT] on [ArtPart.HEAD]) cover their roots.
+ * The dog as a shaded vinyl toy, traced from the front view of the owner's reference sheet: the
+ * outlines of the head, the long hanging ears, the patch over the right eye, the sitting body, the
+ * tail, the nose with the mouth and the tongue are [DogTrace] paths. Inside the body's outline the
+ * haunches, the front legs and the four paws are forms of their own, placed on creases measured on the
+ * sheet and clipped to the traced outline.
+ *
+ * The body breathes around the feet, the head tilts around the neck, and partDeg wags the tail and
+ * flops the right ear outward. The ears hang in front of the head, so they are drawn after it.
  */
 internal object DogRig : AnimalRig(
     // The crops keep every item of the slot whole while leaving out the tail and the mouth and tongue.
@@ -58,21 +66,14 @@ internal object DogRig : AnimalRig(
     ) {
         val fur = furs[color.ordinal]
         posedAnimal(pose, outfit, Ground) {
-            rotate(pose.partDeg, TailPivot) { drawPath(TailPath, fur.tail, style = TailStroke) }
-            vinylOval(Body, fur.body)
-            vinylOval(HaunchLeft, fur.haunchLeft)
-            vinylOval(HaunchRight, fur.haunchRight)
-            vinylShape(Belly)
+            unitOval(TailRoot, fur.dot)
+            rotate(pose.partDeg, TailPivot) { drawPath(TailPath, fur.tail) }
+            fur.body.draw(this, includeFrontPaws = true)
             specular(BodyShine)
-            contactShadow(PawShadowLeft)
-            contactShadow(PawShadowRight)
-            vinylOval(PawLeft, fur.pawLeft)
-            vinylOval(PawRight, fur.pawRight)
-            specular(PawLeft)
-            specular(PawRight)
-            drawPath(Toes, fur.shade, alpha = TOE_ALPHA, style = ToeStroke)
+            specular(FrontPawLeftBounds)
+            specular(FrontPawRightBounds)
+            drawPath(Toes, fur.crease, alpha = TOE_ALPHA, style = ToeStroke)
             items(outfit, ArtPart.BODY, ItemLayer.FRONT)
-            contactShadow(HeadShadow)
             rotate(pose.headTiltDeg, Neck) { head(fur, outfit, pose) }
         }
     }
@@ -82,24 +83,27 @@ internal object DogRig : AnimalRig(
         outfit: Outfit,
         pose: CompanionPose,
     ) {
-        vinylOval(Head, fur.head)
+        drawPath(HeadPath, fur.head)
         specular(HeadShine, HEAD_SHINE_DEG)
-        drawPath(PatchPath, fur.patch)
-        contactShadow(EarShadowLeft)
-        contactShadow(EarShadowRight)
-        drawPath(EarLeftPath, fur.earLeft)
+        clipPath(HeadPath) {
+            drawPath(PatchPath, fur.patch)
+            contactShadow(EarShadowLeft)
+            contactShadow(EarShadowRight)
+        }
+        drawPath(EarLeft, fur.earLeft)
         specular(EarLeftShine, EAR_SHINE_DEG)
         rotate(-pose.partDeg, EarRightPivot) {
-            drawPath(EarRightPath, fur.earRight)
+            drawPath(EarRight, fur.earRight)
             specular(EarRightShine, -EAR_SHINE_DEG)
         }
         vinylShape(Muzzle)
         cheeks(CheekLeft, CheekRight)
-        glossyEyes(EyeLeft, EyeRight, EYE_RX, EYE_RY, pose.blink)
+        drawPath(Brows, fur.brow, style = BrowStroke)
+        rimmedEye(EyeLeft, EYE_RX, EYE_RY, pose.blink, ArtTones.EyeInk)
+        rimmedEye(EyeRight, EYE_RX, EYE_RY, pose.blink, ArtTones.EyeInk)
         vinylShape(Tongue)
         drawPath(TongueLine, ArtTones.Pink.shade, style = TongueStroke)
-        drawPath(Mouth, PersonalizationColors.EyeInk, style = MouthStroke)
-        vinylShape(Nose)
+        drawPath(Nose, PersonalizationColors.Cocoa)
         drawOval(ArtTones.NoseShine, NoseGlint.topLeft, NoseGlint.size)
         items(outfit, ArtPart.HEAD, ItemLayer.FRONT)
     }
@@ -111,90 +115,154 @@ private class DogFur(
 ) {
     private val tones = vinylTones(PersonalizationColors.companion(CompanionKind.DOG, color))
     private val marking = vinylTones(PersonalizationColors.dogMarking(color))
-    val shade: Color = tones.shade
-    val tail: Brush = vinylBrush(TailBounds, tones)
-    val body: Brush = vinylBrush(Body, tones)
-    val haunchLeft: Brush = vinylBrush(HaunchLeft, tones)
-    val haunchRight: Brush = vinylBrush(HaunchRight, tones)
-    val pawLeft: Brush = vinylBrush(PawLeft, tones)
-    val pawRight: Brush = vinylBrush(PawRight, tones)
-    val head: Brush = vinylBrush(Head, tones)
-    val patch: Brush = vinylBrush(PatchPath.getBounds(), marking)
-    val earLeft: Brush = vinylBrush(EarLeftPath.getBounds(), marking)
-    val earRight: Brush = vinylBrush(EarRightPath.getBounds(), marking)
+
+    /** The toe lines: a deep tone of the fur. */
+    val crease: Color = lerp(tones.shade, Color.Black, CREASE_DEPTH)
+
+    /** The brows: the marking color, deepened so the right brow still shows on the eye patch. */
+    val brow: Color = lerp(marking.shade, Color.Black, BROW_DEPTH)
+    val dot: Brush = unitBrush(tones)
+    val tail = vinylBrush(TailPath, tones)
+    val body = SeatedBody.Paint(tones, dot)
+    val head = vinylBrush(HeadPath, tones)
+    val patch = vinylBrush(PatchPath, marking)
+    val earLeft = vinylBrush(EarLeft, marking)
+    val earRight = vinylBrush(EarRight, marking)
 }
 
-private const val TOE_ALPHA = 0.7f
+private const val BEYOND_CHEEK_RIGHT =
+    "M186 110 C187 125 185 137 180 143.5 C175 149.5 166 156.5 157 162.5 C153 165 147 167.5 140 169.5 " +
+        "V180 H215 V110 Z"
+private const val TOE_ALPHA = 0.8f
+private const val CREASE_DEPTH = 0.12f
+private const val BROW_DEPTH = 0.25f
 private const val HEAD_SHINE_DEG = -18f
 private const val EAR_SHINE_DEG = 20f
-private const val EYE_RX = 10f
-private const val EYE_RY = 12.5f
-private const val TAIL_WIDTH = 22f
+private const val EYE_RX = 14.5f
+private const val EYE_RY = 16.5f
 
-private val TailPivot = Offset(164f, 252f)
+private val TailPivot = Offset(189f, 251f)
+
+/** The tail's root behind the haunch: it stays put and fills the joint when the tail wags. */
+private val TailRoot = ovalRect(189f, 236f, 11f, 22f)
 private val Neck = Offset(120f, 160f)
-private val EarRightPivot = Offset(156f, 56f)
+private val EarRightPivot = Offset(162f, 52f)
 
-private val Ground = ovalRect(120f, 284f, 92f, 11f)
-private val HeadShadow = ovalRect(120f, 162f, 54f, 14f)
+private val Ground = ovalRect(120f, 285f, 92f, 11f)
 
-private val TailPath = svgPath("M160 254 C196 262 214 238 206 206")
-private val TailBounds = TailPath.getBounds().inflate(TAIL_WIDTH / 2)
-private val TailStroke = itemStroke(TAIL_WIDTH)
+private val TailPath = svgPath(DogTrace.TAIL)
 
-private val Body = ovalRect(120f, 212f, 60f, 60f)
-private val HaunchLeft = ovalRect(74f, 250f, 24f, 28f)
-private val HaunchRight = ovalRect(166f, 250f, 24f, 28f)
-private val Belly = VinylShape(ovalPath(120f, 220f, 32f, 44f), ArtTones.Cream)
-private val BodyShine = specularRect(98f, 184f, 11f, 6f)
-private val PawLeft = ovalRect(94f, 272f, 24f, 14f)
-private val PawRight = ovalRect(146f, 272f, 24f, 14f)
-private val Toes = svgPath("M88 278 L88 270 M100 278 L100 270 M140 278 L140 270 M152 278 L152 270")
-private val ToeStroke = itemStroke(2.5f)
+private val BodyPath = svgPath(DogTrace.BODY)
+private val BodyShine = specularRect(90f, 196f, 8f, 7f)
+private val ChinShadow = ovalRect(121f, 169f, 46f, 12f)
 
-/** The body, haunches and paws as one outline, for items that show only where they come out from behind the dog. */
-internal val DogBodySilhouette: Path =
-    Path().apply {
-        addOval(Body)
-        addOval(HaunchLeft)
-        addOval(HaunchRight)
-        addOval(PawLeft)
-        addOval(PawRight)
-    }
+/** The body with its haunches and paws as one outline, for items that show only where they come out from behind it. */
+internal val DogBodySilhouette: Path = BodyPath
 
-private val Head = ovalRect(120f, 106f, 76f, 62f)
-private val HeadShine = specularRect(88f, 72f, 22f, 9f)
-private val PatchPath =
-    svgPath("M126 88 C124 70 146 62 164 68 C182 76 186 98 178 112 C170 124 150 126 138 118 C128 112 126 100 126 88 Z")
-
-private val EarLeftPath =
+// The front legs from the shoulders to the paws. Their inner edges run inside the chest patch, which is
+// drawn over them, so the patch's own outline is the visible edge.
+private val LegLeft =
     svgPath(
-        "M92 54 C76 44 54 48 42 62 C26 80 20 116 26 146 C30 166 52 174 62 158 " +
-            "C70 144 68 118 72 100 C76 82 84 66 92 54 Z",
+        "M84 164 C76 180 70 198 69 212 C70 228 73 244 75 262 L117 262 C115 250 113 242 111 234.7 " +
+            "C108 224 103 213 103 203 C103 195 108 187 113 182 L100 166 Z",
     )
-private val EarRightPath =
+private val LegRight =
     svgPath(
-        "M148 54 C164 44 186 48 198 62 C214 80 220 116 214 146 C210 166 188 174 178 158 " +
-            "C170 144 172 118 168 100 C164 82 156 66 148 54 Z",
+        "M158.4 164 C166.4 180 172.4 198 173.4 212 C172.4 228 169.4 244 167.4 262 L125.4 262 " +
+            "C127.4 250 129.4 242 131.4 234.7 C134.4 224 139.4 213 139.4 203 " +
+            "C139.4 195 134.4 187 129.4 182 L142.4 166 Z",
     )
-private val EarLeftShine = specularRect(46f, 84f, 6f, 12f)
-private val EarRightShine = specularRect(194f, 84f, 6f, 12f)
 
-private val Muzzle = VinylShape(ovalPath(120f, 134f, 40f, 26f), ArtTones.Cream)
-private val CheekLeft = ovalRect(80f, 134f, 11f, 7f)
-private val CheekRight = ovalRect(160f, 134f, 11f, 7f)
-private val EyeLeft = Offset(92f, 100f)
-private val EyeRight = Offset(148f, 100f)
-private val Nose = VinylShape(svgPath("M104 118 Q120 108 136 118 Q134 130 120 134 Q106 130 104 118 Z"), ArtTones.EyeInk)
-private val NoseGlint = ovalRect(113f, 116f, 5f, 2.4f)
-private val Mouth = svgPath("M120 133 L120 139 M106 138 Q113 146 120 139 Q127 146 134 138")
-private val MouthStroke = itemStroke(2.5f)
-private val Tongue = VinylShape(svgPath("M112 141 Q111 157 120 157 Q129 157 128 141 Z"), ArtTones.Pink)
-private val TongueLine = svgPath("M120 144 L120 152")
-private val TongueStroke = itemStroke(1.6f)
+/** The cream chest patch: round at the top and tapering to a point between the front paws. */
+private val Chest =
+    VinylShape(
+        svgPath(
+            "M121.2 179 C133 179 142.5 190 142.4 203 C142.3 214 138 225 134.2 234.7 " +
+                "C131.5 243 129.5 250 128 257.4 C126 263 123.5 268 121.2 271 " +
+                "C119 268 116.5 263 114.4 257.4 C113 250 111 243 108.7 234.7 " +
+                "C105 225 100.2 214 100 203 C100 190 109.5 179 121.2 179 Z",
+        ),
+        ArtTones.Cream,
+    )
 
-// Contact shadows where parts meet: above the paws and under the floppy ears.
-private val PawShadowLeft = ovalRect(94f, 262f, 22f, 7f)
-private val PawShadowRight = ovalRect(146f, 262f, 22f, 7f)
-private val EarShadowLeft = ovalRect(80f, 100f, 14f, 36f)
-private val EarShadowRight = ovalRect(160f, 100f, 14f, 36f)
+private val BackPawLeft = pawPath(46.9f, 252.9f, 74.6f, 279f)
+private val BackPawRight = pawPath(166.7f, 252.9f, 193.3f, 279f)
+private val FrontPawLeft = pawPath(73f, 257.4f, 116.2f, 284.4f)
+private val FrontPawRight = pawPath(125.8f, 257.4f, 169f, 284.4f)
+private val FrontPawLeftBounds = FrontPawLeft.getBounds()
+private val FrontPawRightBounds = FrontPawRight.getBounds()
+private val Toes =
+    svgPath(
+        "M56 260.8 L56 272.2 M68.2 260.8 L68.2 272.2 M84.8 265.4 L84.8 278 M101.4 265.4 L101.4 278 " +
+            "M138.7 265.4 L138.7 278 M155.3 265.4 L155.3 278 M174.2 260.8 L174.2 272.2 M185.6 260.8 L185.6 272.2",
+    )
+private val ToeStroke = itemStroke(2.2f)
+
+/**
+ * The skull alone. The traced head outline runs around the hanging ears too, so it is cut to the
+ * skull's oval, the wider jaw under the ears and the crown between them: no fur-colored ear shape is
+ * left behind the ears. The right cheek ends on the round curve measured on the reference, from under
+ * the ear down to the neck: the trace ran straight there, into the corner where the ear met the cheek.
+ */
+private val HeadPath =
+    listOf(
+        ovalPath(120f, 108f, 66f, 66f),
+        ovalPath(120f, 132f, 69f, 44f),
+        Path().apply { addRect(Rect(84f, 30f, 158f, 100f)) },
+    ).reduce { skull, part -> Path.combine(PathOperation.Union, skull, part) }
+        .let { Path.combine(PathOperation.Intersect, svgPath(DogTrace.HEAD), it) }
+        .let { Path.combine(PathOperation.Difference, it, svgPath(BEYOND_CHEEK_RIGHT)) }
+private val HeadShine = specularRect(100f, 62f, 22f, 8f)
+private val PatchPath = svgPath(DogTrace.PATCH)
+private val EarLeft = svgPath(DogTrace.EAR_LEFT)
+private val EarRight = svgPath(DogTrace.EAR_RIGHT)
+private val EarLeftShine = specularRect(38f, 84f, 6f, 14f)
+private val EarRightShine = specularRect(200f, 84f, 6f, 14f)
+
+/** The cream muzzle: its width and height are the measured ones, its edge is drawn smooth under the eyes. */
+private val Muzzle =
+    VinylShape(
+        svgPath(
+            "M79.5 138 C79.5 128 88 121.5 98 121 C106 120.5 110 110 121.5 110 C133 110 137 120.5 145 121 " +
+                "C155 121.5 164.5 128 164.5 138 C164.5 155 146 166.5 122 166.5 C98 166.5 79.5 155 79.5 138 Z",
+        ),
+        ArtTones.Cream,
+    )
+private val CheekLeft = ovalRect(73.5f, 129f, 9f, 6.5f)
+private val CheekRight = ovalRect(168.3f, 129.6f, 9f, 6.5f)
+private val Brows = svgPath("M81 74.5 Q87 66 96.5 68.5 M146 67.5 Q155 65 162.5 73.5")
+private val BrowStroke = itemStroke(3.5f)
+private val EyeLeft = Offset(90.6f, 101f)
+private val EyeRight = Offset(152.6f, 101f)
+private val Nose = svgPath(DogTrace.NOSE)
+private val NoseGlint = ovalRect(116f, 121f, 5f, 2.2f)
+private val Tongue = VinylShape(svgPath(DogTrace.TONGUE), ArtTones.Pink)
+private val TongueLine = svgPath("M121.8 150 L121.8 156")
+private val TongueStroke = itemStroke(1.4f)
+
+// Contact shadows under the hanging ears.
+private val EarShadowLeft = ovalRect(70f, 110f, 12f, 44f)
+private val EarShadowRight = ovalRect(174f, 110f, 12f, 44f)
+
+private val SeatedBody =
+    SeatedAnimalBody(
+        BodyPath,
+        SeatedAnimalBody.Leg(
+            haunch = ovalRect(58f, 238f, 19f, 23f),
+            thigh = LegLeft,
+            backPaw = BackPawLeft,
+            frontPaw = FrontPawLeft,
+            backShadow = ovalRect(60.7f, 253.5f, 13f, 5f),
+            frontShadow = ovalRect(94.6f, 258f, 19f, 5.5f),
+        ),
+        SeatedAnimalBody.Leg(
+            haunch = ovalRect(184f, 238f, 19f, 23f),
+            thigh = LegRight,
+            backPaw = BackPawRight,
+            frontPaw = FrontPawRight,
+            backShadow = ovalRect(180f, 253.5f, 13f, 5f),
+            frontShadow = ovalRect(147.4f, 258f, 19f, 5.5f),
+        ),
+        Chest,
+        ChinShadow,
+    )

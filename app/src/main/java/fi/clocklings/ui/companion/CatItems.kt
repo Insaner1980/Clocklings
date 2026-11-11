@@ -153,17 +153,17 @@ private fun bobbleHat(): ItemArt {
 private fun glasses(): ItemArt {
     val lenses =
         Path().apply {
-            addPath(ovalPath(92f, 112f, 17f))
-            addPath(ovalPath(148f, 112f, 17f))
+            addPath(ovalPath(90f, 111f, 18f))
+            addPath(ovalPath(152f, 111f, 18f))
         }
     val frames =
         Path().apply {
             addPath(lenses)
-            addPath(svgPath("M109 109 Q120 101 131 109 M75 108 L50 101 M165 108 L190 101"))
+            addPath(svgPath("M108 108 Q121 100 134 108 M72 107 L47 100 M170 107 L194 100"))
         }
     val frameBrush = vinylBrush(frames.getBounds(), ArtTones.Denim)
     val lensColor = ArtTones.Sky.light.copy(alpha = 0.3f)
-    val glints = svgPath("M98 101 Q104 103 106 109 M154 101 Q160 103 162 109")
+    val glints = svgPath("M96 100 Q102 102 104 108 M158 100 Q164 102 166 108")
     val glintColor = Color.White.copy(alpha = 0.8f)
     val frameStroke = itemStroke(4f)
     val glintStroke = itemStroke(2.2f)
