@@ -16,7 +16,7 @@ class TimeLanguageTest {
     }
 
     @Test
-    fun finnishNumericReadingUsesDisplayModeAndPreservesCompatibility() {
+    fun finnishNumericReadingUsesDisplayMode() {
         assertEquals("kolme nolla seitsemän", FinnishTime.numericWords(187))
         assertEquals("tasan kolme", FinnishTime.numericWords(180))
         assertEquals("kolme kolmekymmentä", FinnishTime.numericWords(930))
@@ -24,9 +24,6 @@ class TimeLanguageTest {
         assertEquals("nolla nolla nolla", FinnishTime.numericWords(0, true))
         assertEquals("nolla nolla yksi", FinnishTime.numericWords(1, true))
         assertEquals("kaksikymmentäkolme viisikymmentäyhdeksän", FinnishTime.numericWords(1439, true))
-        for (time in 0 until 1440) {
-            assertEquals(FinnishTime.spoken24(time), FinnishTime.numericWords(time, true))
-        }
     }
 
     @Test

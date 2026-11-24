@@ -1,98 +1,192 @@
 package fi.clocklings
 
+import android.graphics.BitmapFactory
+import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import fi.clocklings.domain.CompanionColor
 import fi.clocklings.domain.CompanionKind
 import fi.clocklings.domain.Wardrobe
-import fi.clocklings.ui.companion.BunnyItemArt
-import fi.clocklings.ui.companion.BunnyRig
-import fi.clocklings.ui.companion.CarItemArt
-import fi.clocklings.ui.companion.CarRig
-import fi.clocklings.ui.companion.CatItemArt
-import fi.clocklings.ui.companion.CatRig
-import fi.clocklings.ui.companion.DinosaurItemArt
-import fi.clocklings.ui.companion.DinosaurRig
-import fi.clocklings.ui.companion.DogItemArt
-import fi.clocklings.ui.companion.DogRig
-import fi.clocklings.ui.companion.DragonItemArt
-import fi.clocklings.ui.companion.DragonRig
-import fi.clocklings.ui.companion.RobotItemArt
-import fi.clocklings.ui.companion.RobotRig
-import fi.clocklings.ui.companion.UnicornItemArt
-import fi.clocklings.ui.companion.UnicornRig
-import fi.clocklings.ui.companion.itemArt
-import fi.clocklings.ui.companion.rigFor
+import fi.clocklings.ui.companion.BunnyAccessoryRegions
+import fi.clocklings.ui.companion.CarAccessoryRegions
+import fi.clocklings.ui.companion.CatAccessoryRegions
+import fi.clocklings.ui.companion.CompanionRig
+import fi.clocklings.ui.companion.DinosaurAccessoryRegions
+import fi.clocklings.ui.companion.DogAccessoryRegions
+import fi.clocklings.ui.companion.DollAccessoryRegions
+import fi.clocklings.ui.companion.DragonAccessoryRegions
+import fi.clocklings.ui.companion.RenderedAccessoryRegion
+import fi.clocklings.ui.companion.RenderedBunnyRig
+import fi.clocklings.ui.companion.RenderedCarRig
+import fi.clocklings.ui.companion.RenderedCatRig
+import fi.clocklings.ui.companion.RenderedDinosaurRig
+import fi.clocklings.ui.companion.RenderedDogRig
+import fi.clocklings.ui.companion.RenderedDragonRig
+import fi.clocklings.ui.companion.RenderedRobotRig
+import fi.clocklings.ui.companion.RenderedUnicornRig
+import fi.clocklings.ui.companion.RobotAccessoryRegions
+import fi.clocklings.ui.companion.UnicornAccessoryRegions
+import fi.clocklings.ui.companion.rememberCompanionRig
+import fi.clocklings.ui.doll.RenderedDollRig
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertSame
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/** Every companion item has artwork, and the rig and the shared item registry actually reach it. */
+/** Checks the production 3D dispatch and every accessory sprite, including the doll. */
 @RunWith(AndroidJUnit4::class)
 class CompanionArtCoverageTest {
-    private fun ids(kind: CompanionKind): Set<String> = Wardrobe.itemsFor(kind).map { it.id }.toSet()
+    @get:Rule val compose = createComposeRule()
 
     @Test
-    fun everyCatItemHasArtwork() = assertEquals(ids(CompanionKind.CAT), CatItemArt.keys)
+    fun everyCatItemHasRenderedArtwork() =
+        checkArtwork(
+            CompanionKind.CAT,
+            CatAccessoryRegions,
+            R.drawable.cat_accessories_rendered,
+            RenderedCatRig::class.java,
+        )
 
     @Test
-    fun catItemsResolveThroughTheRegistry() {
-        for (id in ids(CompanionKind.CAT)) {
-            val art = CatItemArt[id]
-            assertNotNull(id, art)
-            assertSame(id, art, itemArt(id))
+    fun everyDogItemHasRenderedArtwork() =
+        checkArtwork(
+            CompanionKind.DOG,
+            DogAccessoryRegions,
+            R.drawable.dog_accessories_rendered,
+            RenderedDogRig::class.java,
+        )
+
+    @Test
+    fun everyRobotItemHasRenderedArtwork() =
+        checkArtwork(
+            CompanionKind.ROBOT,
+            RobotAccessoryRegions,
+            R.drawable.robot_accessories_rendered,
+            RenderedRobotRig::class.java,
+        )
+
+    @Test
+    fun everyDragonItemHasRenderedArtwork() =
+        checkArtwork(
+            CompanionKind.DRAGON,
+            DragonAccessoryRegions,
+            R.drawable.dragon_accessories_rendered,
+            RenderedDragonRig::class.java,
+        )
+
+    @Test
+    fun everyDinosaurItemHasRenderedArtwork() =
+        checkArtwork(
+            CompanionKind.DINOSAUR,
+            DinosaurAccessoryRegions,
+            R.drawable.dinosaur_accessories_rendered,
+            RenderedDinosaurRig::class.java,
+        )
+
+    @Test
+    fun everyBunnyItemHasRenderedArtwork() =
+        checkArtwork(
+            CompanionKind.BUNNY,
+            BunnyAccessoryRegions,
+            R.drawable.bunny_accessories_rendered,
+            RenderedBunnyRig::class.java,
+        )
+
+    @Test
+    fun everyUnicornItemHasRenderedArtwork() =
+        checkArtwork(
+            CompanionKind.UNICORN,
+            UnicornAccessoryRegions,
+            R.drawable.unicorn_accessories_rendered,
+            RenderedUnicornRig::class.java,
+        )
+
+    @Test
+    fun everyCarItemHasRenderedArtwork() =
+        checkArtwork(
+            CompanionKind.CAR,
+            CarAccessoryRegions,
+            R.drawable.car_accessories_rendered,
+            RenderedCarRig::class.java,
+        )
+
+    @Test
+    fun everyDollItemHasRenderedArtwork() =
+        checkArtwork(
+            CompanionKind.HUMAN,
+            DollAccessoryRegions,
+            R.drawable.doll_accessories_rendered,
+            RenderedDollRig::class.java,
+            DollBodyItems,
+        )
+
+    @Test
+    fun noCompanionHasNoRenderer() {
+        var rig: CompanionRig? = null
+        compose.setContent { rig = rememberCompanionRig(CompanionKind.NONE, CompanionColor.ORIGINAL) }
+        compose.runOnIdle { assertNull(rig) }
+    }
+
+    private fun checkArtwork(
+        kind: CompanionKind,
+        regions: Map<String, List<RenderedAccessoryRegion>>,
+        resource: Int,
+        expectedRig: Class<out CompanionRig>,
+        bodyItems: Set<String> = emptySet(),
+    ) {
+        val ids = Wardrobe.itemsFor(kind).map { it.id }.toSet()
+        assertEquals("Unmapped wardrobe choices: $kind", ids, regions.keys + bodyItems)
+        var selectedRig: CompanionRig? = null
+        compose.setContent { selectedRig = rememberCompanionRig(kind, CompanionColor.ORIGINAL) }
+        compose.runOnIdle { assertEquals(expectedRig, checkNotNull(selectedRig)::class.java) }
+        val resources = InstrumentationRegistry.getInstrumentation().targetContext.resources
+        val bitmap = BitmapFactory.decodeResource(resources, resource)
+        try {
+            for ((id, pieces) in regions) {
+                assertTrue("No sprite for $id", pieces.isNotEmpty())
+                val crop = checkNotNull(selectedRig).crop(Wardrobe.item(id))
+                for (piece in pieces) {
+                    val left = piece.source.x
+                    val top = piece.source.y
+                    val width = piece.sourceSize.width
+                    val height = piece.sourceSize.height
+                    assertTrue("Invalid sprite size: $id", width > 0 && height > 0)
+                    assertTrue(
+                        "Sprite outside atlas: $id",
+                        left >= 0 && top >= 0 && left + width <= bitmap.width && top + height <= bitmap.height,
+                    )
+                    val pixels = IntArray(width * height)
+                    bitmap.getPixels(pixels, 0, width, left, top, width, height)
+                    assertTrue("Empty sprite: $id", pixels.any { it ushr 24 != 0 })
+                    assertTrue(
+                        "Thumbnail clips sprite: $id",
+                        crop.left <= piece.destination.x && crop.top <= piece.destination.y &&
+                            crop.right >= piece.destination.x + piece.size.width &&
+                            crop.bottom >= piece.destination.y + piece.size.height,
+                    )
+                }
+            }
+        } finally {
+            bitmap.recycle()
         }
     }
-
-    @Test
-    fun catUsesItsOwnRig() = assertSame(CatRig, rigFor(CompanionKind.CAT))
-
-    @Test
-    fun everyDogItemHasArtwork() {
-        assertEquals(ids(CompanionKind.DOG), DogItemArt.keys)
-        for (id in ids(CompanionKind.DOG)) assertSame(id, DogItemArt[id], itemArt(id))
-        assertSame(DogRig, rigFor(CompanionKind.DOG))
-    }
-
-    @Test
-    fun everyRobotItemHasArtwork() {
-        assertEquals(ids(CompanionKind.ROBOT), RobotItemArt.keys)
-        for (id in ids(CompanionKind.ROBOT)) assertSame(id, RobotItemArt[id], itemArt(id))
-        assertSame(RobotRig, rigFor(CompanionKind.ROBOT))
-    }
-
-    @Test
-    fun everyDragonItemHasArtwork() {
-        assertEquals(ids(CompanionKind.DRAGON), DragonItemArt.keys)
-        for (id in ids(CompanionKind.DRAGON)) assertSame(id, DragonItemArt[id], itemArt(id))
-        assertSame(DragonRig, rigFor(CompanionKind.DRAGON))
-    }
-
-    @Test
-    fun everyDinosaurItemHasArtwork() {
-        assertEquals(ids(CompanionKind.DINOSAUR), DinosaurItemArt.keys)
-        for (id in ids(CompanionKind.DINOSAUR)) assertSame(id, DinosaurItemArt[id], itemArt(id))
-        assertSame(DinosaurRig, rigFor(CompanionKind.DINOSAUR))
-    }
-
-    @Test
-    fun everyBunnyItemHasArtwork() {
-        assertEquals(ids(CompanionKind.BUNNY), BunnyItemArt.keys)
-        for (id in ids(CompanionKind.BUNNY)) assertSame(id, BunnyItemArt[id], itemArt(id))
-        assertSame(BunnyRig, rigFor(CompanionKind.BUNNY))
-    }
-
-    @Test
-    fun everyUnicornItemHasArtwork() {
-        assertEquals(ids(CompanionKind.UNICORN), UnicornItemArt.keys)
-        for (id in ids(CompanionKind.UNICORN)) assertSame(id, UnicornItemArt[id], itemArt(id))
-        assertSame(UnicornRig, rigFor(CompanionKind.UNICORN))
-    }
-
-    @Test
-    fun everyCarItemHasArtwork() {
-        assertEquals(ids(CompanionKind.CAR), CarItemArt.keys)
-        for (id in ids(CompanionKind.CAR)) assertSame(id, CarItemArt[id], itemArt(id))
-        assertSame(CarRig, rigFor(CompanionKind.CAR))
-    }
 }
+
+/** These choices are layers in the doll's body atlas; the pixel rendering suite checks each one. */
+private val DollBodyItems =
+    setOf(
+        "hair-letit",
+        "hair-pitkat",
+        "hair-kiharat",
+        "hair-sateenkaari",
+        "dress-perus",
+        "dress-pilkku",
+        "dress-tahti",
+        "dress-overalls",
+        "dress-sateenkaari",
+        "shoes-tossut",
+        "shoes-punaiset",
+        "shoes-saappaat",
+    )

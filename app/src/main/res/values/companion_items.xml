@@ -30,7 +30,7 @@
     <string name="item_dog_head_party_hat">Party hat</string>
     <string name="item_dog_extra_boots">Rain boots</string>
     <string name="item_dog_neck_lei">Flower lei</string>
-    <string name="item_dog_head_aviator">Aviator cap</string>
+    <string name="item_dog_head_aviator">Explorer hat</string>
     <string name="item_dog_extra_backpack">Backpack</string>
     <string name="item_dog_neck_medal">Medal</string>
     <string name="item_dog_head_helmet">Firefighter helmet</string>
@@ -76,7 +76,7 @@
     <!-- Dinosaur -->
     <string name="item_dinosaur_extra_backpack">Backpack</string>
     <string name="item_dinosaur_head_flower">Head flower</string>
-    <string name="item_dinosaur_extra_bucket">Sand bucket</string>
+    <string name="item_dinosaur_extra_bucket">Drink cup</string>
     <string name="item_dinosaur_neck_scarf">Scarf</string>
     <string name="item_dinosaur_head_cap">Cap</string>
     <string name="item_dinosaur_extra_balloon">Balloon</string>
@@ -95,7 +95,7 @@
     <string name="item_bunny_neck_ribbon">Ribbon bow</string>
     <string name="item_bunny_extra_carrot">Carrot</string>
     <string name="item_bunny_head_ear_bow">Ear bow</string>
-    <string name="item_bunny_neck_daisies">Daisy chain</string>
+    <string name="item_bunny_neck_daisies">Pearl necklace</string>
     <string name="item_bunny_extra_basket">Egg basket</string>
     <string name="item_bunny_head_sun_hat">Sun hat</string>
     <string name="item_bunny_neck_locket">Heart locket</string>
@@ -104,7 +104,7 @@
     <string name="item_bunny_neck_bow_tie">Polka-dot bow tie</string>
     <string name="item_bunny_extra_bubbles">Bubble wand</string>
     <string name="item_bunny_head_flower_crown">Flower crown</string>
-    <string name="item_bunny_extra_bouquet">Bouquet</string>
+    <string name="item_bunny_extra_bouquet">Star wand</string>
     <string name="item_bunny_neck_cape">Star cape</string>
     <string name="item_bunny_head_tiara">Tiara</string>
     <string name="item_bunny_extra_wings">Fairy wings</string>
@@ -115,7 +115,7 @@
     <string name="item_unicorn_extra_cloud">Cloud cushion</string>
     <string name="item_unicorn_neck_stars">Star necklace</string>
     <string name="item_unicorn_head_flower_crown">Flower crown</string>
-    <string name="item_unicorn_extra_balloon">Star balloon</string>
+    <string name="item_unicorn_extra_balloon">Star wand</string>
     <string name="item_unicorn_neck_scarf">Neckerchief</string>
     <string name="item_unicorn_head_ribbons">Mane ribbons</string>
     <string name="item_unicorn_extra_boots">Sparkle boots</string>

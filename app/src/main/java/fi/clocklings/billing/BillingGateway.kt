@@ -27,7 +27,6 @@ class StorePurchase(
     val products: List<String>,
     val token: String,
     val state: StorePurchaseState,
-    val acknowledged: Boolean,
     val originalJson: String,
     val signature: String,
 )

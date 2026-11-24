@@ -100,11 +100,11 @@ class FinnishTimeTest {
 
     @Test
     fun `spoken 24 h numbers match the web version`() {
-        assertEquals("viisitoista kolmekymmentä", FinnishTime.spoken24(930))
-        assertEquals("viisitoista nolla viisi", FinnishTime.spoken24(905))
-        assertEquals("kaksikymmentäkolme neljäkymmentäseitsemän", FinnishTime.spoken24(1380 + 47))
-        assertEquals("nolla nolla nolla", FinnishTime.spoken24(0))
-        assertEquals("kaksikymmentä kaksikymmentäyksi", FinnishTime.spoken24(1221))
+        assertEquals("viisitoista kolmekymmentä", FinnishTime.numericWords(930, h24 = true))
+        assertEquals("viisitoista nolla viisi", FinnishTime.numericWords(905, h24 = true))
+        assertEquals("kaksikymmentäkolme neljäkymmentäseitsemän", FinnishTime.numericWords(1380 + 47, h24 = true))
+        assertEquals("nolla nolla nolla", FinnishTime.numericWords(0, h24 = true))
+        assertEquals("kaksikymmentä kaksikymmentäyksi", FinnishTime.numericWords(1221, h24 = true))
     }
 
     @Test
@@ -112,7 +112,7 @@ class FinnishTimeTest {
         val seen = HashSet<String>()
         for (t in 0 until 1440) {
             val w = FinnishTime.fullWords(t, h24 = true)
-            val s = FinnishTime.spoken24(t)
+            val s = FinnishTime.numericWords(t, h24 = true)
             assertFalse("null $t", (w + s).contains("null"))
             assertNotEquals("aurinko sama $t", FinnishTime.dayPart(t).isSun, FinnishTime.dayPart(t + 720).isSun)
             seen.add(w)

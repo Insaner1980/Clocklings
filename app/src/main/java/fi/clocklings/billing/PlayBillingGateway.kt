@@ -185,7 +185,6 @@ private fun Purchase.record(): StorePurchase =
                 Purchase.PurchaseState.PENDING -> StorePurchaseState.PENDING
                 else -> StorePurchaseState.UNSPECIFIED
             },
-        acknowledged = isAcknowledged,
         originalJson = originalJson,
         signature = signature,
     )

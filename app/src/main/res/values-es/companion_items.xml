@@ -26,7 +26,7 @@
     <string name="item_dog_head_party_hat">Gorro de fiesta</string>
     <string name="item_dog_extra_boots">Botas de agua</string>
     <string name="item_dog_neck_lei">Collar de flores</string>
-    <string name="item_dog_head_aviator">Gorro de aviador</string>
+    <string name="item_dog_head_aviator">Sombrero de explorador</string>
     <string name="item_dog_extra_backpack">Mochila</string>
     <string name="item_dog_neck_medal">Medalla</string>
     <string name="item_dog_head_helmet">Casco de bombero</string>
@@ -66,7 +66,7 @@
     <string name="item_dragon_extra_wings">Alas brillantes</string>
     <string name="item_dinosaur_extra_backpack">Mochila</string>
     <string name="item_dinosaur_head_flower">Flor para la cabeza</string>
-    <string name="item_dinosaur_extra_bucket">Cubo para la arena</string>
+    <string name="item_dinosaur_extra_bucket">Vaso con pajita</string>
     <string name="item_dinosaur_neck_scarf">Bufanda</string>
     <string name="item_dinosaur_head_cap">Gorra</string>
     <string name="item_dinosaur_extra_balloon">Globo</string>
@@ -83,7 +83,7 @@
     <string name="item_bunny_neck_ribbon">Lazo de cinta</string>
     <string name="item_bunny_extra_carrot">Zanahoria</string>
     <string name="item_bunny_head_ear_bow">Lazo para la oreja</string>
-    <string name="item_bunny_neck_daisies">Collar de margaritas</string>
+    <string name="item_bunny_neck_daisies">Collar de perlas</string>
     <string name="item_bunny_extra_basket">Cesta de huevos</string>
     <string name="item_bunny_head_sun_hat">Sombrero para el sol</string>
     <string name="item_bunny_neck_locket">Guardapelo de corazón</string>
@@ -92,7 +92,7 @@
     <string name="item_bunny_neck_bow_tie">Pajarita de lunares</string>
     <string name="item_bunny_extra_bubbles">Pompero</string>
     <string name="item_bunny_head_flower_crown">Corona de flores</string>
-    <string name="item_bunny_extra_bouquet">Ramo de flores</string>
+    <string name="item_bunny_extra_bouquet">Varita de estrella</string>
     <string name="item_bunny_neck_cape">Capa de estrellas</string>
     <string name="item_bunny_head_tiara">Diadema</string>
     <string name="item_bunny_extra_wings">Alas de hada</string>
@@ -101,7 +101,7 @@
     <string name="item_unicorn_extra_cloud">Cojín de nube</string>
     <string name="item_unicorn_neck_stars">Collar de estrellas</string>
     <string name="item_unicorn_head_flower_crown">Corona de flores</string>
-    <string name="item_unicorn_extra_balloon">Globo de estrella</string>
+    <string name="item_unicorn_extra_balloon">Varita de estrella</string>
     <string name="item_unicorn_neck_scarf">Pañuelo para el cuello</string>
     <string name="item_unicorn_head_ribbons">Cintas para la crin</string>
     <string name="item_unicorn_extra_boots">Botas brillantes</string>

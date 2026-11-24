@@ -1,0 +1,281 @@
+{
+  "dinosaur-extra-backpack": {
+    "back": {
+      "part": "BODY",
+      "destination": [
+        31,
+        124,
+        149,
+        100
+      ],
+      "source": [
+        0,
+        858
+      ]
+    },
+    "front": {
+      "part": "HAND",
+      "destination": [
+        59,
+        125,
+        121,
+        86
+      ],
+      "source": [
+        0,
+        1161
+      ]
+    }
+  },
+  "dinosaur-head-flower": {
+    "front": {
+      "part": "HEAD",
+      "destination": [
+        56,
+        27,
+        62,
+        68
+      ],
+      "source": [
+        150,
+        1422
+      ]
+    }
+  },
+  "dinosaur-extra-bucket": {
+    "front": {
+      "part": "GROUND",
+      "destination": [
+        185,
+        198,
+        52,
+        86
+      ],
+      "source": [
+        366,
+        1407
+      ]
+    }
+  },
+  "dinosaur-neck-scarf": {
+    "front": {
+      "part": "HAND",
+      "destination": [
+        96,
+        124,
+        76,
+        93
+      ],
+      "source": [
+        450,
+        858
+      ]
+    }
+  },
+  "dinosaur-head-cap": {
+    "front": {
+      "part": "HEAD",
+      "destination": [
+        79,
+        2,
+        120,
+        66
+      ],
+      "source": [
+        864,
+        1494
+      ]
+    }
+  },
+  "dinosaur-extra-balloon": {
+    "front": {
+      "part": "HAND",
+      "destination": [
+        174,
+        3,
+        76,
+        186
+      ],
+      "source": [
+        765,
+        639
+      ]
+    }
+  },
+  "dinosaur-neck-bow-tie": {
+    "front": {
+      "part": "BODY",
+      "destination": [
+        110,
+        148,
+        63,
+        30
+      ],
+      "source": [
+        585,
+        1857
+      ]
+    }
+  },
+  "dinosaur-head-party-hat": {
+    "front": {
+      "part": "HEAD",
+      "destination": [
+        110,
+        -37,
+        62,
+        91
+      ],
+      "source": [
+        996,
+        954
+      ]
+    }
+  },
+  "dinosaur-extra-umbrella": {
+    "back": {
+      "part": "HAND",
+      "destination": [
+        111,
+        -67,
+        254,
+        285
+      ],
+      "source": [
+        0,
+        0
+      ]
+    }
+  },
+  "dinosaur-extra-swim-ring": {
+    "back": {
+      "part": "BODY",
+      "destination": [
+        35,
+        167,
+        194,
+        59
+      ],
+      "source": [
+        0,
+        1713
+      ]
+    },
+    "front": {
+      "part": "BODY",
+      "destination": [
+        35,
+        160,
+        200,
+        87
+      ],
+      "source": [
+        651,
+        1230
+      ]
+    }
+  },
+  "dinosaur-head-hard-hat": {
+    "front": {
+      "part": "HEAD",
+      "destination": [
+        75,
+        -5,
+        112,
+        72
+      ],
+      "source": [
+        525,
+        1494
+      ]
+    }
+  },
+  "dinosaur-extra-kite": {
+    "back": {
+      "part": "HAND",
+      "destination": [
+        124,
+        140,
+        20,
+        16
+      ],
+      "source": [
+        1182,
+        1695
+      ]
+    },
+    "front": {
+      "part": "HAND",
+      "destination": [
+        22,
+        -22,
+        157,
+        212
+      ],
+      "source": [
+        765,
+        0
+      ]
+    }
+  },
+  "dinosaur-neck-binoculars": {
+    "front": {
+      "part": "HAND",
+      "destination": [
+        104,
+        125,
+        66,
+        88
+      ],
+      "source": [
+        450,
+        1140
+      ]
+    }
+  },
+  "dinosaur-neck-medal": {
+    "front": {
+      "part": "HAND",
+      "destination": [
+        102,
+        124,
+        65,
+        104
+      ],
+      "source": [
+        996,
+        639
+      ]
+    }
+  },
+  "dinosaur-extra-ice-cream": {
+    "front": {
+      "part": "HAND",
+      "destination": [
+        172,
+        130,
+        49,
+        79
+      ],
+      "source": [
+        0,
+        1422
+      ]
+    }
+  },
+  "dinosaur-extra-skateboard": {
+    "back": {
+      "part": "GROUND",
+      "destination": [
+        25,
+        261,
+        198,
+        47
+      ],
+      "source": [
+        585,
+        1713
+      ]
+    }
+  }
+}

@@ -1,6 +1,6 @@
 # TG-02/TG-03/RP-01. English, 12 h synthetic fixture. Ten turns, no data reset.
 # Clock descriptions come from the observed external hierarchy; no hidden oracle.
-appId: fi.clocklings
+appId: com.finnvek.clocklings
 ---
 - launchApp:
     clearState: false

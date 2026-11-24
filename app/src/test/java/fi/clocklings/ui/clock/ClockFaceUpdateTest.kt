@@ -6,6 +6,7 @@ import android.view.View
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
@@ -17,14 +18,18 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import fi.clocklings.domain.AppLanguage
+import fi.clocklings.domain.ClockTime
 import fi.clocklings.domain.timeLanguage
+import fi.clocklings.ui.locale.LocalAppLanguage
 import fi.clocklings.ui.theme.ClocklingsTheme
 import fi.clocklings.ui.theme.SkColors
 import org.junit.Assert.assertEquals
@@ -41,6 +46,96 @@ import kotlin.math.sin
 @RunWith(RobolectricTestRunner::class)
 class ClockFaceUpdateTest {
     @get:Rule val compose = createComposeRule()
+
+    @Test
+    fun dayPartNeverErasesTheMinuteHand() {
+        val viewport = mutableStateOf(411 to 1f)
+        val time = mutableIntStateOf(30)
+        val period = mutableIntStateOf(ClockTime.HALF_DAY)
+        lateinit var view: View
+        compose.setContent {
+            view = LocalView.current
+            CompositionLocalProvider(LocalDensity provides Density(1f, viewport.value.second)) {
+                key(viewport.value, time.intValue, period.intValue) {
+                    ClocklingsTheme {
+                        ClockFace(
+                            ClockCommand(time.intValue),
+                            Modifier.size(viewport.value.first.dp).testTag("clock"),
+                            period = period.intValue,
+                            clockSize = viewport.value.first.dp,
+                        )
+                    }
+                }
+            }
+        }
+        for (cell in listOf(411 to 1f, 320 to 1f, 411 to 2f, 320 to 2f)) {
+            for (halfPast in listOf(30, 750)) {
+                compose.runOnIdle {
+                    viewport.value = cell
+                    time.intValue = halfPast
+                    period.intValue = ClockTime.HALF_DAY
+                }
+                val bounds = compose.onNodeWithTag("clock").fetchSemanticsNode().boundsInRoot
+                val dayPart = timeLanguage(AppLanguage.ENGLISH).dayPart(halfPast).name
+                compose.onNodeWithText(dayPart).assertDoesNotExist()
+                val baseline = captureClock(view, bounds)
+                compose.runOnIdle { period.intValue = ClockTime.DAY }
+                val chip = compose.onNodeWithText(dayPart).assertIsDisplayed().fetchSemanticsNode()
+                assertTrue(
+                    "$cell at $halfPast: the chip must be below the dial",
+                    chip.boundsInRoot.top >= bounds.bottom,
+                )
+                val pixels = captureClock(view, bounds)
+                val scale = pixels.width / ClockSpec.VIEW_SIZE
+                val x = ((ClockSpec.CENTER - ClockSpec.VIEW_ORIGIN) * scale).roundToInt()
+                var maxBlueContrast = 0f
+                // Sample the blue minute shaft below the centre cap at half past.
+                for (offset in -5..5) {
+                    val y = ((ClockSpec.CENTER + 30 + offset - ClockSpec.VIEW_ORIGIN) * scale).roundToInt()
+                    val color = pixels[x, y]
+                    val expected = baseline[x, y]
+                    maxBlueContrast = maxOf(maxBlueContrast, expected.blue - expected.red)
+                    assertTrue(
+                        "$cell at $halfPast: day part erased the minute hand at $offset: $color",
+                        abs(color.red - expected.red) < 0.03f &&
+                            abs(color.green - expected.green) < 0.03f &&
+                            abs(color.blue - expected.blue) < 0.03f,
+                    )
+                }
+                assertTrue("$cell at $halfPast: baseline must contain the blue minute hand", maxBlueContrast > 0.1f)
+            }
+        }
+    }
+
+    @Test
+    fun guided24HourDialHasNoZoneWords() {
+        val language = mutableStateOf(AppLanguage.ENGLISH)
+        lateinit var view: View
+        compose.setContent {
+            view = LocalView.current
+            CompositionLocalProvider(LocalDensity provides Density(1f), LocalAppLanguage provides language.value) {
+                ClocklingsTheme {
+                    ClockFace(
+                        ClockCommand(390),
+                        Modifier.testTag("clock"),
+                        period = ClockTime.DAY,
+                        help = true,
+                        clockSize = 240.dp,
+                    )
+                }
+            }
+        }
+        val bounds = compose.onNodeWithTag("clock").fetchSemanticsNode().boundsInRoot
+        val english = captureClock(view, bounds)
+        // The original Finnish dial never painted the zone words, while the English one did.
+        compose.runOnIdle { language.value = AppLanguage.FINNISH }
+        val finnish = captureClock(view, bounds)
+        val differences =
+            (0 until english.width).sumOf { x ->
+                (0 until english.height).count { y -> english[x, y] != finnish[x, y] }
+            }
+        assertEquals("The language must not affect pixels inside the guided 24-hour dial", 0, differences)
+    }
 
     @Test
     fun retainedAnswerUpdatesDoNotSnapTheHandDuringAnActiveDrag() {

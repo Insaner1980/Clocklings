@@ -50,7 +50,6 @@ internal object SignedPurchases {
             listOf(parsed.optString("productId")),
             parsed.optString("purchaseToken"),
             state,
-            parsed.optBoolean("acknowledged"),
             json,
             signature,
         )

@@ -1,0 +1,268 @@
+{
+  "unicorn-neck-lei": {
+    "front": {
+      "part": "BODY",
+      "destination": [
+        72,
+        164,
+        54,
+        35
+      ],
+      "source": [
+        852,
+        141
+      ]
+    }
+  },
+  "unicorn-head-horn-rings": {
+    "front": {
+      "part": "HEAD",
+      "destination": [
+        66,
+        11,
+        26,
+        35
+      ],
+      "source": [
+        195,
+        0
+      ]
+    }
+  },
+  "unicorn-extra-cloud": {
+    "back": {
+      "part": "GROUND",
+      "destination": [
+        50,
+        264,
+        145,
+        30
+      ],
+      "source": [
+        0,
+        776
+      ]
+    }
+  },
+  "unicorn-neck-stars": {
+    "front": {
+      "part": "BODY",
+      "destination": [
+        79,
+        165,
+        49,
+        45
+      ],
+      "source": [
+        723,
+        0
+      ]
+    }
+  },
+  "unicorn-head-flower-crown": {
+    "front": {
+      "part": "HEAD",
+      "destination": [
+        14,
+        52,
+        137,
+        46
+      ],
+      "source": [
+        876,
+        0
+      ]
+    }
+  },
+  "unicorn-extra-balloon": {
+    "front": {
+      "part": "HEAD",
+      "destination": [
+        3,
+        150,
+        70,
+        42
+      ],
+      "source": [
+        1290,
+        0
+      ]
+    }
+  },
+  "unicorn-neck-scarf": {
+    "front": {
+      "part": "BODY",
+      "destination": [
+        75,
+        164,
+        62,
+        53
+      ],
+      "source": [
+        0,
+        324
+      ]
+    }
+  },
+  "unicorn-head-ribbons": {
+    "front": {
+      "part": "HEAD",
+      "destination": [
+        37,
+        63,
+        124,
+        80
+      ],
+      "source": [
+        852,
+        480
+      ]
+    }
+  },
+  "unicorn-extra-boots": {
+    "front": {
+      "part": "BODY",
+      "destination": [
+        62,
+        239,
+        122,
+        44
+      ],
+      "source": [
+        792,
+        723
+      ]
+    }
+  },
+  "unicorn-neck-rainbow-scarf": {
+    "front": {
+      "part": "BODY",
+      "destination": [
+        75,
+        164,
+        50,
+        64
+      ],
+      "source": [
+        419,
+        0
+      ]
+    }
+  },
+  "unicorn-head-butterfly": {
+    "front": {
+      "part": "HEAD",
+      "destination": [
+        115,
+        55,
+        40,
+        34
+      ],
+      "source": [
+        1050,
+        324
+      ]
+    }
+  },
+  "unicorn-extra-rainbow": {
+    "back": {
+      "part": "GROUND",
+      "destination": [
+        14,
+        173,
+        220,
+        114
+      ],
+      "source": [
+        189,
+        230
+      ]
+    }
+  },
+  "unicorn-neck-moon": {
+    "front": {
+      "part": "BODY",
+      "destination": [
+        77,
+        167,
+        49,
+        58
+      ],
+      "source": [
+        642,
+        642
+      ]
+    }
+  },
+  "unicorn-head-crown": {
+    "front": {
+      "part": "HEAD",
+      "destination": [
+        38,
+        45,
+        86,
+        34
+      ],
+      "source": [
+        321,
+        575
+      ]
+    }
+  },
+  "unicorn-neck-cape": {
+    "back": {
+      "part": "BODY",
+      "destination": [
+        86,
+        160,
+        96,
+        63
+      ],
+      "source": [
+        1227,
+        480
+      ]
+    },
+    "front": {
+      "part": "BODY",
+      "destination": [
+        75,
+        164,
+        106,
+        66
+      ],
+      "source": [
+        0,
+        575
+      ]
+    }
+  },
+  "unicorn-extra-wings": {
+    "front": {
+      "part": "BODY",
+      "destination": [
+        128,
+        116,
+        83,
+        82
+      ],
+      "source": [
+        0,
+        996
+      ]
+    },
+    "back": {
+      "part": "BODY",
+      "destination": [
+        116,
+        94,
+        92,
+        112
+      ],
+      "source": [
+        1173,
+        141
+      ]
+    }
+  }
+}

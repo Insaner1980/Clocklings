@@ -26,7 +26,7 @@
     <string name="item_dog_head_party_hat">Partyhatt</string>
     <string name="item_dog_extra_boots">Gummistövlar</string>
     <string name="item_dog_neck_lei">Blomhalsband</string>
-    <string name="item_dog_head_aviator">Flygarmössa</string>
+    <string name="item_dog_head_aviator">Upptäckarhatt</string>
     <string name="item_dog_extra_backpack">Ryggsäck</string>
     <string name="item_dog_neck_medal">Medalj</string>
     <string name="item_dog_head_helmet">Brandhjälm</string>
@@ -66,7 +66,7 @@
     <string name="item_dragon_extra_wings">Glittrande vingar</string>
     <string name="item_dinosaur_extra_backpack">Ryggsäck</string>
     <string name="item_dinosaur_head_flower">Blomma på huvudet</string>
-    <string name="item_dinosaur_extra_bucket">Sandhink</string>
+    <string name="item_dinosaur_extra_bucket">Drickmugg</string>
     <string name="item_dinosaur_neck_scarf">Halsduk</string>
     <string name="item_dinosaur_head_cap">Keps</string>
     <string name="item_dinosaur_extra_balloon">Ballong</string>
@@ -85,7 +85,7 @@
     <string name="item_bunny_neck_ribbon">Sidenrosett</string>
     <string name="item_bunny_extra_carrot">Morot</string>
     <string name="item_bunny_head_ear_bow">Rosett på örat</string>
-    <string name="item_bunny_neck_daisies">Prästkragekedja</string>
+    <string name="item_bunny_neck_daisies">Pärlhalsband</string>
     <string name="item_bunny_extra_basket">Äggkorg</string>
     <string name="item_bunny_head_sun_hat">Solhatt</string>
     <string name="item_bunny_neck_locket">Hjärtmedaljong</string>
@@ -94,7 +94,7 @@
     <string name="item_bunny_neck_bow_tie">Prickig fluga</string>
     <string name="item_bunny_extra_bubbles">Såpbubblor</string>
     <string name="item_bunny_head_flower_crown">Blomsterkrans</string>
-    <string name="item_bunny_extra_bouquet">Blombukett</string>
+    <string name="item_bunny_extra_bouquet">Stjärntrollstav</string>
     <string name="item_bunny_neck_cape">Stjärnmantel</string>
     <string name="item_bunny_head_tiara">Tiara</string>
     <string name="item_bunny_extra_wings">Älvvingar</string>
@@ -105,7 +105,7 @@
     <string name="item_unicorn_extra_cloud">Molnkudde</string>
     <string name="item_unicorn_neck_stars">Stjärnhalsband</string>
     <string name="item_unicorn_head_flower_crown">Blomsterkrans</string>
-    <string name="item_unicorn_extra_balloon">Stjärnballong</string>
+    <string name="item_unicorn_extra_balloon">Stjärntrollstav</string>
     <string name="item_unicorn_neck_scarf">Halsduk</string>
     <string name="item_unicorn_head_ribbons">Rosetter i manen</string>
     <string name="item_unicorn_extra_boots">Glittriga stövlar</string>

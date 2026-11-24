@@ -196,7 +196,9 @@ class AppFlowTest {
     fun homeAndTogetherKeepWordsReadable() {
         waitForText("Clocklings")
         assertWholeWords(clockWords().replaceFirstChar { it.uppercase() })
-        compose.onNodeWithContentDescription("My Companion").assertExists()
+        val title = compose.activity.getString(R.string.menu_nukke)
+        val action = compose.activity.getString(R.string.home_companion_choices)
+        compose.onNodeWithContentDescription("$title. $action").assertIsEnabled()
         assertWholeWords("Explore")
         assertWholeWords("Play Together")
 
@@ -248,7 +250,7 @@ class AppFlowTest {
                     compose.waitForIdle()
                 }
                 assertTrue("tehtävä $task: kello ${clockWords()} != $target", clockWords() == target)
-                click("Done")
+                click("Check")
             }
             if (task < 9) awaitTask(task + 1)
         }
@@ -294,7 +296,7 @@ class AppFlowTest {
         }
         compose.onNodeWithTag("color_BLUE").assertIsSelected()
         // The bobble hat opens at four stars.
-        compose.onNodeWithContentDescription("Locked. Opens at 4\u00A0stars. You have 3.").assertExists()
+        compose.onNodeWithContentDescription("Needs 4 stars").assertExists()
         // No loose free-item chip from the old picker.
         compose.onAllNodesWithText("Bandana").assertCountEquals(0)
     }
@@ -322,10 +324,10 @@ class AppFlowTest {
                 .single { it.label == "Subtract 5\u00A0minutes" }
         compose.runOnIdle { repeat(144) { subtract.action() } }
         compose.onNodeWithText("03:05").assertExists()
-        click("Help on")
-        waitForText("Help off")
+        click("Clock guides on")
+        waitForText("Clock guides off")
         compose.activityRule.scenario.recreate()
-        waitForText("Help off")
+        waitForText("Clock guides off")
         compose.onNodeWithText("03:05").assertExists()
         click("Back")
         click("Play Together")

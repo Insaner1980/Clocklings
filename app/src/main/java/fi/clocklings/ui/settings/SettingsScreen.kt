@@ -1,13 +1,9 @@
 package fi.clocklings.ui.settings
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
@@ -20,24 +16,23 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import fi.clocklings.R
 import fi.clocklings.domain.AppLanguage
 import fi.clocklings.domain.Settings
 import fi.clocklings.domain.timeLanguage
 import fi.clocklings.ui.LocalAppViewModel
+import fi.clocklings.ui.components.ButtonKind
 import fi.clocklings.ui.components.ScreenScaffold
 import fi.clocklings.ui.components.SkButton
-import fi.clocklings.ui.components.SkIcon
 import fi.clocklings.ui.components.SkIcons
 import fi.clocklings.ui.components.TopBar
 import fi.clocklings.ui.locale.LocalAppLanguage
@@ -45,6 +40,7 @@ import fi.clocklings.ui.locale.LocalAppLocale
 import fi.clocklings.ui.theme.Section
 import fi.clocklings.ui.theme.SkColors
 import fi.clocklings.ui.theme.SkDimens
+import fi.clocklings.ui.theme.SkShapes
 import fi.clocklings.ui.theme.SkType
 
 @Composable
@@ -74,15 +70,20 @@ fun SettingsScreen(
         }
         ClockDisplayGroup(settings, enabled = !action.pending)
         SettingsGroup(stringResource(R.string.settings_sound_group)) {
-            SettingsSwitch(
-                stringResource(R.string.settings_sound_title),
-                stringResource(R.string.settings_sound_description),
-                settings.sound,
-                !action.pending,
-                app::setSound,
-            )
+            SettingsCard(horizontalPadding = 0.dp) {
+                SettingsSwitch(
+                    stringResource(R.string.settings_sound_title),
+                    stringResource(R.string.settings_sound_description),
+                    settings.sound,
+                    !action.pending,
+                    app::setSound,
+                )
+                SpeechAvailabilityInfo(
+                    speechAvailable,
+                    Modifier.padding(start = SkDimens.Gap, end = SkDimens.Gap, bottom = SkDimens.GapM),
+                )
+            }
         }
-        SpeechAvailabilityInfo(speechAvailable)
         SettingsGroup(stringResource(R.string.settings_progress_title)) {
             ResetProgressRow(!action.pending) {
                 app.clearSettingsError()
@@ -91,7 +92,7 @@ fun SettingsScreen(
         }
         if (action.failed) Text(stringResource(R.string.settings_save_error), style = SkType.Body)
         if (onParent != null) {
-            SkButton(stringResource(R.string.parent_title), onParent, Modifier.fillMaxWidth())
+            SettingsNavRow(SkIcons.Lock, SkColors.PrimaryContainer, stringResource(R.string.parent_title), onParent)
         }
     }
     if (confirmReset) {
@@ -105,9 +106,12 @@ fun SettingsScreen(
 }
 
 @Composable
-internal fun SpeechAvailabilityInfo(available: Boolean) {
+internal fun SpeechAvailabilityInfo(
+    available: Boolean,
+    modifier: Modifier = Modifier,
+) {
     // Refreshing the voice must not shrink the content and clamp a restored scroll offset.
-    Box {
+    Box(modifier) {
         for ((state, message) in listOf(
             true to R.string.settings_speech_info_available,
             false to R.string.settings_speech_info_unavailable,
@@ -129,24 +133,14 @@ private fun ClockDisplayGroup(
     val app = LocalAppViewModel.current
     val words = timeLanguage(LocalAppLanguage.current)
     SettingsGroup(stringResource(R.string.settings_clock_display)) {
-        Column(Modifier.selectableGroup()) {
-            RadioRow(
-                stringResource(R.string.mode_12),
-                words.digital(EXAMPLE_TIME),
-                !settings.h24,
-                enabled,
-            ) {
-                app.setH24(false)
-            }
-            SettingsDivider()
-            RadioRow(
-                stringResource(R.string.mode_24),
-                words.digital(EXAMPLE_TIME, true),
-                settings.h24,
-                enabled,
-            ) { app.setH24(true) }
-        }
-        SettingsDivider()
+        ChoiceSegments(
+            stringResource(R.string.mode_12),
+            stringResource(R.string.mode_24),
+            words.digital(EXAMPLE_TIME),
+            words.digital(EXAMPLE_TIME, true),
+            if (settings.h24) 1 else 0,
+            enabled,
+        ) { app.setH24(it == 1) }
         SettingsSwitch(
             stringResource(R.string.settings_guides_title),
             stringResource(R.string.settings_guides_description),
@@ -163,15 +157,15 @@ private fun ResetProgressRow(
     enabled: Boolean,
     onReset: () -> Unit,
 ) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = SkDimens.IconButton)
-            .clickable(enabled = enabled, role = Role.Button, onClick = onReset),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(stringResource(R.string.settings_reset_action), style = SkType.Body.copy(color = SkColors.Danger))
-    }
+    SettingsNavRow(
+        SkIcons.Replay,
+        SkColors.DangerContainer,
+        stringResource(R.string.settings_reset_action),
+        onReset,
+        titleColor = SkColors.Danger,
+        showChevron = false,
+        enabled = enabled,
+    )
 }
 
 @Composable
@@ -183,21 +177,36 @@ private fun ResetProgressDialog(
 ) {
     AlertDialog(
         onDismissRequest = { if (!pending) onDismiss() },
-        title = { Text(stringResource(R.string.settings_reset_title)) },
+        containerColor = SkColors.Surface,
+        shape = SkShapes.Card,
+        title = { Text(stringResource(R.string.settings_reset_title), style = SkType.Title) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
-                Text(stringResource(R.string.settings_reset_body))
+                Text(stringResource(R.string.settings_reset_body), style = SkType.Body)
                 if (failed) Text(stringResource(R.string.settings_save_error))
             }
         },
         confirmButton = {
-            FlowRow(
+            Column(
                 Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM, Alignment.End),
                 verticalArrangement = Arrangement.spacedBy(SkDimens.GapM),
             ) {
-                SkButton(stringResource(R.string.settings_cancel), onDismiss, enabled = !pending)
-                SkButton(stringResource(R.string.settings_reset_action), onReset, enabled = !pending)
+                SkButton(
+                    stringResource(R.string.settings_reset_action),
+                    onReset,
+                    Modifier.fillMaxWidth(),
+                    kind = ButtonKind.DANGER,
+                    small = true,
+                    enabled = !pending,
+                )
+                SkButton(
+                    stringResource(R.string.settings_cancel),
+                    onDismiss,
+                    Modifier.fillMaxWidth(),
+                    kind = ButtonKind.TONAL,
+                    small = true,
+                    enabled = !pending,
+                )
             }
         },
     )
@@ -254,15 +263,11 @@ private fun LanguageRow(
     onLanguage: () -> Unit,
 ) {
     val languageTitle = stringResource(R.string.language_title)
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = SkDimens.SettingsRowHeight)
-            .semantics { contentDescription = "$languageTitle: $value" }
-            .clickable(role = Role.Button, onClick = onLanguage),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(value, style = SkType.Body, modifier = Modifier.weight(1f))
-        SkIcon(SkIcons.Chevron, SkDimens.ActionIcon)
-    }
+    SettingsNavRow(
+        SkIcons.Globe,
+        SkColors.HomeSky,
+        value,
+        onLanguage,
+        Modifier.semantics { contentDescription = "$languageTitle: $value" },
+    )
 }

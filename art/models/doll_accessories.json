@@ -1,0 +1,105 @@
+{
+  "head-rusetti": {
+    "front": {
+      "part": "HEAD",
+      "destination": [
+        110,
+        25,
+        47,
+        27
+      ],
+      "source": [
+        0,
+        0
+      ]
+    }
+  },
+  "head-kukat": {
+    "front": {
+      "part": "HEAD",
+      "destination": [
+        31,
+        8,
+        134,
+        55
+      ],
+      "source": [
+        147,
+        0
+      ]
+    }
+  },
+  "extra-strawberry-bag": {
+    "back": {
+      "part": "BODY",
+      "destination": [
+        48,
+        132,
+        87,
+        112
+      ],
+      "source": [
+        284,
+        170
+      ]
+    },
+    "front": {
+      "part": "BODY",
+      "destination": [
+        45,
+        132,
+        96,
+        117
+      ],
+      "source": [
+        555,
+        0
+      ]
+    }
+  },
+  "head-kruunu": {
+    "front": {
+      "part": "HEAD",
+      "destination": [
+        70,
+        -3,
+        61,
+        51
+      ],
+      "source": [
+        849,
+        0
+      ]
+    }
+  },
+  "extra-siivet": {
+    "back": {
+      "part": "BODY",
+      "destination": [
+        2,
+        119,
+        196,
+        109
+      ],
+      "source": [
+        855,
+        166
+      ]
+    }
+  },
+  "shoes-roller-skates": {
+    "front": {
+      "part": "WHEELS",
+      "destination": [
+        53,
+        270,
+        91,
+        66
+      ],
+      "source": [
+        0,
+        324
+      ]
+    }
+  }
+}

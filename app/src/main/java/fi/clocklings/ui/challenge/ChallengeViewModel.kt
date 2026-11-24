@@ -13,7 +13,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -83,11 +82,9 @@ class ChallengeViewModel(
 
     init {
         viewModelScope.launch {
-            val best =
-                services.repository.progress
-                    .first()
-                    .challengeBest
-            _state.update { it.copy(best = maxOf(it.best, best)) }
+            services.repository.progress.collect { progress ->
+                _state.update { it.copy(best = maxOf(it.best, progress.challengeBest)) }
+            }
         }
     }
 
@@ -97,6 +94,7 @@ class ChallengeViewModel(
         timer?.cancel()
         pending?.cancel()
         endSound?.cancel()
+        services.usage.count("challenge.start")
         services.play(Sound.CHALLENGE_GO)
         _state.update {
             it.copy(
@@ -135,6 +133,7 @@ class ChallengeViewModel(
         if (s.phase != ChallengePhase.RUN || s.busy) return
         if (nowNanos() >= s.deadlineNanos) return
         val correct = time == s.question
+        services.usage.count(if (correct) "challenge.correct" else "challenge.wrong")
         services.play(if (correct) Sound.OK else Sound.BAD)
         _state.value =
             if (correct) {
@@ -162,6 +161,7 @@ class ChallengeViewModel(
         val s = _state.value
         // A retried save ends the same run again: time ran out already, so only the fanfare repeats.
         val timeRanOut = s.phase == ChallengePhase.RUN
+        if (timeRanOut) services.usage.count("challenge.timeout")
         var best = s.best
         var record = s.score > best
         val saved =
@@ -180,6 +180,7 @@ class ChallengeViewModel(
         val newRecord = saved && record && s.score > 0
         val fanfare = if (newRecord) Sound.RECORD else Sound.WIN
         if (timeRanOut) {
+            services.usage.count("challenge.finish")
             services.play(Sound.CHALLENGE_OVER)
             endSound =
                 viewModelScope.launch {

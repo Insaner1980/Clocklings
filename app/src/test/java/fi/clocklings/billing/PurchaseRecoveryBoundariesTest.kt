@@ -32,7 +32,6 @@ class PurchaseRecoveryBoundariesTest {
                 listOf(FullUnlockProduct.ID),
                 token,
                 StorePurchaseState.PURCHASED,
-                false,
                 receipt.json,
                 receipt.signature,
             )

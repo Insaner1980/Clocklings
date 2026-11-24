@@ -1,0 +1,255 @@
+{
+  "bunny-neck-ribbon": {
+    "front": {
+      "part": "BODY",
+      "destination": [
+        87,
+        153,
+        66,
+        61
+      ],
+      "source": [
+        0,
+        0
+      ]
+    }
+  },
+  "bunny-extra-carrot": {
+    "front": {
+      "part": "HAND",
+      "destination": [
+        104,
+        187,
+        32,
+        78
+      ],
+      "source": [
+        204,
+        0
+      ]
+    }
+  },
+  "bunny-head-ear-bow": {
+    "front": {
+      "part": "HEAD",
+      "destination": [
+        41,
+        39,
+        56,
+        39
+      ],
+      "source": [
+        306,
+        0
+      ]
+    }
+  },
+  "bunny-neck-daisies": {
+    "front": {
+      "part": "BODY",
+      "destination": [
+        85,
+        152,
+        70,
+        45
+      ],
+      "source": [
+        480,
+        0
+      ]
+    }
+  },
+  "bunny-extra-basket": {
+    "front": {
+      "part": "GROUND",
+      "destination": [
+        177,
+        214,
+        56,
+        73
+      ],
+      "source": [
+        696,
+        0
+      ]
+    }
+  },
+  "bunny-head-sun-hat": {
+    "front": {
+      "part": "HEAD",
+      "destination": [
+        44,
+        3,
+        152,
+        60
+      ],
+      "source": [
+        870,
+        0
+      ]
+    }
+  },
+  "bunny-neck-locket": {
+    "front": {
+      "part": "BODY",
+      "destination": [
+        86,
+        153,
+        68,
+        65
+      ],
+      "source": [
+        1332,
+        0
+      ]
+    }
+  },
+  "bunny-extra-watering-can": {
+    "front": {
+      "part": "HAND",
+      "destination": [
+        132,
+        220,
+        77,
+        47
+      ],
+      "source": [
+        0,
+        240
+      ]
+    }
+  },
+  "bunny-head-top-hat": {
+    "front": {
+      "part": "HEAD",
+      "destination": [
+        54,
+        -26,
+        133,
+        80
+      ],
+      "source": [
+        237,
+        240
+      ]
+    }
+  },
+  "bunny-neck-bow-tie": {
+    "front": {
+      "part": "BODY",
+      "destination": [
+        87,
+        154,
+        66,
+        38
+      ],
+      "source": [
+        642,
+        240
+      ]
+    }
+  },
+  "bunny-extra-bubbles": {
+    "front": {
+      "part": "HAND",
+      "destination": [
+        125,
+        190,
+        116,
+        58
+      ],
+      "source": [
+        846,
+        240
+      ]
+    }
+  },
+  "bunny-head-flower-crown": {
+    "front": {
+      "part": "HEAD",
+      "destination": [
+        51,
+        26,
+        136,
+        51
+      ],
+      "source": [
+        0,
+        486
+      ]
+    }
+  },
+  "bunny-extra-bouquet": {
+    "front": {
+      "part": "HAND",
+      "destination": [
+        122,
+        193,
+        73,
+        61
+      ],
+      "source": [
+        414,
+        486
+      ]
+    }
+  },
+  "bunny-neck-cape": {
+    "back": {
+      "part": "BODY",
+      "destination": [
+        24,
+        164,
+        192,
+        124
+      ],
+      "source": [
+        639,
+        486
+      ]
+    },
+    "front": {
+      "part": "BODY",
+      "destination": [
+        82,
+        154,
+        76,
+        34
+      ],
+      "source": [
+        1221,
+        486
+      ]
+    }
+  },
+  "bunny-head-tiara": {
+    "front": {
+      "part": "HEAD",
+      "destination": [
+        79,
+        11,
+        82,
+        48
+      ],
+      "source": [
+        0,
+        864
+      ]
+    }
+  },
+  "bunny-extra-wings": {
+    "back": {
+      "part": "BODY",
+      "destination": [
+        -14,
+        122,
+        268,
+        135
+      ],
+      "source": [
+        252,
+        864
+      ]
+    }
+  }
+}

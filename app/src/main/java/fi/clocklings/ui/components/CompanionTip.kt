@@ -24,6 +24,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import fi.clocklings.domain.CompanionKind
 import fi.clocklings.ui.appearance.LocalCompanionOutfit
 import fi.clocklings.ui.appearance.LocalPersonalization
@@ -41,12 +42,18 @@ fun CompanionTip(
     modifier: Modifier = Modifier,
     kind: FeedbackKind = FeedbackKind.HINT,
     celebrate: Boolean = false,
+    color: Color? = null,
+    avatarWidth: Dp = SkDimens.TipCompanion,
+    animated: Boolean = true,
 ) {
     CompanionTip(
         modifier,
         celebrationKey = text,
         celebrate = celebrate,
-        fallback = { FeedbackBox(text, kind) },
+        color = color ?: SkColors.Bubble,
+        fallback = { FeedbackBox(text, kind, color = color) },
+        avatarWidth = avatarWidth,
+        animated = animated,
     ) {
         Text(text, style = SkType.Body)
     }
@@ -61,7 +68,10 @@ fun CompanionTip(
     modifier: Modifier = Modifier,
     celebrationKey: String? = null,
     celebrate: Boolean = false,
+    color: Color = SkColors.Bubble,
     fallback: @Composable () -> Unit = {},
+    avatarWidth: Dp = SkDimens.TipCompanion,
+    animated: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val companion = LocalPersonalization.current.companion
@@ -80,14 +90,15 @@ fun CompanionTip(
             CompanionView(
                 companion,
                 LocalCompanionOutfit.current,
-                Modifier.size(if (compact) SkDimens.TipCompanionCompact else SkDimens.TipCompanion),
+                Modifier.size(if (compact) SkDimens.TipCompanionCompact else avatarWidth),
+                animated = animated,
                 celebration = celebration,
             )
         }
         if (compact) {
             Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapS)) {
                 avatar()
-                SpeechBubbleBox(tail = BubbleTail.UP_START, content = content)
+                SpeechBubbleBox(tail = BubbleTail.UP_START, color = color, content = content)
             }
         } else {
             // Align the first line and tail with the head, including short captions.
@@ -99,6 +110,7 @@ fun CompanionTip(
                 SpeechBubbleBox(
                     Modifier.weight(1f).padding(top = SkDimens.BubbleHeadOffset),
                     tail = BubbleTail.START,
+                    color = color,
                     content = content,
                 )
             }

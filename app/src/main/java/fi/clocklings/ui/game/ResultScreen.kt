@@ -3,12 +3,14 @@ package fi.clocklings.ui.game
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.keyframes
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,12 +25,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import fi.clocklings.R
 import fi.clocklings.Screen
@@ -44,21 +50,23 @@ import fi.clocklings.domain.Wardrobe
 import fi.clocklings.ui.appearance.LocalPersonalization
 import fi.clocklings.ui.companion.CompanionCelebration
 import fi.clocklings.ui.companion.CompanionView
-import fi.clocklings.ui.companion.ItemTile
 import fi.clocklings.ui.companion.companionAspectRatio
 import fi.clocklings.ui.components.ButtonKind
-import fi.clocklings.ui.components.FlatPanel
 import fi.clocklings.ui.components.LocalConfetti
+import fi.clocklings.ui.components.RoundIconButton
 import fi.clocklings.ui.components.ScreenScaffold
 import fi.clocklings.ui.components.SkButton
+import fi.clocklings.ui.components.SkIcons
 import fi.clocklings.ui.components.StarIcon
 import fi.clocklings.ui.components.confettiAnchor
+import fi.clocklings.ui.components.excludeConfetti
 import fi.clocklings.ui.levelName
 import fi.clocklings.ui.rememberReduceMotion
 import fi.clocklings.ui.theme.Section
 import fi.clocklings.ui.theme.SkDimens
 import fi.clocklings.ui.theme.SkType
 import kotlinx.coroutines.delay
+import kotlin.math.roundToInt
 
 /**
  * Tasotulos: tähdet, uudet vaatteet ja jatkonapit. Kaikki lasketaan avaimesta,
@@ -101,41 +109,102 @@ fun ResultScreen(
         confetti?.burst(anchor.value, RESULT_CONFETTI)
     }
 
-    ScreenScaffold(modifier, section = Section.PLAY) {
-        FlatPanel(Modifier.fillMaxWidth()) {
-            Column(
-                Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(SkDimens.Gap),
-            ) {
-                ResultStars(stars, onSound.takeIf { firstVisit }) { anchor.value = it }
-                CompanionView(
-                    kind,
-                    outfit,
-                    Modifier.width(SkDimens.DollResult).aspectRatio(companionAspectRatio(kind)),
-                    celebration = dollCelebration,
-                )
-                ResultTitle(stars)
-                Text(text, style = SkType.ResultText, textAlign = TextAlign.Center)
-                if (newItems.isNotEmpty()) {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterHorizontally)) {
-                        newItems.forEach { ItemTile(it, outfit, color, Modifier.width(SkDimens.ItemMinWidth)) }
-                    }
-                }
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM, Alignment.CenterHorizontally),
-                    verticalArrangement = Arrangement.spacedBy(SkDimens.GapM),
-                ) {
-                    if (canReplay) SkButton(stringResource(R.string.play_again), onPlayAgain)
-                    if (canContinue && result.level < Levels.all.lastIndex) {
-                        SkButton(stringResource(R.string.next_level), onNextLevel, kind = ButtonKind.PRIMARY)
-                    }
-                    if (newItems.isNotEmpty()) {
-                        SkButton(stringResource(R.string.dress_doll), onDress, kind = ButtonKind.GREEN)
-                    }
-                    SkButton(stringResource(R.string.back_description), onLevels)
+    val hasNext = canContinue && result.level < Levels.all.lastIndex
+    ScreenScaffold(
+        modifier,
+        section = Section.PLAY,
+        topBar = { RoundIconButton(SkIcons.Close, stringResource(R.string.back_description), onLevels) },
+        bottomBar = { ResultActions(hasNext, canReplay, onNextLevel, onPlayAgain, onLevels) },
+    ) {
+        ResultLayout(viewportHeight, kind) {
+            Box { ResultStars(stars, onSound.takeIf { firstVisit }) { anchor.value = it } }
+            Box(Modifier.testTag("result_companion")) {
+                if (kind != CompanionKind.NONE) {
+                    CompanionView(kind, outfit, Modifier.fillMaxSize(), celebration = dollCelebration)
                 }
             }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    Modifier.fillMaxWidth().excludeConfetti(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(SkDimens.Gap),
+                ) {
+                    ResultTitle(stars)
+                    Text(text, style = SkType.ResultText, textAlign = TextAlign.Center)
+                }
+                if (newItems.isNotEmpty()) {
+                    Spacer(Modifier.height(SkDimens.Gap))
+                    ResultRewards(newItems, outfit, color, onDress)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ResultLayout(
+    viewport: Dp,
+    kind: CompanionKind,
+    content: @Composable () -> Unit,
+) {
+    val hasCompanion = kind != CompanionKind.NONE
+    val ratio = companionAspectRatio(kind)
+    Layout(content = content, modifier = Modifier.fillMaxWidth()) { children, constraints ->
+        val width = constraints.maxWidth
+        val loose = Constraints(maxWidth = width)
+        val starRow = children[0].measure(loose)
+        val details = children[2].measure(loose)
+        val gapAbove = SkDimens.GapM.roundToPx()
+        val gapBelow = if (hasCompanion) SkDimens.Gap.roundToPx() else 0
+        val fade = SkDimens.ScrollFade.roundToPx()
+        val available =
+            viewport.roundToPx() - SkDimens.GapScreen.roundToPx() - fade -
+                starRow.height - details.height - gapAbove - gapBelow
+        val artMax = (minOf(SkDimens.DollResult.roundToPx(), width) / ratio).roundToInt()
+        val artMin = minOf(artMax, SkDimens.ResultCompanionMinHeight.roundToPx())
+        val artHeight = if (hasCompanion) available.coerceIn(artMin, artMax) else 0
+        val art = children[1].measure(Constraints.fixed((artHeight * ratio).roundToInt(), artHeight))
+        val artTop = starRow.height + gapAbove
+        val detailsTop = artTop + art.height + gapBelow
+        layout(width, detailsTop + details.height + fade) {
+            starRow.placeRelative((width - starRow.width) / 2, 0)
+            art.placeRelative((width - art.width) / 2, artTop)
+            details.placeRelative((width - details.width) / 2, detailsTop)
+        }
+    }
+}
+
+@Composable
+private fun ResultActions(
+    hasNext: Boolean,
+    canReplay: Boolean,
+    onNextLevel: () -> Unit,
+    onPlayAgain: () -> Unit,
+    onLevels: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapS)) {
+        if (canReplay) {
+            SkButton(
+                stringResource(R.string.play_again),
+                onPlayAgain,
+                Modifier.fillMaxWidth(),
+                kind = if (hasNext) ButtonKind.SECONDARY else ButtonKind.PRIMARY,
+                icon = SkIcons.Replay,
+            )
+        }
+        if (hasNext) {
+            SkButton(
+                stringResource(R.string.next_level),
+                onNextLevel,
+                Modifier.fillMaxWidth(),
+                kind = ButtonKind.PRIMARY,
+                trailingIcon = SkIcons.Chevron,
+            )
+        }
+        if (!hasNext &&
+            !canReplay
+        ) {
+            SkButton(stringResource(R.string.back_description), onLevels, Modifier.fillMaxWidth())
         }
     }
 }
@@ -177,6 +246,8 @@ private fun PoppingStar(
     on: Boolean,
     delayMs: Int,
     onPop: (() -> Unit)?,
+    size: Dp,
+    modifier: Modifier = Modifier,
 ) {
     val reduceMotion = rememberReduceMotion()
     val k = remember { Animatable(if (on && !reduceMotion) 0f else 1f) }
@@ -197,15 +268,21 @@ private fun PoppingStar(
             )
         }
     }
-    StarIcon(
-        on,
-        Modifier.graphicsLayer {
-            scaleX = k.value
-            scaleY = k.value
-            rotationZ = if (k.value < 1f && on) -POP_ROTATION * (1f - k.value) else 0f
-        },
-        size = SkDimens.StarResult,
-    )
+    Box(modifier, contentAlignment = Alignment.Center) {
+        StarIcon(false, size = size)
+        if (on) {
+            StarIcon(
+                true,
+                Modifier.graphicsLayer {
+                    val scale = if (reduceMotion) 1f else k.value
+                    scaleX = scale
+                    scaleY = scale
+                    rotationZ = if (scale < 1f) -POP_ROTATION * (1f - scale) else 0f
+                },
+                size = size,
+            )
+        }
+    }
 }
 
 /** The items of [companion], the one shown on the result, that this result unlocked; none without a companion. */
@@ -284,11 +361,13 @@ private fun ResultStars(
     val description = pluralStringResource(R.plurals.result_stars_description, stars, stars)
     Row(
         Modifier.clearAndSetSemantics { contentDescription = description }.confettiAnchor(onCenter),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(SkDimens.GapOptions),
     ) {
         repeat(MAX_STARS) { k ->
             PoppingStar(
                 on = k < stars,
+                size = if (k == 1) SkDimens.StarResultMiddle else SkDimens.StarResultSide,
+                modifier = Modifier.offset(y = if (k == 1) -SkDimens.GapS else 0.dp),
                 delayMs = STAR_DELAY_MS + k * STAR_STAGGER_MS,
                 onPop = onSound?.let { play -> { play(Sound.STAR, STAR_RATES[k]) } },
             )

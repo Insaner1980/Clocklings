@@ -1,8 +1,119 @@
 # Clocklings implementation
 
-> **Current consolidated status (6 November 2026):** Read [CONSOLIDATED-STATUS.md](CONSOLIDATED-STATUS.md) for implemented work, actual test evidence, unavailable hardware checks, optional follow-ups and deferred publication work. The dated entries below remain implementation history; earlier scope, branch, open-task and cleanup statements may be superseded.
+## Project name and location — 24 November 2026
 
-Updated: 4 November 2026. Earlier dated checkpoints remain below. This is an internal construction record, not a release or an agreed final feature inventory.
+The main Android project is now in `C:\Dev\Clocklings` and uses the GitHub repository `Insaner1980/Clocklings`. The Gradle project and Android launcher are named **Clocklings**. The application ID is `com.finnvek.clocklings`, following the publisher’s naming convention. Earlier entries record the project names and paths used at the time.
+
+## Lesson playback and gallery captures — 23 November 2026
+
+The first page of the five-minute lesson keeps playback in the action row at 411 dp and 100% text, with a 272.0 dp dial. At 320 dp or 200% text in the tested portrait layouts, playback is in the lesson panel. Its location is stable while the demo runs. The Next label fits at 320 dp and 200% text. JVM coverage checks the lesson action labels in all seven languages and all four width and text combinations. [Implementation plan](../superpowers/plans/2026-11-23-lesson-action-row-and-capture-fixes.md)
+
+The before-game gallery fixture shows the selected correct answer in green. The save-failure fixture follows the view model's rollback of answer markings when saving fails. The Minute Challenge fixtures display 59 seconds during play and 55 seconds after a wrong answer. The splash capture checks six edge pixels and records the attempt count. All sampled edges of the light Android splash were `#FFF5FA`. The per-app expanded dark theme test is recorded under L1 below.
+
+The full JVM suite passed 609 tests with zero failures or skips, up from 607. The debug and instrumentation APKs built successfully. The seven Pixel 9 configurations produced 1,634 gallery captures, with two additional images for L1. The light and expanded-dark image comparison passed for all 238 app image pairs at the existing four-level RGB tolerance. The Pixel display, theme, animation and USB wake settings were restored and verified. [Pixel 9 gallery](../../reports/clocklings-pixel9-lesson-action-row-2026-11-23/index.html)
+
+## Feedback visibility and light appearance — 23 November 2026
+
+The READ practice hint and lesson quiz feedback scroll into view when an answer changes the feedback. In the Minute Challenge, a wrong answer brings the correct option into view. The next question starts at the top of its controls. Compact previous-page buttons use a left chevron. On the first five-minute lesson page, the playback buttons sit in the action row and the 272 dp dial minimum is retained. In the earlier Pixel gallery the visible car and cat widths were 209 px and 190 px in slots of 311 px and 356 px respectively. At equal slot height the car was about 126% as wide as the cat, above the 80% threshold for a scale change. [Feedback plan](../superpowers/plans/2026-11-23-feedback-visibility-and-light-only.md)
+
+**Owner decision L1, 23 November 2026.** Clocklings keeps its light appearance under both Android dark theme settings. This includes the app's backgrounds, panels, controls, clock, companions, dialogs and system bar styling. Android's keyboard and notifications are system surfaces. The app requests a light splash background. In the previous Pixel 9 gallery it was `#FFF5FA` in light mode and `#11060C` in expanded dark mode.
+
+Android 17's `estimateWindowBGColor` inverts a light background when `forceInvertColor()` is enabled, `UiModeManager` is available, and the user-level `getForceInvertState()` equals `FORCE_INVERT_TYPE_DARK`. The theme supplies the background at lines 524–527. The branch checks no app theme flag, window flag, splash style, target SDK, or package override. The investigation found no app-side switch that preserves the light system splash, and the existing theme settings were kept. [Android 17 source, lines 423–429](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/android17-release/libs/WindowManager/Shell/src/com/android/wm/shell/startingsurface/SplashscreenContentDrawer.java#423)
+
+On Pixel 9 with system dark theme and its Expanded option enabled, the prototype app toggle was turned off under Settings → Accessibility → Dark theme → Expanded settings (gear). The sampled splash background and both edges remained `#11060C`. Home remained `#FFF5FA`. The prototype app toggle was restored to on and verified. [Splash capture](../../reports/clocklings-pixel9-lesson-action-row-2026-11-23/411dp-h5-app-override-off/startup--01-android-splash.png), [Home capture](../../reports/clocklings-pixel9-lesson-action-row-2026-11-23/411dp-h5-app-override-off/startup--03-live-home.png), and [Android accessibility settings](https://support.google.com/accessibility/android/answer/6151800?hl=en)
+
+The Pixel 9 recapture passed in all seven configurations on Android 17, producing 1,634 images. At 411 dp and 100% text the READ hint stayed in the question line with a 302.5 dp dial. In the other three width and text-size combinations it scrolled into view below the options. The lesson quiz brought each feedback message into view. At 320 dp and 200% text, the completion and save-error messages started above the fade and their last lines remained scrollable. The first five-minute lesson page showed both playback buttons and a 272.0 dp dial. The Minute Challenge's third answer was fully visible after a wrong answer with 126.2 dp below it at 320 dp and 200% text. The original device settings were restored and verified. [Pixel 9 report](../../reports/clocklings-pixel9-feedback-visibility-2026-11-23/REPORT.md) and [gallery](../../reports/clocklings-pixel9-feedback-visibility-2026-11-23/index.html)
+
+`java tools/CheckGalleryColors.java <gallery-directory>` passed for all 238 shared app screenshots below the banner area with a four-level RGB tolerance. The harness recorded navigation and keyboard insets. The normal system splash remained `#FFF5FA` at all four sampled points in both the earlier and new gallery. Android's expanded dark theme gave `#11060C` at those points, with the app's own Home background still `#FFF5FA`.
+
+The full JVM run passed 607 tests with zero failures or skips, up from 602. The three strengthened visibility tests passed on rerun, including 320 dp width, 200% text, and the combined setting. The debug and instrumentation APKs built successfully, and seven-language resource parity passed. The gallery comparator accepted synthetic frames that differed only in the excluded areas or within the four-level tolerance. It rejected a single app pixel five levels apart.
+
+## Pixel 9 gallery layout and capture follow-up — 23 November 2026
+
+Implemented P1–P7 and P9 from the [Pixel 9 follow-up plan](../superpowers/plans/2026-11-23-pixel9-gallery-follow-up.md). Read practice keeps the hint in the question line when space allows and brings the correct answer into view after the reveal or praise. The five-minute lesson explains the full hour in its last paragraph and gives the first demonstration enough room for the minute bubbles. The companion picker scrolls the appropriate lock requirement into view. Result screens fit outfit rewards at the default viewport for all nine companions. Large-text lessons have compact navigation and full questions, the Minute Challenge keeps the timer at more than half the row width at 320 dp, and the affected titles and Explore time words break at word boundaries.
+
+The [Pixel 9 gallery](../../reports/clocklings-pixel9-gallery-follow-up-2026-11-23/index.html) contains 1,632 captures across the four width and text-size combinations, expanded dark theme, reduced motion, and replay. The first option starts above the fade in all nine quizzes at 320 dp and 200% text. Three options extend into the fade. The five-minute demonstration measured 272.0 dp on page one and 279.2 dp on page two at default size, with no movement or resize during either demo. The display, animation and USB wake settings were restored after the captures. See the [device measurements](../../reports/clocklings-pixel9-gallery-follow-up-2026-11-23/REPORT.md).
+
+P8 confirmed that Clocklings' own intro and Home keep the #FFF5FA background in expanded dark theme on Android 17. The system shades its starting window to #11060C independently of the app window theme. The starting theme resolves to #FFF5FA in the SDK 36 and 37 regression tests.
+
+The full JVM suite passed 602 tests with zero failures or skips, up from 593. Debug and instrumentation APK assembly and seven-language resource parity passed. The owner runs `lc` and `sc`.
+
+## Pixel 9 gallery follow-up — 23 November 2026
+
+Implemented E1–E10 from the [gallery follow-up plan](../superpowers/plans/2026-11-23-emulator-gallery-follow-up.md). Lesson demonstrations keep the dial steady, and the five-minute lesson explains 60 and 0 in all seven languages. Locked companion thumbnails open the requirement without saving that companion. The result layouts and name-field focus were corrected. The tracked capture harness now includes the gallery fixtures, shared system bars, and the same light palette and window theme as the app.
+
+The full JVM suite passed 593 tests with zero failures or skips, compared with 578 at the child-clarity checkpoint. The debug and instrumentation APKs assembled and the seven-language resource parity check passed. The debug APK was installed as an update on the Pixel 9 with Android 17. Device testing used the Pixel throughout.
+
+On the Pixel, the lesson dial held its position and width through the demonstration. The READ practice dial measured 373.0 dp before answering, 302.5 dp at the first hint, and 220.2 dp at the reveal. With two or three rewards and the doll companion, the outfit button cleared the fade by 19.4 dp at 411.4 dp and 100% text. At 320 dp and 200% text, the first lesson quiz option and the third running Challenge option begin above the fade, then extend 64.9 dp and 73.8 dp below it respectively. Both options fit above the fade at 411.4 dp and 200% text.
+
+The launched MainActivity retained the app’s #FFF5FA home background on the Pixel with Android's expanded dark theme enabled. The earlier gallery host had rendered the same background as #11060C. The debug gallery activity now starts with Theme.Clocklings and its Home pixel assertion passed under expanded dark theme. Android's brief system splash still darkens to #11060C before the app window opens. See the [Pixel 9 test report](../../reports/clocklings-pixel9-gallery-2026-11-23/REPORT.md) for the captures and follow-up checks. The owner runs `lc` and `sc`.
+
+## Owner decisions after the child clarity review — 23 November 2026
+
+- D5. Five-minute practice starts with counting by fives, then covers past and to. The examples on either side of the half hour now close the past-and-to lesson. The app still uses the existing lesson IDs and level introduction flags for stored progress.
+- D6. The first paragraph appears at the start of an animated demonstration and the final paragraph appears when it finishes. Reduced motion and the replay action show the settled clock and both paragraphs immediately.
+- D7. The exact-minutes quiz highlights number 1 as the starting point for counting the two extra minute marks.
+- D8. The one-star title and narration stay as recorded.
+- D9. The parent screen uses a localized name for the Full Version in each of the seven languages.
+- D10. Items that require the full version show the Full Version label in the free wardrobe. The full wardrobe shows the star requirement for items the player has yet to earn.
+- T19. The parent gate uses a random multiplication problem with a two-digit factor and the numeric keyboard. An incorrect answer clears the field, keeps the error state and generates a different problem with a different result. Cancel remains available.
+
+All 51 focused JVM tests passed, including existing progress flags, timed and instant lesson demonstrations, quiz marks, purchase gating and persistence failures. Debug and instrumentation APKs assembled, and all seven languages passed the resource parity check.
+
+The dedicated API 36 emulator passed checks at 411.4 dp and 320 dp, each at 100% and 200% text, plus a separate reduced-motion check. In the same Two hands quiz, [before answering](../../reports/approved-decisions-2026-11-23/valmis-ennen.png) the disabled Done action shows dark text on lavender at 10.22:1 contrast. [After the answer is saved](../../reports/approved-decisions-2026-11-23/valmis-jalkeen.png) the enabled action shows white text on saturated violet. The captures used the existing Compose screenshot host. The emulator settings were restored and the emulator was stopped.
+
+## Child clarity review — 22 November 2026
+
+Implemented C1–C9 from the [child clarity plan](../superpowers/plans/2026-11-22-child-clarity-review.md). The practice clock fits the answers from the start of a reading task. Learning-path practice rows show a distinct Play title, including for locked levels. Lesson quizzes offer a retry after a storage failure and name the destination after a successful save. Setting tasks use Check, and level results put the primary action last. Child-facing copy was updated across the seven languages, with the specified wording changes in Finnish. The day-part crescent is thicker, and the disabled primary label has a 10.22:1 contrast ratio on its lavender fill.
+
+The full JVM suite passed 578 tests with zero failures, errors or skips, up from the earlier 534-test record below. Debug and instrumentation APK assembly passed. The localization check confirmed resource parity in all seven languages.
+
+On the dedicated API 36 `ClocklingsReview20261030` emulator, all four configurations passed at 411.4 dp and 320 dp with both 100% and 200% text. The [94 Finnish and English captures](../../reports/child-clarity-2026-11-22/) were made with Compose instrumentation and the existing screenshot host. The 24-hour lesson was captured after the real view model reached midnight and showed the demo's final caption. The delayed storage failure and retry, the disabled action during retry, and the transition from the final lesson quiz to practice passed as separate device flows. The emulator settings were restored and the emulator was stopped.
+
+At default size all three level-five options were visible before answering in Finnish, English and German. The lowest option cleared the fade boundary by at least 36.2 dp. The Finnish dial measured 379.4, 236.2 and 220.2 dp from initial question to hint and reveal, then restarted at 379.4 dp. At 200% font scale the dial reached its existing 160 dp minimum and all three options were reachable by scrolling. A separate 360 × 640 dp JVM fixture also required scrolling with long answers at 100% text.
+
+D5–D10 and the earlier T19 gate decision were open at this checkpoint. The 17 November status below records the prior T8 and T30 follow-up. The owner runs `lc` and `sc`.
+
+## Visual follow-up fixes F1–F4 — 17 November 2026
+
+- F1. The result card calculates equal reward cells in whole pixels after reserving space for the gaps. A single word that exceeds its cell triggers the two-per-row layout. The companion size is unchanged.
+- F2. The lesson 9 hint points to the day-part label under the clock in all seven languages. The existing arithmetic is unchanged.
+- F3. The English wardrobe and custom-clock controls use “Colour”, “Frame colour” and “favourite colours”.
+- F4. The shared home and wardrobe star pill uses the gold completion fill at 15 / 15. Ink on the gold fill has an sRGB contrast ratio of 8.38:1. The label, icon and accessibility descriptions are unchanged.
+
+All 534 JVM tests passed with zero failures, errors or skips. Debug app and instrumentation APK assembly and seven-language resource parity passed. The Compose stability baseline was regenerated for all four variants, and each variant passed the separate stability check.
+
+On the dedicated API 36 `ClocklingsReview20261030` emulator, the focused checks passed at 411.4 dp and 320 dp with 100% and 200% font scale. At 320 dp and 100% the three reward labels share a row, and at 200% they fit in two rows with whole words. The outfit action remains in the scrollable card and can sit in the bottom fade before scrolling. The 15 / 15 and 7 / 15 states were photographed in Home and Outfits at default size and at 320 dp with 200% font scale. The English and Finnish hint, the English colour controls and the reward cards are in the [verification captures](../../reports/clocklings-emulator-screenshots-2026-11-17-round2/fixes/). The emulator settings were restored and the test processes stopped.
+
+## Visual follow-up, round 2 — 17 November 2026
+
+Applied the presentation and capture-fixture changes from the [round 2 plan](../superpowers/plans/2026-11-17-visual-follow-up-round-2.md) on `codex/visual-follow-up-2026-11-17`. The 24-hour guide words now appear as blue and yellow pills below the dial. Practice, the Minute Challenge, Home, Play, purchase states and startup locale error use the revised layouts. The existing strings, companion artwork, billing and navigation were reused.
+
+The five production JVM gates passed after correcting two regressions found at gate 4. The final executed suite had 534 tests and zero failures or skips. The fixture-only gate was up to date. Debug and instrumentation APK assembly, seven-language resource parity, and the Compose stability dump and all four variant checks passed.
+
+The API 36 `ClocklingsReview20261030` emulator produced 273 screenshots at 411.4 dp and 320 dp, both at 100% and 200% font scale. The corrected Finnish [gallery](../../reports/clocklings-kuvagalleria-2026-11-17/round2/index.html) contains 62 new captures and references 163 prior images. The dedicated emulator's settings were restored and its processes exited.
+
+The doll reward card still reached the bottom fade at default size with two or three rewards during round 2. The third reward wrapping at 320 dp with normal text was addressed by F1 above. The READ and SET dial sizes never increased across the three measured states, but at default width and 200% text the next READ task restarted at 350.1 dp instead of the initial 379.4 dp. Home title pairs aligned within 0 dp at the default size in English and Finnish. The existing 320 dp Home layout has one column. The follow-up above applies decisions T8 and T30. The owner runs `lc` and `sc`. See the [Finnish report and measurements](../../reports/clocklings-emulator-screenshots-2026-11-17-round2/REPORT.md).
+
+## Visual follow-up — 17 November 2026
+
+Implemented V1–V11 from the [17 November visual plan](../superpowers/plans/2026-11-17-visual-follow-up.md) in the presentation layer on `codex/visual-follow-up-2026-11-17`. Practice keeps all three choices, with the dial and action outside the answer scroll. Full-size 24-hour clocks show the day part below the dial. Lessons fit the quiz panel and expose a disabled Done action until the answer is correct. Results, Home, companion selection, locked rows and Sound settings use the new layouts. Both day-part strings and the new score plural cover all seven languages.
+
+All five JVM gates passed. The final suite ran 532 tests with zero failures, errors or skips. The 31 focused clock tests, debug and device-test APK builds, resource parity, and stability dump and check for all four variants passed. A separate source review reported no confirmed major findings.
+
+The `ClocklingsReview20261030` API 36 emulator rendered 220 PNGs across default width, 320 dp, 200% font scale and their combination. The companion picker was also checked at 800 dp. A device test verified the record confetti anchor and state restoration. The final 24-hour geometry is `INNER_24_RADIUS = 70`, `INNER_24_FONT = 17`, and `ZONE_RADIUS_24 = 48`.
+
+The default READ reveal dial box measured 220.2 dp against the 250 dp threshold. The painted Home stage shortened by about 59 dp against the 32 dp target, and the existing compact tile dimensions were retained in short windows after a JVM layout regression. All reward item names were readable, with the existing outfit action partly faded at default size until scrolling. See the [Finnish report and evidence](../../reports/clocklings-emulator-screenshots-2026-11-17-after/REPORT.md). TalkBack speech remains unverified. The owner retains the T8 and T30 decisions and the `lc` and `sc` checks.
+
+## PostHog usage reporting — 15 November 2026
+
+Optional parent-area usage reporting is implemented on `codex/clocklings-analytics`. Android sends allowlisted weekly counters to a deployed Cloudflare Worker and EU D1 database; finalized aggregate cells go to the separate Clocklings PostHog EU project. See [POSTHOG.md](POSTHOG.md) for the event contract, dashboard, four-week reporting delay, suppression, privacy limitations, publishing information and verification. This supersedes earlier offline-only analytics statements for this 3D app; release signing remains unconfigured.
+
+Final verification passed 528 JVM tests, 4 receiver tests, the live HTTPS transport test on the dedicated Clocklings emulator, debug/release/test APK assembly, ktlint, Detekt, Android Lint and seven-language resource parity. Actual cron-to-PostHog delivery was read back successfully. UI size/font checks used Robolectric, including 320 dp with 200% text; the device check covered transport. All owned test processes stopped. Two small Wrangler cache directories remain because tool policy blocked deletion; no commit or push was made.
+
+> **Current 3D UI status (14 November 2026):** See the Modern Android UI entry below for implementation and verification. [CONSOLIDATED-STATUS.md](CONSOLIDATED-STATUS.md) records the earlier 6 November baseline. Earlier scope, branch, open-task and cleanup statements may be superseded.
+
+Updated: 14 November 2026 for the independent 3D artwork experiment. Earlier copied checkpoints remain below as history. This is an internal construction record, not a release.
 
 ## Authority and decisions
 
@@ -10,8 +121,8 @@ The owner's current instructions override both copied proposals. In particular, 
 
 | Decision | Current status |
 | --- | --- |
-| Workspace | Confirmed: `C:\Dev\Clocklings`. Independent local repository; current work is on `codex/localization-settings`. |
-| Identity | Confirmed: app **Clocklings**, Play title **Clocklings: Learn to Tell Time**, application ID and namespace `fi.clocklings`. |
+| Workspace | At this checkpoint development used a separate artwork checkout on `codex/modern-android-ui`. |
+| Identity | The prototype had its own launcher label and application ID. Source namespace `fi.clocklings`. Release signing remains unconfigured. |
 | Languages | Expanded by the owner on 4 November 2026: English, Finnish, shared Swedish, German, French, Spain Spanish (`es-ES`), and Brazilian Portuguese (`pt-BR`). Device `pt` and `pt-PT` also select Brazilian content, as explicitly confirmed by the owner. All languages belong to the single complete public release. |
 | English expressions | Confirmed: shared past/to style, including “quarter past three”, “half past three”, and “quarter to four”; numeric time alongside. No separate British/American modes. |
 | Together | Confirmed: set a time, ask, reveal, and swap turns. No assumed family roles. Cooperative stories, split-screen racing, and other variants remain proposals. |
@@ -19,13 +130,29 @@ The owner's current instructions override both copied proposals. In particular, 
 | Companions | Confirmed by the owner on 21 October: human, cat, dog, robot, dragon, dinosaur, and no-companion mode. |
 | Clock appearances | Confirmed by the owner on 21 October: classic, rainbow, space, forest, ocean, garden, workshop, and a constrained custom clock. |
 | Exclusions | No curriculum mapping, Teacher Approved work, or partial/MVP publication. |
-| Learning chapters | The eight standard lessons are grouped under the five existing game levels, with a practice node after each chapter; the optional 24-hour lesson is a final chapter without a new game level. Chapter header text is removed and each chapter's practice node is titled "Practise" (fi "Harjoittele", sv "Öva"), with the level name kept in its accessibility description (owner decision D-1, 30 October 2026; reverses item 1 of decision 2.1 of the 2026-10-27 plan). |
+| Learning chapters | The eight standard lessons are grouped under the five existing game levels, with a practice row after each chapter. The optional 24-hour lesson is a final chapter without a new game level. Chapter header text is omitted. [Child clarity task C2](../superpowers/plans/2026-11-22-child-clarity-review.md#task-c2-practice-rows-in-the-learning-path-get-their-own-title), authorized on 22 November 2026, gives practice rows the visible title "Play: [level]" (fi "Pelaa: [level]", sv "Spela: [level]") and includes the level in the accessibility description. This supersedes D-1's practice-row title from 30 October 2026. |
 | Level identity | Learning chapters and practice use the same level names and `SkColors.LevelCards` palette; the 24-hour chapter uses `ChallengeCard`. |
 | Wardrobe stars | Stars are never spent: an item's threshold is compared with the total best-level stars. Locked items show current/required progress and explain the threshold. |
-| Primary actions | Pink `ButtonKind.PRIMARY` remains the single app-wide primary action colour. |
+| Primary actions | Violet `Primary` (`#6741D9`) with white content, following the approved 14 November UI plan. The clock and artwork keep their existing pink/blue colours. |
 | Publication | No commits, pushes, remote creation, signing-key setup, uploads, or pull requests authorized. |
 
 Before their dependent implementation, resolve the final activity inventory, profiles, rewards/session rules, everyday timer/routines/widget, commercial model, data transfer, adult controls, and final audience declaration. Existing copied wardrobe/reward behavior remains a development baseline for broader reward decisions. The companion and clock inventory above is now explicitly approved.
+
+## Modern Android UI — 14 November 2026
+
+Implemented the [approved UI plan](../superpowers/plans/2026-11-14-modern-android-ui.md) locally: flat surfaces, violet pill actions, start-aligned headers, progress segments, learning and level rows, Home's direct Outfits action, answer feedback, adaptive results, Wardrobe section tabs and Settings controls. Existing navigation, storage, languages and the clock/companion artwork remain the foundation.
+
+The full JVM suite passed **522 tests with zero failures/errors/skips**. After a final equivalent Boolean extraction for Detekt, the focused row test passed again, as did debug app/test APK assembly, ktlint, Detekt, Android Lint and all four variant stability checks. Localization resource parity passed in all seven languages. The separate per-work-package build/test gates in the proposal were consolidated into implementation and final validation runs.
+
+On the dedicated `ClocklingsReview20261030` emulator, all ten phone/tablet/wide/short-window flow configurations passed, including 320 dp and 200% text. Final 320 x 800 and 1000 x 360 flows at 200% passed again after the row changes. Live resize, rotation, state/scroll restoration, actual keyboard editing, rendered focus and localization checks passed. The final gallery contains 782 verified PNGs. The artwork integrity/normal-motion suite passed 9 tests and reduced motion passed 8; robot persistence was checked separately. All 154 protected files and their inventory match the starting SHA-256 evidence.
+
+The emulator matrix used 360 × 800, 320 × 800, 800 × 900, 1200 × 600 and 1000 × 360 dp at both 100% and 200% font scale. After the final row changes, the 320 × 800 and 1000 × 360 dp cases also passed again at 200%. The gallery was compared with the eleven Finnish mockups, and localization checks covered all seven app languages. Build and gallery artifacts are stored locally under `reports/`.
+
+The earlier pressable-control ledge rule is retired, and Learn/Levels use rows instead of paths. Long feedback and large-text content retain vertical scrolling. Human TalkBack listening, physical hardware and native-speaker listening were not verified. The owner-run `lc` and `sc` checks did not run during this implementation.
+
+The final debug APK is `app/build/outputs/apk/debug/app-debug.apk`. Disposable task artifacts were removed and the owned emulator/Gradle processes exited. No commit, push or pull request was made.
+
+A scoped build prerequisite enables unit-test resources for all existing app variants, extending the existing release workaround required by the AGP Compose Preview tasks when stability tasks are realized. No dependencies or toolchain versions changed.
 
 ## German, French, Spanish and Brazilian Portuguese — 4 November 2026
 

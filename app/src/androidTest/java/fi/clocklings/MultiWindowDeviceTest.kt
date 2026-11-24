@@ -27,7 +27,7 @@ class MultiWindowDeviceTest {
         val originalTask = original.taskId
         var second: MainActivity? = null
         try {
-            shell("am start -n fi.clocklings/.MainActivity -f 0x18000000")
+            shell("am start -n ${original.componentName.flattenToString()} -f 0x18000000")
             compose.waitUntil(10_000) {
                 instrumentation.runOnMainSync {
                     second = resumed().filterIsInstance<MainActivity>().firstOrNull { it !== original }

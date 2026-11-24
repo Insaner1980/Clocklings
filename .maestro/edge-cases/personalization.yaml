@@ -1,7 +1,7 @@
 # PS-01/03/05/ST-10. Fresh English synthetic fixture. Clears ONLY the dedicated test app data.
 # Saves Cat/Blue/name Luna; use settings-persistence.yaml afterwards.
 # Observed descriptors: Cat, Dog, Choose an outfit, Companion name, Blue.
-appId: fi.clocklings
+appId: com.finnvek.clocklings
 ---
 - launchApp:
     clearState: true

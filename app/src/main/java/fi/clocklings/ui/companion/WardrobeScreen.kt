@@ -20,17 +20,17 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
@@ -38,12 +38,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -61,18 +59,21 @@ import fi.clocklings.domain.slots
 import fi.clocklings.ui.LocalAppViewModel
 import fi.clocklings.ui.RetryableSave
 import fi.clocklings.ui.appearance.companionColorName
+import fi.clocklings.ui.appearance.companionName
 import fi.clocklings.ui.components.AdaptiveContent
-import fi.clocklings.ui.components.DepthSurface
 import fi.clocklings.ui.components.FlatPanel
+import fi.clocklings.ui.components.LockPill
 import fi.clocklings.ui.components.Pill
 import fi.clocklings.ui.components.PillKind
+import fi.clocklings.ui.components.PinnedPreview
+import fi.clocklings.ui.components.PressSurface
+import fi.clocklings.ui.components.PreviewScroll
 import fi.clocklings.ui.components.ScreenScaffold
 import fi.clocklings.ui.components.SelectionBadge
 import fi.clocklings.ui.components.SkButton
 import fi.clocklings.ui.components.SkIcon
 import fi.clocklings.ui.components.SkIcons
 import fi.clocklings.ui.components.SwatchTile
-import fi.clocklings.ui.components.TopBar
 import fi.clocklings.ui.components.WordSafeText
 import fi.clocklings.ui.itemName
 import fi.clocklings.ui.observeAccessPolicy
@@ -83,7 +84,6 @@ import fi.clocklings.ui.theme.SkColors
 import fi.clocklings.ui.theme.SkDimens
 import fi.clocklings.ui.theme.SkShapes
 import fi.clocklings.ui.theme.SkType
-import fi.clocklings.ui.theme.ledgeColor
 
 /**
  * The selected companion's wardrobe: the big companion and its name, then (for animals) its color,
@@ -100,51 +100,50 @@ fun WardrobeScreen(
 ) {
     val app = LocalAppViewModel.current
     val access = app.observeAccessPolicy()
-    var name by rememberSaveable(kind) { mutableStateOf(progress.nameFor(kind)) }
-    val (saveName, nameRetry) = rememberNameSave(kind, name)
+    val nameEditor = key(kind) { rememberTextFieldState(progress.nameFor(kind)) }
+    val name = nameEditor.text.toString()
+    val nameRetry = rememberNameSave(kind, nameEditor)
     val colorSave = remember(app, kind) { RetryableSave() }
     val itemSaves = remember(app, kind) { kind.slots.associateWith { RetryableSave() } }
     val retry = nameRetry ?: colorSave.retry ?: itemSaves.values.firstNotNullOfOrNull { it.retry }
     val total = progress.totalStars
     val outfit = access.displayedOutfit(kind, progress.outfitFor(kind), total)
+    val navigation = rememberWardrobeSections(kind)
+    val preview = remember(navigation) { PreviewScroll(navigation.scroll) }
     val keyboardOpen = WindowInsets.ime.getBottom(LocalDensity.current) > 0
-    val failureBar: @Composable () -> Unit = {
-        Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapS)) {
-            Text(stringResource(R.string.settings_save_error), style = SkType.Body)
-            SkButton(stringResource(R.string.settings_retry), { retry?.invoke() }, Modifier.fillMaxWidth())
-        }
-    }
+    val failureBar: @Composable () -> Unit = { WardrobeSaveFailure(retry) }
     ScreenScaffold(
         modifier,
         wideContent = true,
         section = Section.COMPANION,
-        topBar = { TopBar(stringResource(R.string.doll_title), onBack) },
+        scrollState = navigation.scroll,
+        onViewportTop = {
+            navigation.viewportTop = it
+            preview.viewportTop = it
+        },
+        topBar = { WardrobeHeader(kind, total, access, navigation, onBack) },
         bottomBar = failureBar.takeIf { retry != null && !keyboardOpen },
+        pinnedContent = { height ->
+            PinnedPreview(preview.showCompact, height, name.ifBlank { stringResource(companionName(kind)) }) { size ->
+                CompanionView(kind, outfit, Modifier.size(size), color = color, animated = false)
+            }
+        },
     ) { clockSize ->
         AdaptiveContent(clockSize, visual = {
             WardrobeStage(
                 kind,
                 outfit,
                 color,
-                name,
+                nameEditor,
                 nameError = if (nameRetry != null) stringResource(R.string.settings_save_error) else null,
-                stars = stringResource(R.string.home_star_total, total, Wardrobe.MAX_STARS),
-                starInfo = wardrobeStarInfo(kind, total, access),
-                onNameChange = {
-                    name = it
-                    saveName(it)
-                },
+                onPreviewPosition = preview::positionPreview,
             )
         }) {
             if (retry != null && keyboardOpen) failureBar()
-            WardrobeHints(kind, total)
-            if (!access.fullAccess) Text(stringResource(R.string.wardrobe_full_requirement), style = SkType.BodySoft)
-            if (kind != CompanionKind.HUMAN) {
-                WardrobeSection(stringResource(R.string.companion_color)) {
-                    CompanionColors(kind, color) { chosen -> colorSave.run { app.setColor(kind, chosen, it) } }
-                }
+            WardrobeIntro(kind, total, access, color, { navigation.headings[0] = it }) { chosen ->
+                colorSave.run { app.setColor(kind, chosen, it) }
             }
-            WardrobeItems(kind, total, outfit, color, access) { item ->
+            WardrobeItems(kind, total, outfit, color, access, navigation) { item ->
                 itemSaves.getValue(item.slot).run { app.toggleItem(kind, item, it) }
             }
             if (!access.fullAccess) SkButton(stringResource(R.string.parent_title), onParent)
@@ -159,14 +158,17 @@ private fun WardrobeItems(
     outfit: Outfit,
     color: CompanionColor,
     access: AccessPolicy,
+    navigation: WardrobeSections,
     onItemClick: (Item) -> Unit,
 ) {
     val app = LocalAppViewModel.current
+    val firstItemSection = if (kind == CompanionKind.HUMAN) 0 else 1
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val (columns, nameStyle) = rememberItemGridLayout(Wardrobe.itemsFor(kind), maxWidth)
         Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapScreen)) {
-            for (slot in kind.slots) {
-                WardrobeSection(stringResource(slotName(slot))) {
+            for ((index, slot) in kind.slots.withIndex()) {
+                val section = firstItemSection + index
+                WardrobeSection(stringResource(slotName(slot)), { navigation.headings[section] = it }) {
                     ItemGrid(Wardrobe.itemsFor(kind, slot), columns) { item, cell ->
                         if (access.item(item, total)) {
                             val on = outfit.isOn(item)
@@ -184,36 +186,19 @@ private fun WardrobeItems(
     }
 }
 
-/**
- * A heading kept close to its own content and set further apart from the section above. The heading
- * shrinks rather than breaks a long word, such as Finnish "Muodonmuutokset".
- */
-@Composable
-private fun WardrobeSection(
-    title: String,
-    content: @Composable () -> Unit,
-) {
-    Column(Modifier.padding(top = SkDimens.GapS), verticalArrangement = Arrangement.spacedBy(SkDimens.GapS)) {
-        WordSafeText(title, SkType.SectionTitle, Modifier.semantics { heading() }, textAlign = TextAlign.Start)
-        content()
-    }
-}
-
 @Composable
 private fun WardrobeStage(
     kind: CompanionKind,
     outfit: Outfit,
     color: CompanionColor,
-    name: String,
+    nameEditor: TextFieldState,
     nameError: String?,
-    stars: String,
-    starInfo: String,
-    onNameChange: (String) -> Unit,
+    onPreviewPosition: (LayoutCoordinates) -> Unit,
 ) {
     Box(
         Modifier
             .fillMaxWidth()
-            .background(Brush.verticalGradient(listOf(SkColors.DollStageTop, SkColors.DollStageBottom)), SkShapes.Card)
+            .background(SkColors.Surface, SkShapes.Tile)
             .padding(SkDimens.Gap),
     ) {
         Column(
@@ -224,21 +209,17 @@ private fun WardrobeStage(
             CompanionView(
                 kind,
                 outfit,
-                Modifier.width(SkDimens.DollBigMax).aspectRatio(companionAspectRatio(kind)),
+                Modifier
+                    .onGloballyPositioned(onPreviewPosition)
+                    .width(SkDimens.DollBigMax)
+                    .aspectRatio(companionAspectRatio(kind)),
                 color = color,
             )
             NameField(
-                name,
-                onNameChange,
+                nameEditor,
                 Modifier.semantics { if (nameError != null) error(nameError) },
             )
         }
-        Pill(
-            stars,
-            Modifier.align(Alignment.TopEnd).semantics { contentDescription = starInfo },
-            icon = SkIcons.StarOn,
-            large = true,
-        )
     }
 }
 
@@ -313,16 +294,15 @@ fun ItemTile(
     if (onClick == null) {
         FlatPanel(modifier, padding = SkDimens.GapS) { ItemTileContent(item, outfit, color, on, nameStyle) }
     } else {
-        val fill = if (on) SkColors.ItemOnBg else SkColors.Surface
-        DepthSurface(
+        val fill = SkColors.Surface
+        PressSurface(
             onClick,
             fill,
-            ledgeColor(fill),
             SkShapes.Item,
             modifier.semantics { selected = on },
-            border = if (on) BorderStroke(SkDimens.Border, SkColors.ItemOnBorder) else null,
+            border = if (on) BorderStroke(SkDimens.SelectionBorder, SkColors.Primary) else null,
         ) {
-            Box(Modifier.padding(TilePadding), contentAlignment = Alignment.TopCenter) {
+            Box(Modifier.padding(SkDimens.GapS), contentAlignment = Alignment.TopCenter) {
                 ItemTileContent(item, outfit, color, on, nameStyle)
             }
         }
@@ -342,10 +322,11 @@ private fun ItemTileContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(SkDimens.GapS),
     ) {
-        Box {
-            ItemArtWindow(item, outfit, color)
+        Box(Modifier.width(SkDimens.ItemWindow).height(SkDimens.SelectionBadge)) {
             if (on) SelectionBadge(Modifier.align(Alignment.TopEnd))
         }
+        ItemArtWindow(item, outfit, color)
+
         val name = stringResource(itemName(item.id))
         if (nameStyle == null) {
             WordSafeText(name, SkType.ItemName)
@@ -369,19 +350,13 @@ private fun LockedTile(
     nameStyle: TextStyle = SkType.ItemName,
     requiresFullVersion: Boolean = false,
 ) {
-    val starsDescription = pluralStringResource(R.plurals.doll_item_locked, item.star, item.star, total)
+    val needsStars = !requiresFullVersion && total < item.star
     val description =
-        if (requiresFullVersion) {
-            "${stringResource(
-                R.string.full_version_label,
-            )}. $starsDescription"
-        } else {
-            starsDescription
-        }
+        if (needsStars) pluralStringResource(R.plurals.item_star_need_description, item.star, item.star) else ""
     Column(
         modifier
             .background(SkColors.ItemLockedBg, SkShapes.Item)
-            .semantics(mergeDescendants = true) { contentDescription = description }
+            .semantics(mergeDescendants = true) { if (needsStars) contentDescription = description }
             .padding(TilePadding),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(SkDimens.GapS),
@@ -399,16 +374,27 @@ private fun LockedTile(
         // The name takes the spare height, so the progress pills of one row stay level when a
         // neighbouring name takes two lines.
         Box(Modifier.weight(1f), contentAlignment = Alignment.TopCenter) {
-            WordSafeText(stringResource(itemName(item.id)), nameStyle.copy(color = SkColors.InkSoft), minScale = 1f)
+            WordSafeText(stringResource(itemName(item.id)), nameStyle, minScale = 1f)
         }
-        Pill(stringResource(R.string.home_star_total, total, item.star), kind = PillKind.MUTED, icon = SkIcons.StarOn)
-        if (requiresFullVersion) Text(stringResource(R.string.full_version_label), style = SkType.Small)
+        if (needsStars) {
+            Pill(
+                stringResource(R.string.item_star_need, item.star),
+                modifier = Modifier.clearAndSetSemantics { },
+                kind = PillKind.MUTED,
+                icon = SkIcons.StarOn,
+            )
+        }
+        if (requiresFullVersion) LockPill(compact = true)
     }
 }
 
 private const val LOCKED_ALPHA = 0.55f
 
-private val TilePadding = PaddingValues(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 12.dp)
+/** The existing locked-item frame preserves its thumbnail and caption clearance. */
+private val TilePadding =
+    PaddingValues(start = SkDimens.GapS, end = SkDimens.GapS, top = SkDimens.GapOptions, bottom = SkDimens.GapM)
+
+/** Narrow wardrobes use two columns before testing long item names. */
 private val NarrowGridWidth = 360.dp
 private val WordBreak = Regex("(?<=-)|\\s+")
 
@@ -437,6 +423,24 @@ private fun CompanionColors(
                 },
                 Modifier.testTag("color_${option.name}"),
             )
+        }
+    }
+}
+
+@Composable
+private fun WardrobeIntro(
+    kind: CompanionKind,
+    total: Int,
+    access: AccessPolicy,
+    color: CompanionColor,
+    onHeadingTop: (Float) -> Unit,
+    onColorChange: (CompanionColor) -> Unit,
+) {
+    WardrobeHints(kind, total)
+    if (!access.fullAccess) Text(stringResource(R.string.wardrobe_full_requirement), style = SkType.SmallSoft)
+    if (kind != CompanionKind.HUMAN) {
+        WardrobeSection(stringResource(R.string.companion_color), onHeadingTop) {
+            CompanionColors(kind, color, onColorChange)
         }
     }
 }

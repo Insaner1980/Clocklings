@@ -168,13 +168,13 @@ class RetryActivityRecreationTest {
         var root: AccessibilityNodeInfo? = null
         compose.waitUntil(5_000) {
             root = InstrumentationRegistry.getInstrumentation().uiAutomation.rootInActiveWindow
-            root?.packageName?.toString() == "fi.clocklings"
+            root?.packageName?.toString() == BuildConfig.APPLICATION_ID
         }
         val pending = ArrayDeque<AccessibilityNodeInfo>()
         pending.add(checkNotNull(root))
         while (pending.isNotEmpty()) {
             val node = pending.removeFirst()
-            if (node.isEditable && node.packageName?.toString() == "fi.clocklings") {
+            if (node.isEditable && node.packageName?.toString() == BuildConfig.APPLICATION_ID) {
                 assertEquals("Native editable node must expose the name save error", expected, node.error?.toString())
                 return
             }

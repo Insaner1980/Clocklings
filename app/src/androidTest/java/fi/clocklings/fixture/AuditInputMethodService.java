@@ -1,5 +1,7 @@
 package fi.clocklings.fixture;
 
+import fi.clocklings.BuildConfig;
+
 import android.inputmethodservice.InputMethodService;
 import android.util.Log;
 import android.view.View;
@@ -64,7 +66,7 @@ public final class AuditInputMethodService extends InputMethodService {
 
     private void edit(String label) {
         if (getCurrentInputEditorInfo() == null ||
-                !"fi.clocklings".equals(getCurrentInputEditorInfo().packageName)) return;
+                !BuildConfig.APPLICATION_ID.equals(getCurrentInputEditorInfo().packageName)) return;
         InputConnection connection = getCurrentInputConnection();
         if (connection == null) return;
         Log.i("ClocklingsAuditIme", "edit=" + label + " connection=" + System.identityHashCode(connection));

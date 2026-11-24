@@ -7,40 +7,57 @@ import androidx.compose.ui.graphics.Color
  * Näkymät eivät koskaan kirjoita värejä suoraan, vaan käyttävät näitä.
  */
 object SkColors {
+    val UiInkSoft = Color(0xFF655279)
+    val Primary = Color(0xFF6741D9)
+    val OnPrimary = Color(0xFFFFFFFF)
+    val PrimaryContainer = Color(0xFFE5DBFF)
+    val PrimarySoft = Color(0xFFB197FC)
+    val TonalFill = Color(0xFFF1E9FA)
+    val SurfaceContainer = Color(0xFFF4EEFB)
+    val LearnSurface = Color(0xFFFFF6D6)
+    val ExploreSurface = Color(0xFFE6F3FF)
+    val PlaySurface = Color(0xFFFFEAF2)
+    val TogetherSurface = Color(0xFFE7F8EA)
+    val CompanionSurface = Color(0xFFF2ECFF)
+    val LearnTrack = Color(0xFFF0DB94)
+    val PlayTrack = Color(0xFFF5C2D6)
+    val FieldOutline = Color(0xFFD9C8EA)
+    val OptCorrectFill = Color(0xFFD3F9D8)
+    val DangerContainer = Color(0xFFFFE3E3)
+
     // Pinnat ja teksti
     val Bg = Color(0xFFFFF5FA)
     val Surface = Color(0xFFFFFFFF)
     val Line = Color(0xFFF1DDEA)
     val Ink = Color(0xFF3A2453)
-    val InkSoft = Color(0xFF76638C)
+    val PrimaryDisabledContent = Ink
+    val InkSoft = Color(0xFF625075)
 
     /** Hairline around a colour swatch that is too close to the page background to read on its own. */
     val SwatchOutline = InkSoft.copy(alpha = 0.35f)
 
     val Shadow = Color(0xFF3A2453)
-    val FlatSurface = Surface.copy(alpha = 0.72f)
-    val IconSurface = Surface.copy(alpha = 0.8f)
+    val FlatSurface = Surface
+    val IconSurface = Surface
     val IconFill = Color(0xFFE9DDF7)
     val IconBookCover = Color(0xFFFFA94D)
     val IconClockRing = Color(0xFF4DABF7)
 
     /** A faint lilac so the bubble reads against both white panels and the coloured screens. */
-    val Bubble = Color(0xFFF6F0FD)
-    val Trail = Surface.copy(alpha = 0.85f)
+    val Bubble = SurfaceContainer
     val Badge = Color(0xFF2B8A3E)
     val Danger = Color(0xFFC92A2A)
     val StageShadow = Shadow.copy(alpha = 0.1f)
-    val HomeSky = Color(0xFFE4F1FF)
-    val HomeBlush = Color(0xFFFFF0F6)
-    val HomeGround = Color(0xFFD7F2DC)
+    val HomeSky = Color(0xFFDCEEFF)
+    val HomeGround = Color(0xFFCDEFD3)
     val Cloud = Surface.copy(alpha = 0.75f)
-    val SettingsBackground = Color(0xFFF5F3F7)
+    val SettingsBackground = Color(0xFFF7F3FA)
     val FaceEdge = Color(0xFFFAF7FC)
     val FaceShadow = Shadow.copy(alpha = 0.06f)
     val Glass = Surface.copy(alpha = 0.55f)
     val HandShadow = Shadow.copy(alpha = 0.14f)
     const val DISABLED_CONTROL_ALPHA = 0.45f
-    const val SECTION_TINT = 0.58f
+    const val LOCKED_BADGE_ALPHA = 0.5f
 
     // Viisarit
     val Hour = Color(0xFFE64980)
@@ -48,6 +65,7 @@ object SkColors {
 
     // Kulta
     val Gold = Color(0xFFFCC419)
+    val StarTotalCompleteFill = Gold
     val HelpOnFill = Color(0xFFFFE066)
     val GoldDeep = Color(0xFFF59F00)
 
@@ -56,6 +74,7 @@ object SkColors {
     val GoodBg = Color(0xFFE3F8E7)
     val Try = Color(0xFFB35000)
     val TryBg = Color(0xFFFFF0E0)
+    val HintFill = Color(0xFFFFF5CC)
 
     // Kellon puoliskot
     val Yli = Color(0xFFFFF3BF)
@@ -105,17 +124,12 @@ object SkColors {
     /** Otsikon kirjaimen [index] väri: värit kiertävät järjestyksessä. */
     fun logoColor(index: Int): Color = Logo[index % Logo.size]
 
-    // Valikkonapit: täyttö ja tummempi varjo
+    // Menu tile fills
     val KouluFill = Color(0xFFFFE8A3)
-    val KouluShadow = Color(0xFFFCC419)
     val VapaaFill = Color(0xFFBFE3FF)
-    val VapaaShadow = Color(0xFF74C0FC)
     val PelaaFill = Color(0xFFFFD1E3)
-    val PelaaShadow = Color(0xFFF783AC)
     val KysyFill = Color(0xFFC3F2CB)
-    val KysyShadow = Color(0xFF69DB7C)
     val NukkeFill = Color(0xFFE5DBFF)
-    val MenuDressBelt = Color(0xFFF06595)
 
     /** Tasokorttien värit (Tasatunnit … Minuutit). */
     val LevelCards =
@@ -128,27 +142,14 @@ object SkColors {
         )
     val ChallengeCard = Color(0xFFE5DBFF)
 
-    // Napit
-    val BtnFill = Color(0xFFF3EAF8)
-    val BtnShadow = Color(0xFFDCCBE8)
-    val BtnPrimaryFill = Color(0xFFFF8FB8)
-    val BtnPrimaryShadow = Color(0xFFE64980)
-    val BtnGreenFill = Color(0xFF8CE99A)
-    val BtnGreenShadow = Color(0xFF40C057)
-
     // Sirut, pillerit ja pienet pinnat
     val Pressed = Color(0xFFFFF3BF)
     val PillMuted = Color(0xFFF1EAF5)
-    val DigitalBg = Color(0xFFF1EAF5)
-    val OptDigitalBg = Color(0xFFF6F0FA)
     val Legend = Color(0xFFFFF9E6)
     val DotEmpty = Color(0xFFEADDF0)
 
     // Vastausvaihtoehdot
-    val OptCorrectBorder = Color(0xFF51CF66)
-    val OptCorrectShadow = Color(0xFF8CE99A)
-    val OptWrongBorder = Color(0xFFFFA94D)
-    val OptWrongShadow = Color(0xFFFFD8A8)
+    val OptCorrectBorder = Good
 
     // Tähdet ja lukko
     val StarOn = Color(0xFFFCC419)
@@ -158,19 +159,13 @@ object SkColors {
     val Lock = Color(0xFFB9A8C9)
 
     // Nukke ja vaatekaappi
-    val DollStageTop = Color(0xFFFFF0F6)
-    val DollStageBottom = Color(0xFFF3F0FF)
-    val ItemOnBg = Color(0xFFF3F0FF)
-    val ItemOnBorder = Color(0xFFB197FC)
     val ItemWindow = Color(0xFFFFF4F9)
-    val SegmentTrack = Shadow.copy(alpha = 0.07f)
-    val SegmentShadow = Shadow.copy(alpha = 0.12f)
     val ItemLockedBg = Color(0xFFF7F2FA)
 
     // Kellotaulu
     val Face = Color(0xFFFFFFFF)
     val Tick = Color(0xFFD3C6DE)
-    val Hour24 = Color(0xFF9775FA)
+    val Hour24 = Color(0xFF6741C7)
     val Sun = Color(0xFFFCC419)
     val SunRay = Color(0xFFF59F00)
     val Moon = Color(0xFF5C7CFA)
@@ -182,4 +177,6 @@ object SkColors {
     val MarkRed = Color(0xFFFFC9C9)
     val MarkGreen = Color(0xFFB2F2BB)
     val MarkBlue = Color(0xFFA5D8FF)
+    val ZoneToBorder = MarkBlue
+    val ZonePastBorder = HelpOnFill
 }

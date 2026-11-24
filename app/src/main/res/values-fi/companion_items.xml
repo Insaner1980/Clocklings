@@ -26,7 +26,7 @@
     <string name="item_dog_head_party_hat">Juhlahattu</string>
     <string name="item_dog_extra_boots">Kumisaappaat</string>
     <string name="item_dog_neck_lei">Kukkakaulanauha</string>
-    <string name="item_dog_head_aviator">Lentäjänlakki</string>
+    <string name="item_dog_head_aviator">Tutkimusmatkailijan hattu</string>
     <string name="item_dog_extra_backpack">Reppu</string>
     <string name="item_dog_neck_medal">Mitali</string>
     <string name="item_dog_head_helmet">Palomiehen kypärä</string>
@@ -66,7 +66,7 @@
     <string name="item_dragon_extra_wings">Kimaltavat siivet</string>
     <string name="item_dinosaur_extra_backpack">Reppu</string>
     <string name="item_dinosaur_head_flower">Kukka päässä</string>
-    <string name="item_dinosaur_extra_bucket">Hiekkaämpäri</string>
+    <string name="item_dinosaur_extra_bucket">Juomamuki</string>
     <string name="item_dinosaur_neck_scarf">Kaulahuivi</string>
     <string name="item_dinosaur_head_cap">Lippis</string>
     <string name="item_dinosaur_extra_balloon">Ilmapallo</string>
@@ -85,7 +85,7 @@
     <string name="item_bunny_neck_ribbon">Silkkirusetti</string>
     <string name="item_bunny_extra_carrot">Porkkana</string>
     <string name="item_bunny_head_ear_bow">Korvarusetti</string>
-    <string name="item_bunny_neck_daisies">Kukkaketju</string>
+    <string name="item_bunny_neck_daisies">Helminauha</string>
     <string name="item_bunny_extra_basket">Munakori</string>
     <string name="item_bunny_head_sun_hat">Aurinkohattu</string>
     <string name="item_bunny_neck_locket">Sydänmedaljonki</string>
@@ -94,7 +94,7 @@
     <string name="item_bunny_neck_bow_tie">Pilkullinen rusetti</string>
     <string name="item_bunny_extra_bubbles">Saippuakuplat</string>
     <string name="item_bunny_head_flower_crown">Kukkaseppele</string>
-    <string name="item_bunny_extra_bouquet">Kukkakimppu</string>
+    <string name="item_bunny_extra_bouquet">Tähtitaikasauva</string>
     <string name="item_bunny_neck_cape">Tähtiviitta</string>
     <string name="item_bunny_head_tiara">Tiara</string>
     <string name="item_bunny_extra_wings">Keijunsiivet</string>
@@ -105,7 +105,7 @@
     <string name="item_unicorn_extra_cloud">Pilvityyny</string>
     <string name="item_unicorn_neck_stars">Tähtikaulakoru</string>
     <string name="item_unicorn_head_flower_crown">Kukkaseppele</string>
-    <string name="item_unicorn_extra_balloon">Tähti-ilmapallo</string>
+    <string name="item_unicorn_extra_balloon">Tähtitaikasauva</string>
     <string name="item_unicorn_neck_scarf">Kaulaliina</string>
     <string name="item_unicorn_head_ribbons">Harjan rusetit</string>
     <string name="item_unicorn_extra_boots">Kimallesaappaat</string>
