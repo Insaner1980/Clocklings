@@ -20,7 +20,11 @@ class RenderedPreviewApplication : ClocklingsApplication() {
             try {
                 initializeRenderedPreview(container.repository, getSharedPreferences("rendered_preview", MODE_PRIVATE))
             } catch (error: IOException) {
-                Log.w("RenderedPreview", "Preview setup could not be saved; normal app startup remains available", error)
+                Log.w(
+                    "RenderedPreview",
+                    "Preview setup could not be saved; normal app startup remains available",
+                    error,
+                )
             }
         }
     }

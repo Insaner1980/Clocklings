@@ -26,12 +26,12 @@ import fi.clocklings.domain.Slot
 import fi.clocklings.ui.art.groundShadow
 import fi.clocklings.ui.art.ovalRect
 import fi.clocklings.ui.companion.ArtPart
-import fi.clocklings.ui.companion.RenderedAccessories
 import fi.clocklings.ui.companion.CompanionMotion
 import fi.clocklings.ui.companion.CompanionPose
 import fi.clocklings.ui.companion.CompanionRig
 import fi.clocklings.ui.companion.DollAccessoryRegions
 import fi.clocklings.ui.companion.ItemLayer
+import fi.clocklings.ui.companion.RenderedAccessories
 import fi.clocklings.ui.companion.rememberRenderedAtlas
 
 @Composable

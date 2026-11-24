@@ -6,8 +6,8 @@ import fi.clocklings.domain.CompanionKind
 import fi.clocklings.domain.Outfit
 import fi.clocklings.domain.Slot
 import fi.clocklings.domain.Wardrobe
-import fi.clocklings.ui.companion.RenderedRigRendering
 import fi.clocklings.ui.companion.CompanionPose
+import fi.clocklings.ui.companion.RenderedRigRendering
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
