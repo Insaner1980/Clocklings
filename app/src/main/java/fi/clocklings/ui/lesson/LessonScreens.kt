@@ -1,35 +1,31 @@
 package fi.clocklings.ui.lesson
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
@@ -37,15 +33,14 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import fi.clocklings.R
 import fi.clocklings.Screen
 import fi.clocklings.audio.Sound
-import fi.clocklings.domain.AccessPolicy
-import fi.clocklings.domain.Lessons
-import fi.clocklings.domain.Progress
+import fi.clocklings.domain.LessonPage
 import fi.clocklings.ui.AppViewModel
 import fi.clocklings.ui.LocalAppViewModel
 import fi.clocklings.ui.clock.ClockFace
 import fi.clocklings.ui.components.ActionPair
 import fi.clocklings.ui.components.ButtonKind
-import fi.clocklings.ui.components.ClockBox
+import fi.clocklings.ui.components.ClockFit
+import fi.clocklings.ui.components.ClockTaskLayout
 import fi.clocklings.ui.components.ClockTaskScaffold
 import fi.clocklings.ui.components.CompanionTip
 import fi.clocklings.ui.components.Eyebrow
@@ -53,132 +48,26 @@ import fi.clocklings.ui.components.FeedbackKind
 import fi.clocklings.ui.components.FlatPanel
 import fi.clocklings.ui.components.OptionButton
 import fi.clocklings.ui.components.OptionState
-import fi.clocklings.ui.components.PathNode
-import fi.clocklings.ui.components.Pill
-import fi.clocklings.ui.components.PillKind
-import fi.clocklings.ui.components.ProgressDots
+import fi.clocklings.ui.components.ProgressSegments
 import fi.clocklings.ui.components.RoundIconButton
-import fi.clocklings.ui.components.ScreenScaffold
 import fi.clocklings.ui.components.SkButton
-import fi.clocklings.ui.components.SkIcon
 import fi.clocklings.ui.components.SkIcons
-import fi.clocklings.ui.components.StarRow
 import fi.clocklings.ui.components.TaskActionFocus
 import fi.clocklings.ui.components.TopBar
 import fi.clocklings.ui.components.WordSafeText
+import fi.clocklings.ui.components.bringFeedbackIntoView
 import fi.clocklings.ui.components.confettiAnchor
 import fi.clocklings.ui.components.rememberCelebrationAnchors
 import fi.clocklings.ui.components.taskActionFocus
-import fi.clocklings.ui.levelName
 import fi.clocklings.ui.locale.LocalAppLanguage
 import fi.clocklings.ui.praise
+import fi.clocklings.ui.rememberReduceMotion
 import fi.clocklings.ui.resolve
 import fi.clocklings.ui.resources
 import fi.clocklings.ui.theme.Section
 import fi.clocklings.ui.theme.SkColors
 import fi.clocklings.ui.theme.SkDimens
-import fi.clocklings.ui.theme.SkShapes
 import fi.clocklings.ui.theme.SkType
-
-/** Kellokoulu: oppituntien lista. 24 h -oppitunti näkyy vain 24 h -tilassa. */
-@Composable
-fun LessonListScreen(
-    h24: Boolean,
-    progress: Progress,
-    access: AccessPolicy,
-    onPlayLevel: (Int) -> Unit,
-    onOpen: (String) -> Unit,
-    onBack: () -> Unit,
-    modifier: Modifier = Modifier,
-    onParent: () -> Unit = {},
-) {
-    ScreenScaffold(
-        modifier,
-        section = Section.LEARN,
-        topBar = { TopBar(stringResource(R.string.koulu_title), onBack) },
-    ) {
-        val language = LocalAppLanguage.current
-        val ids = Lessons.levelLessons.flatten() + if (h24) listOf(Lessons.DAY_LESSON) else emptyList()
-        val current = ids.firstOrNull { access.lesson(it) && it !in progress.lessonsDone }
-        for ((level, chapter) in ids.groupBy(Lessons::levelOf)) {
-            val color = level?.let { SkColors.LevelCards[it] } ?: SkColors.ChallengeCard
-            val chapterTitle = level?.let { stringResource(levelName(it)) }
-            chapter.forEachIndexed { position, id ->
-                val lesson = LessonCatalog.lesson(id, language)
-                val title = lesson.title.resolve()
-                val completed = id in progress.lessonsDone
-                val completion = if (completed) stringResource(R.string.lesson_done) else ""
-                val locked = if (access.lesson(id)) "" else stringResource(R.string.full_version_label)
-                // With no visible chapter headers, the chapter's first stop is its screen reader heading
-                // and is announced with the chapter title first.
-                val isHeading = position == 0
-                val chapterPrefix = chapterTitle?.takeIf { isHeading && it != title }?.let { "$it. " }.orEmpty()
-                PathNode(
-                    ids.indexOf(id),
-                    title,
-                    "$chapterPrefix$title. ${lesson.description.resolve()}. $completion $locked",
-                    { onOpen(id) },
-                    color = color,
-                    completed = completed,
-                    current = id == current,
-                    first = position == 0,
-                    last = level == null,
-                    isHeading = isHeading,
-                    enabled = access.lesson(id),
-                    badge = { if (locked.isNotEmpty()) Text(locked, style = SkType.Small) },
-                )
-            }
-            if (level != null) {
-                LessonPracticeNode(
-                    ids.indexOf(chapter.last()) + 1,
-                    level,
-                    progress.stars[level],
-                    access.level(level),
-                    { onPlayLevel(level) },
-                )
-            }
-        }
-        if (!access.fullAccess) SkButton(stringResource(R.string.parent_title), onParent)
-    }
-}
-
-@Composable
-private fun LessonPracticeNode(
-    index: Int,
-    level: Int,
-    stars: Int,
-    enabled: Boolean,
-    onPlay: () -> Unit,
-) {
-    val starDescription = pluralStringResource(R.plurals.stars_count, stars, stars)
-    val practise = stringResource(R.string.lesson_practise)
-    val chapterTitle = stringResource(levelName(level))
-    val action =
-        stringResource(
-            when {
-                !enabled -> R.string.full_version_label
-                stars > 0 -> R.string.play_again
-                else -> R.string.lesson_start_game
-            },
-        )
-    PathNode(
-        index,
-        practise,
-        "$chapterTitle. $practise. $action. $starDescription",
-        onPlay,
-        color = SkColors.LevelCards[level],
-        completed = stars == 3,
-        current = false,
-        enabled = enabled,
-        first = false,
-        last = true,
-        badge = {
-            WordSafeText(action, SkType.Small, textAlign = TextAlign.Start)
-            StarRow(stars, starDescription, size = SkDimens.StarSmall)
-        },
-        art = { SkIcon(SkIcons.Star, SkDimens.ChildTarget) },
-    )
-}
 
 @Composable
 fun LessonRoute(
@@ -193,7 +82,11 @@ fun LessonRoute(
         ),
 ) {
     val language = LocalAppLanguage.current
-    LaunchedEffect(language) { vm.setLanguage(language) }
+    val reduceMotion = rememberReduceMotion()
+    LaunchedEffect(language, reduceMotion) {
+        vm.setReduceMotion(reduceMotion)
+        vm.setLanguage(language)
+    }
     val state by vm.state.collectAsStateWithLifecycle()
     val haptic = LocalHapticFeedback.current
     val leave = {
@@ -209,6 +102,7 @@ fun LessonRoute(
             leave()
         },
         onNext = vm::next,
+        onRetrySave = vm::retrySave,
         onPrevious = vm::previous,
         onReplay = vm::replay,
         onPick = { value ->
@@ -239,6 +133,7 @@ fun LessonScreen(
     onPick: (Int) -> Unit,
     onSpeak: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onRetrySave: () -> Unit = {},
 ) {
     val res = resources()
     val anchors =
@@ -248,50 +143,99 @@ fun LessonScreen(
                 ?.key
         }
     val page = state.lesson.pages.getOrNull(state.page)
-    val paragraphs = page?.text?.map { it.resolve(res) }.orEmpty()
+    val paragraphs = state.visibleParagraphs.map { it.resolve(res) }
     val caption = state.caption?.resolve(res).orEmpty()
+    val playback: @Composable (Boolean) -> Unit = { compact ->
+        LessonPlayback(speechAvailable, paragraphs, caption, onSpeak, onReplay, compact)
+    }
+    val scroll = rememberSaveable(state.lesson.id, state.page, saver = ScrollState.Saver) { ScrollState(0) }
+    val compactScroll = rememberSaveable(state.lesson.id, state.page, saver = ScrollState.Saver) { ScrollState(0) }
+    val tallClockMin =
+        when {
+            state.isQuiz -> SkDimens.QuizClockMin
+            state.firstFiveMinutePage -> SkDimens.FiveMinuteDemoClockMin
+            else -> SkDimens.FitClockMin
+        }
     ClockTaskScaffold(
         modifier = modifier,
         section = Section.LEARN,
-        topBar = {
+        clockFit = ClockFit.FIT,
+        clockTaskKey = state.queueIndex.takeIf { state.isQuiz },
+        tallFitMin = tallClockMin,
+        scrollState = scroll,
+        compactScrollState = compactScroll,
+        clockHeightShare = if (state.isQuiz) SkDimens.CLOCK_HEIGHT_SHARE else 1f,
+        stackedClockMax = if (state.isQuiz) SkDimens.ClockMax else SkDimens.LessonPageClockMax,
+        centerStacked = !state.isQuiz,
+        topBar = { compactTitle ->
             TopBar(
                 title = state.lesson.title.resolve(),
                 backLabel = stringResource(if (skipToGame) R.string.lesson_skip else R.string.back_description),
                 onBack = onBack,
+                compactTaskTitle = compactTitle,
             )
         },
-        actions = { focus, compact ->
-            LessonActions(state, onPrevious, onNext, focus, compact) {
-                if (page != null) LessonPlayback(speechAvailable, paragraphs, caption, onSpeak, onReplay, compact)
+        actions = { focus, layout ->
+            LessonActions(state, onPrevious, onNext, onRetrySave, focus) {
+                if (page != null && state.playbackInActions(layout)) playback(true)
             }
         },
-        status = { ProgressDots(state.pageCount, state.page) },
-        visual = { size ->
-            ClockBox(size) {
-                ClockFace(
-                    command = state.clock,
-                    period = state.period,
-                    help = state.help,
-                    describeTime = !state.isQuiz || state.quizDone,
-                    highlight = state.highlight,
-                    under = state.under,
-                    over = state.over,
-                )
+        status = { ProgressSegments(state.pageCount, state.page, track = Section.LEARN.track) },
+        visual = { LessonClock(state, it) },
+    ) { layout ->
+        val panelScroll = if (layout == ClockTaskLayout.COMPACT) compactScroll else scroll
+        LessonTaskPanel(state, page, paragraphs.size, caption, anchors, onPick, panelScroll, layout) { playback(false) }
+    }
+}
+
+private val LessonUiState.firstFiveMinutePage: Boolean
+    get() = lesson.id == "viisi" && page == 0
+
+private fun LessonUiState.playbackInActions(layout: ClockTaskLayout): Boolean =
+    layout == ClockTaskLayout.COMPACT || (firstFiveMinutePage && layout == ClockTaskLayout.TALL)
+
+@Composable
+private fun LessonTaskPanel(
+    state: LessonUiState,
+    page: LessonPage?,
+    visibleCount: Int,
+    caption: String,
+    anchors: SnapshotStateMap<Int, Offset>,
+    onPick: (Int) -> Unit,
+    scroll: ScrollState,
+    layout: ClockTaskLayout,
+    playback: @Composable () -> Unit,
+) {
+    val compact = layout == ClockTaskLayout.COMPACT
+    FlatPanel(padding = if (compact) SkDimens.GapS else SkDimens.PanelPadding) {
+        if (page != null) {
+            key(state.lesson.id, state.page) {
+                val animate = !rememberReduceMotion() && !state.demoPlayedInstantly
+                LessonExplanation(page, visibleCount, animate, compact)
+                LessonCaption(page, caption, animate)
             }
-        },
-    ) { compact ->
-        FlatPanel(padding = if (compact) SkDimens.GapS else SkDimens.PanelPadding) {
-            if (page != null) {
-                Column(verticalArrangement = Arrangement.spacedBy(if (compact) SkDimens.GapS else 10.dp)) {
-                    paragraphs.forEach { Text(it, style = SkType.LessonText) }
-                }
-                if (caption.isNotEmpty()) LessonCaption(caption)
-                if (!compact) LessonPlayback(speechAvailable, paragraphs, caption, onSpeak, onReplay, compact)
-            } else {
-                LessonQuiz(state, anchors, onPick)
-            }
+            if (!state.playbackInActions(layout)) playback()
+        } else {
+            LessonQuiz(state, anchors, onPick, scroll)
         }
     }
+}
+
+@Composable
+private fun LessonClock(
+    state: LessonUiState,
+    size: Dp,
+) {
+    ClockFace(
+        command = state.clock,
+        period = state.period,
+        help = state.help,
+        describeTime = !state.isQuiz || state.quizDone,
+        highlight = state.highlight,
+        under = state.under,
+        over = state.over,
+        clockSize = size,
+    )
 }
 
 private fun nextLabel(action: NextAction): Int =
@@ -303,11 +247,6 @@ private fun nextLabel(action: NextAction): Int =
         NextAction.FINISH -> R.string.done
     }
 
-@Composable
-private fun LessonCaption(caption: String) {
-    CompanionTip(caption)
-}
-
 private const val QUIZ_CONFETTI = 60
 
 @Composable
@@ -315,14 +254,23 @@ private fun ColumnScope.LessonQuiz(
     state: LessonUiState,
     anchors: SnapshotStateMap<Int, Offset>,
     onPick: (Int) -> Unit,
+    scroll: ScrollState,
 ) {
     val res = resources()
-    Eyebrow(stringResource(R.string.lesson_try))
-    Text(
+    val density = LocalDensity.current
+    val window = LocalWindowInfo.current.containerSize
+    val narrowLargeText =
+        density.fontScale > SkDimens.MAX_ROW_FONT_SCALE &&
+            with(density) { window.width.toDp() <= SkDimens.GridBreakpoint }
+    val question =
         state.lesson.quiz.question
-            .resolve(),
-        style = SkType.Question,
-    )
+            .resolve()
+    if (narrowLargeText) {
+        WordSafeText(question, SkType.TaskTitleLarge, textAlign = TextAlign.Start, preferredMaxLines = 4)
+    } else {
+        Eyebrow(stringResource(R.string.lesson_try))
+        Text(question, style = SkType.Question)
+    }
     Column(verticalArrangement = Arrangement.spacedBy(SkDimens.GapOptions)) {
         state.choices.forEachIndexed { i, choice ->
             OptionButton(
@@ -335,13 +283,18 @@ private fun ColumnScope.LessonQuiz(
         }
     }
     when {
-        state.saveFailed && !state.showHint -> {
-            CompanionTip(stringResource(R.string.settings_save_error), kind = FeedbackKind.HINT)
+        state.saveFailed && !state.savePending && !state.showHint -> {
+            CompanionTip(
+                stringResource(R.string.progress_save_error),
+                modifier = Modifier.bringFeedbackIntoView(R.string.progress_save_error.toString(), scroll),
+                kind = FeedbackKind.HINT,
+            )
         }
 
         state.quizDone && !state.savePending -> {
             CompanionTip(
                 stringResource(R.string.lesson_learned, praise(res, state.praiseIndex), state.lesson.title.resolve()),
+                modifier = Modifier.bringFeedbackIntoView(R.string.lesson_learned.toString(), scroll),
                 kind = FeedbackKind.OK,
                 celebrate = true,
             )
@@ -351,7 +304,9 @@ private fun ColumnScope.LessonQuiz(
             CompanionTip(
                 state.lesson.quiz.hint
                     .resolve(),
+                modifier = Modifier.bringFeedbackIntoView(state.choiceStates.size.toString(), scroll),
                 kind = FeedbackKind.HINT,
+                color = SkColors.HintFill,
             )
         }
     }
@@ -368,7 +323,7 @@ private fun LessonPlayback(
 ) {
     Row(
         if (compact) Modifier else Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM),
+        horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM, Alignment.End),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM)) {
@@ -377,14 +332,14 @@ private fun LessonPlayback(
                     SkIcons.Listen,
                     stringResource(R.string.listen),
                     { onSpeak((paragraphs + caption).filter { it.isNotEmpty() }.joinToString(" ")) },
-                    large = !compact,
+                    tonal = true,
                 )
             }
             RoundIconButton(
                 SkIcons.Replay,
                 stringResource(R.string.lesson_replay),
                 onReplay,
-                large = !compact,
+                tonal = true,
             )
         }
     }
@@ -395,8 +350,8 @@ private fun LessonActions(
     state: LessonUiState,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
+    onRetrySave: () -> Unit,
     focus: TaskActionFocus,
-    compact: Boolean,
     playback: @Composable () -> Unit,
 ) {
     Row(
@@ -404,8 +359,8 @@ private fun LessonActions(
         horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (compact) playback()
-        Box(Modifier.weight(1f)) { LessonNavigation(state, onPrevious, onNext, focus) }
+        playback()
+        Box(Modifier.weight(1f)) { LessonNavigation(state, onPrevious, onNext, onRetrySave, focus) }
     }
 }
 
@@ -415,23 +370,53 @@ private fun LessonNavigation(
     state: LessonUiState,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
+    onRetrySave: () -> Unit,
     focus: TaskActionFocus,
 ) {
+    val retry = state.isQuiz && state.saveFailed
+    val next =
+        stringResource(
+            when {
+                retry -> R.string.settings_retry
+                state.isQuiz && (!state.quizDone || state.savePending) -> R.string.done
+                else -> nextLabel(state.nextAction)
+            },
+        )
+    val nextButton: @Composable (Modifier) -> Unit = {
+        SkButton(
+            next,
+            if (retry) onRetrySave else onNext,
+            it.taskActionFocus(focus),
+            enabled = !state.savePending && (!state.isQuiz || state.quizDone || retry),
+            kind = ButtonKind.PRIMARY,
+            trailingIcon = SkIcons.Chevron.takeIf { !state.isQuiz && state.nextAction == NextAction.NEXT_PAGE },
+        )
+    }
+    if (state.page == 0) {
+        nextButton(Modifier.fillMaxWidth())
+        return
+    }
     val previous = stringResource(R.string.lesson_prev)
-    val next = stringResource(nextLabel(state.nextAction))
-    val showNext = !state.savePending && (!state.isQuiz || state.quizDone)
     ActionPair(
         previous,
-        next.takeIf { showNext },
+        next,
         start = {
             SkButton(
                 previous,
                 onPrevious,
                 it.taskActionFocus(focus),
-                enabled =
-                    state.page > 0 && !state.savePending,
+                enabled = !state.savePending,
             )
         },
-        end = { SkButton(next, onNext, it.taskActionFocus(focus), kind = ButtonKind.PRIMARY) },
+        compactStart = {
+            RoundIconButton(
+                SkIcons.ChevronBack,
+                previous,
+                onPrevious,
+                it.taskActionFocus(focus),
+                enabled = !state.savePending,
+            )
+        },
+        end = nextButton,
     )
 }

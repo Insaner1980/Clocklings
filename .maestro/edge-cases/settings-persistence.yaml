@@ -1,7 +1,7 @@
 # ST-04/05, LO-03. Seeds its own English synthetic fixture through personalization.yaml.
 # Confirms a destructive reset only inside the owned read-only emulator overlay.
 # Restart evidence is force-stop/relaunch, never OS process-death restoration.
-appId: fi.clocklings
+appId: com.finnvek.clocklings
 ---
 - runFlow: personalization.yaml
 - tapOn: "Settings"

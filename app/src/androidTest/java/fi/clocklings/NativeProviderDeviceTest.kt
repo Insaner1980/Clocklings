@@ -74,7 +74,7 @@ class NativeProviderDeviceTest : InputDeviceTest() {
     private var trace: InputSessionTrace? = null
     private val expectedIme get() =
         InstrumentationRegistry.getArguments().getString("expectedIme")
-            ?: "fi.clocklings.test/fi.clocklings.fixture.AuditInputMethodService"
+            ?: "${instrumentation.context.packageName}/fi.clocklings.fixture.AuditInputMethodService"
 
     @Before
     fun prepare() {
@@ -93,7 +93,7 @@ class NativeProviderDeviceTest : InputDeviceTest() {
             Secure.getString(environment.context.contentResolver, "default_input_method"),
         )
         assertEquals(
-            "fi.clocklings.test",
+            instrumentation.context.packageName,
             Secure.getString(environment.context.contentResolver, "tts_default_synth"),
         )
         waitFor(hasText("Clocklings"))
@@ -395,7 +395,7 @@ class NativeProviderDeviceTest : InputDeviceTest() {
     }
 
     private fun openField() {
-        click(hasContentDescription("My Companion") and hasClickAction())
+        click(hasContentDescription("My Companion", substring = true) and hasClickAction())
         click(hasText("Choose an outfit") and hasClickAction())
         compose.onNode(hasSetTextAction()).scrollToIfScrollable().performTouchInput { click() }
     }
@@ -536,7 +536,7 @@ class NativeProviderDeviceTest : InputDeviceTest() {
             captureImeIfRequested(label)
         }
         val node = checkNotNull(target)
-        assertEquals("fi.clocklings.test", node.packageName.toString())
+        assertEquals(instrumentation.context.packageName, node.packageName.toString())
         // Attach to a replacement session before dispatch, not after its first native command.
         instrumentation.runOnMainSync { trace?.sample("before IME label=$label") }
         if (InstrumentationRegistry.getArguments().getString("imeTouch") == "true") {

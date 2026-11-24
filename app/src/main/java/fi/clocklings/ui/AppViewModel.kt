@@ -63,11 +63,6 @@ class AppViewModel(
 
     fun stopSpeech() = services.stopSpeech()
 
-    /** Web: äänen kytkeminen päälle kuittaa poksahduksella. */
-    fun toggleSound() {
-        setSound(!currentSettings.sound)
-    }
-
     fun setSound(enabled: Boolean) =
         settingsWrite {
             services.repository.updateSettings { it.copy(sound = enabled) }

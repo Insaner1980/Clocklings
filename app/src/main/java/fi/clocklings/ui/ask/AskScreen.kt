@@ -35,7 +35,8 @@ import fi.clocklings.ui.LocalAppViewModel
 import fi.clocklings.ui.clock.ClockCommand
 import fi.clocklings.ui.clock.ClockFace
 import fi.clocklings.ui.components.ButtonKind
-import fi.clocklings.ui.components.ClockBox
+import fi.clocklings.ui.components.ClockFit
+import fi.clocklings.ui.components.ClockTaskLayout
 import fi.clocklings.ui.components.ClockTaskScaffold
 import fi.clocklings.ui.components.CompanionTip
 import fi.clocklings.ui.components.FlatPanel
@@ -89,13 +90,14 @@ fun AskScreen(
         scrollState = scrollState,
         compactScrollState = compactScrollState,
         clockHeightShare = SkDimens.PLAY_CLOCK_HEIGHT_SHARE,
+        clockFit = if (phase == AskPhase.REVEALED) ClockFit.FIT else ClockFit.NONE,
         section = Section.TOGETHER,
         topBar = { HelpTopBar(stringResource(R.string.ask_title), help, onBack, app::toggleHelp) },
-        actions = { focus, compact ->
+        actions = { focus, layout ->
             AskActions(
                 phase,
                 focus,
-                compact,
+                layout == ClockTaskLayout.COMPACT,
                 onRandom,
                 onAsk = {
                     app.play(Sound.POP)
@@ -110,15 +112,28 @@ fun AskScreen(
             )
         },
         visual = { size -> AskClock(command, phase, h24, help, size) { time = it } },
-    ) { compact ->
-        val role = askRoleDescription(phase, setter)
-        val padding = if (compact) SkDimens.GapS else SkDimens.PanelPadding
-        FlatPanel(Modifier.semantics { contentDescription = role }, padding = padding) {
-            if (phase == AskPhase.SET) {
-                AskSetup(compact, onRandom)
-            } else {
-                AskQuestion(phase == AskPhase.REVEALED, time, h24, speechAvailable)
-            }
+    ) { layout ->
+        AskPanel(phase, setter, layout == ClockTaskLayout.COMPACT, time, h24, speechAvailable, onRandom)
+    }
+}
+
+@Composable
+private fun AskPanel(
+    phase: AskPhase,
+    setter: Int,
+    compact: Boolean,
+    time: Int,
+    h24: Boolean,
+    speechAvailable: Boolean,
+    onRandom: () -> Unit,
+) {
+    val role = askRoleDescription(phase, setter)
+    val padding = if (compact) SkDimens.GapS else SkDimens.PanelPadding
+    FlatPanel(Modifier.semantics { contentDescription = role }, padding = padding) {
+        if (phase == AskPhase.SET) {
+            AskSetup(compact, onRandom)
+        } else {
+            AskQuestion(phase == AskPhase.REVEALED, time, h24, speechAvailable)
         }
     }
 }
@@ -132,17 +147,16 @@ private fun AskClock(
     size: androidx.compose.ui.unit.Dp,
     onChange: (Int) -> Unit,
 ) {
-    ClockBox(size) {
-        ClockFace(
-            command = command,
-            period = ClockTime.period(h24),
-            step = STEP,
-            interactive = phase == AskPhase.SET,
-            help = help,
-            describeTime = phase != AskPhase.ASK,
-            onChange = onChange,
-        )
-    }
+    ClockFace(
+        command = command,
+        period = ClockTime.period(h24),
+        step = STEP,
+        interactive = phase == AskPhase.SET,
+        help = help,
+        describeTime = phase != AskPhase.ASK,
+        onChange = onChange,
+        clockSize = size,
+    )
 }
 
 private const val STEP = 5
@@ -187,7 +201,7 @@ private fun ColumnScope.AskQuestion(
     var answerSize by remember { mutableStateOf(IntSize.Zero) }
     val fadePx = with(LocalDensity.current) { SkDimens.ScrollFade.toPx() }
     Text(stringResource(R.string.question_read), style = SkType.Question)
-    CompanionTip(stringResource(R.string.ask_small_text))
+    CompanionTip(stringResource(if (revealed) R.string.ask_revealed_text else R.string.ask_small_text))
     if (revealed) {
         TimeReadout(
             time,
@@ -254,7 +268,7 @@ private fun AskActions(
                 }
             },
             Modifier.weight(1f).taskActionFocus(focus).confettiAnchor { revealAnchor.value = it },
-            kind = if (phase == AskPhase.REVEALED) ButtonKind.GREEN else ButtonKind.PRIMARY,
+            kind = ButtonKind.PRIMARY,
             icon = if (phase == AskPhase.SET) SkIcons.Pass else null,
         )
     }

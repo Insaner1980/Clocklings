@@ -32,6 +32,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -79,6 +80,7 @@ class StartupReadDeviceTest : StorageDeviceTest() {
             compose.setContent { ClocklingsApp(container = services, app = model) }
             compose.onNode(loading).assertIsDisplayed()
             assertEquals(null, model.progress.value)
+            assertFalse("Loading is not a usable startup", compose.activity.fullyDrawnReporter.isFullyDrawnReported)
             readable.complete(Unit)
             runBlocking {
                 withTimeout(10_000) {
@@ -88,6 +90,7 @@ class StartupReadDeviceTest : StorageDeviceTest() {
             }
             compose.onNode(loading).assertDoesNotExist()
             assertEquals(3, model.progress.value?.totalStars)
+            compose.waitUntil(10_000) { compose.activity.fullyDrawnReporter.isFullyDrawnReported }
             observeSubmittedReset(model, pauseWrites, writable)
         } finally {
             readable.cancel()

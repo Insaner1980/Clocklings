@@ -18,7 +18,6 @@ import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import fi.clocklings.ui.theme.SkColors
 import fi.clocklings.ui.theme.SkDimens
 
@@ -46,16 +45,17 @@ fun SkIcon(
     icon: SvgIcon,
     size: Dp,
     modifier: Modifier = Modifier,
+    tint: Color? = null,
 ) {
     Canvas(modifier.size(size)) {
         val s = this.size.width / icon.viewBox
         scale(s, s, pivot = Offset.Zero) {
             for (layer in icon.layers) {
-                layer.fill?.let { drawPath(layer.path, it) }
+                layer.fill?.let { drawPath(layer.path, tint ?: it) }
                 layer.stroke?.let {
                     drawPath(
                         layer.path,
-                        it,
+                        tint ?: it,
                         style = Stroke(layer.strokeWidth, cap = layer.cap, join = StrokeJoin.Round),
                     )
                 }
@@ -83,7 +83,7 @@ fun StarRow(
 ) {
     Row(
         modifier.clearAndSetSemantics { contentDescription = description },
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(SkDimens.GapXS),
     ) {
         repeat(STAR_COUNT) { StarIcon(it < count, size = size) }
     }
@@ -92,8 +92,12 @@ fun StarRow(
 private const val STAR_COUNT = 3
 
 object SkIcons {
+    val Close = inkIcon("M6 6l12 12M18 6L6 18")
+    val Play = SvgIcon(24f, listOf(IconLayer("M8 5l11 7-11 7z", fill = SkColors.Ink)))
+    val Globe = inkIcon("M21 12a9 9 0 1 1-18 0a9 9 0 1 1 18 0ZM3 12h18M12 3c-5 5-5 13 0 18M12 3c5 5 5 13 0 18")
     val Back = inkIcon("M15 5l-7 7 7 7M8 12h13")
     val Chevron = inkIcon("M9 5l7 7-7 7")
+    val ChevronBack = inkIcon("M15 5l-7 7 7 7")
     val Pencil = inkIcon("M4 20l4.5-1L19 8.5 15.5 5 5 15.5zM13.5 7l3.5 3.5")
 
     /** An eight-tooth gear with a soft fill, generated as an even polygon so every tooth matches. */
@@ -127,7 +131,15 @@ object SkIcons {
         )
     val Listen = inkIcon("M3 9h4l5-5v16l-5-5H3zM16 8a6 6 0 0 1 0 8M19 4a11 11 0 0 1 0 16")
     val Replay = inkIcon("M4 10a8 8 0 1 1 1 8M4 4v6h6")
-    val Hanger = inkIcon("M9 6a3 3 0 1 1 5 2l-2 2v2M12 12L2 18v2h20v-2z")
+    val Outfit = inkIcon("M8 3l-5 3 2 4 3-1v12h8V9l3 1 2-4-5-3a4 4 0 0 1-8 0z")
+    val Guides =
+        SvgIcon(
+            24f,
+            listOf(
+                IconLayer("M12 3a9 9 0 0 1 0 18z", fill = SkColors.Yli),
+                IconLayer("M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-5v5l3 2", stroke = SkColors.Ink, strokeWidth = 2f),
+            ),
+        )
     val Together =
         inkIcon(
             "M10 7a3 3 0 1 1-6 0a3 3 0 1 1 6 0ZM20 7a3 3 0 1 1-6 0a3 3 0 1 1 6 " +
@@ -202,13 +214,4 @@ object SkIcons {
         )
 
     val Star = SvgIcon(24f, listOf(IconLayer(STAR_D, SkColors.StarOn, SkColors.StarOnStroke, 1.4f)))
-
-    val Dress =
-        SvgIcon(
-            40f,
-            listOf(
-                IconLayer("M14 5h12l-2 7 9 22H7l9-22z", SkColors.Surface, SkColors.Ink, INK_STROKE),
-                IconLayer("M15 12h10", stroke = SkColors.MenuDressBelt, strokeWidth = INK_STROKE),
-            ),
-        )
 }

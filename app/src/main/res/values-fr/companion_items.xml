@@ -29,7 +29,7 @@
     <string name="item_dog_head_party_hat">Chapeau de fête</string>
     <string name="item_dog_extra_boots">Bottes de pluie</string>
     <string name="item_dog_neck_lei">Collier de fleurs</string>
-    <string name="item_dog_head_aviator">Casque d’aviateur</string>
+    <string name="item_dog_head_aviator">Chapeau d’explorateur</string>
     <string name="item_dog_extra_backpack">Sac à dos</string>
     <string name="item_dog_neck_medal">Médaille</string>
     <string name="item_dog_head_helmet">Casque de pompier</string>
@@ -75,7 +75,7 @@
     <!-- Dinosaur -->
     <string name="item_dinosaur_extra_backpack">Sac à dos</string>
     <string name="item_dinosaur_head_flower">Fleur sur la tête</string>
-    <string name="item_dinosaur_extra_bucket">Seau de plage</string>
+    <string name="item_dinosaur_extra_bucket">Gobelet</string>
     <string name="item_dinosaur_neck_scarf">Écharpe</string>
     <string name="item_dinosaur_head_cap">Casquette</string>
     <string name="item_dinosaur_extra_balloon">Ballon</string>
@@ -94,7 +94,7 @@
     <string name="item_bunny_neck_ribbon">Nœud en ruban</string>
     <string name="item_bunny_extra_carrot">Carotte</string>
     <string name="item_bunny_head_ear_bow">Nœud d’oreille</string>
-    <string name="item_bunny_neck_daisies">Collier de pâquerettes</string>
+    <string name="item_bunny_neck_daisies">Collier de perles</string>
     <string name="item_bunny_extra_basket">Panier d’œufs</string>
     <string name="item_bunny_head_sun_hat">Chapeau de soleil</string>
     <string name="item_bunny_neck_locket">Médaillon en cœur</string>
@@ -103,7 +103,7 @@
     <string name="item_bunny_neck_bow_tie">Nœud papillon à pois</string>
     <string name="item_bunny_extra_bubbles">Baguette à bulles</string>
     <string name="item_bunny_head_flower_crown">Couronne de fleurs</string>
-    <string name="item_bunny_extra_bouquet">Bouquet</string>
+    <string name="item_bunny_extra_bouquet">Baguette étoile</string>
     <string name="item_bunny_neck_cape">Cape étoilée</string>
     <string name="item_bunny_head_tiara">Diadème</string>
     <string name="item_bunny_extra_wings">Ailes de fée</string>
@@ -114,7 +114,7 @@
     <string name="item_unicorn_extra_cloud">Coussin nuage</string>
     <string name="item_unicorn_neck_stars">Collier d’étoiles</string>
     <string name="item_unicorn_head_flower_crown">Couronne de fleurs</string>
-    <string name="item_unicorn_extra_balloon">Ballon étoile</string>
+    <string name="item_unicorn_extra_balloon">Baguette étoile</string>
     <string name="item_unicorn_neck_scarf">Foulard</string>
     <string name="item_unicorn_head_ribbons">Rubans de crinière</string>
     <string name="item_unicorn_extra_boots">Bottes scintillantes</string>

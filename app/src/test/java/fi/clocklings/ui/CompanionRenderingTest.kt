@@ -3,6 +3,7 @@ package fi.clocklings.ui
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.captureToImage
@@ -15,9 +16,11 @@ import fi.clocklings.domain.Outfit
 import fi.clocklings.domain.Slot
 import fi.clocklings.domain.Wardrobe
 import fi.clocklings.domain.colorOptions
+import fi.clocklings.ui.companion.CompanionRig
 import fi.clocklings.ui.companion.CompanionView
-import fi.clocklings.ui.companion.rigFor
+import fi.clocklings.ui.companion.rememberCompanionRig
 import fi.clocklings.ui.theme.ClocklingsTheme
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -57,20 +60,35 @@ class CompanionRenderingTest {
     }
 
     @Test
-    fun everyAccessoryThumbnailZoomsToItsItemInsideTheDesignGrid() {
+    fun everyAccessoryThumbnailZoomsAndKeepsItsEstablishedBounds() {
+        val kind = mutableStateOf(CompanionKind.CAT)
+        var selectedRig: CompanionRig? = null
+        compose.setContent { selectedRig = rememberCompanionRig(kind.value, CompanionColor.ORIGINAL) }
         val accessories = Wardrobe.items.filter { it.slot == Slot.EXTRA }
         assertTrue("No accessories found", accessories.isNotEmpty())
         val unzoomed = mutableListOf<String>()
         val outside = mutableListOf<String>()
         val small = mutableListOf<String>()
+        // Preserve the fitted thumbnail padding around artwork that reaches the original grid edges.
+        val extendedCrops =
+            mapOf(
+                "bunny-extra-bubbles" to Rect(110f, 163f, 247f, 293f),
+                "dinosaur-extra-balloon" to Rect(24f, -3f, 256f, 216f),
+                "dinosaur-extra-skateboard" to Rect(10f, 80f, 230f, 314f),
+                "unicorn-extra-balloon" to Rect(-3f, 112f, 120f, 232f),
+                "unicorn-extra-cloud" to Rect(44f, 142f, 204f, 300f),
+            )
         for (item in accessories) {
-            val rig = rigFor(item.companion)!!
+            compose.runOnIdle { kind.value = item.companion }
+            val rig = compose.runOnIdle { checkNotNull(selectedRig) }
             val crop = rig.crop(item)
-            val full = rig.full()
+            val full = rig.full(Outfit.default(item.companion).with(item.slot, item.id))
             if (crop == full) unzoomed += item.id
             val outsideHorizontally = crop.left < full.left || crop.right > full.right
             val outsideVertically = crop.top < full.top || crop.bottom > full.bottom
-            if (outsideHorizontally || outsideVertically) {
+            if (item.id in extendedCrops) {
+                assertEquals(item.id, extendedCrops.getValue(item.id), crop)
+            } else if (outsideHorizontally || outsideVertically) {
                 outside += item.id
             }
             if (crop.width < MIN_CROP || crop.height < MIN_CROP) small += item.id

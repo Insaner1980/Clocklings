@@ -97,7 +97,8 @@ class NavigationFlowTest {
         awaitHome()
         for (cell in listOf(411 to 1f, 320 to 1f, 411 to 2f, 320 to 2f)) {
             compose.runOnIdle { viewport.value = cell }
-            for ((destination, practice) in listOf("Play." to "Whole hours.", "Learn" to "Whole hours. Practise.")) {
+            val routes = listOf("Play." to "Whole hours.", "Learn" to "Whole hours. Start playing!")
+            for ((destination, practice) in routes) {
                 val open = clickAction(destination)
                 compose.runOnIdle { open() }
                 // The first start includes introductory lessons; later starts open the game directly.
@@ -139,6 +140,31 @@ class NavigationFlowTest {
         val back = clickAction("Back")
         compose.runOnIdle { back() }
         awaitHome()
+    }
+
+    @Test
+    fun homeOutfitsOpensWardrobeAndStageStillOpensPersonalize() {
+        compose.setContent { App() }
+        awaitHome()
+        val outfits = clickAction("Outfits")
+        compose.runOnIdle { outfits() }
+        compose.onNodeWithText("Choose a name").assertExists()
+        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        awaitHome()
+        val stage = clickAction("My Companion.")
+        compose.runOnIdle { stage() }
+        compose.onNodeWithText("Make it yours").assertExists()
+    }
+
+    @Test
+    fun settingsParentsRowOpensTheExistingGate() {
+        compose.setContent { App() }
+        awaitHome()
+        val settings = clickAction("Settings")
+        compose.runOnIdle { settings() }
+        val parents = clickAction("For parents")
+        compose.runOnIdle { parents() }
+        compose.onNodeWithText("Continue").assertExists()
     }
 
     @Composable

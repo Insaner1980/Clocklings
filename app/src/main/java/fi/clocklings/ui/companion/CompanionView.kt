@@ -17,6 +17,8 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import fi.clocklings.domain.CompanionColor
@@ -31,7 +33,7 @@ import kotlin.math.min
 
 /**
  * Draws any companion through its [CompanionRig]; nothing for [CompanionKind.NONE]. When [animated],
- * the companion idles and runs [celebration] once: a spin that reveals the new outfit with a sparkle,
+ * the companion idles and runs [celebration] once: a turn that reveals the new outfit with a sparkle,
  * then hops. With reduced motion it stays still and the new outfit shows at once. The pose is read
  * only while drawing, so motion redraws without recomposition. [cropItem] fits that item's thumbnail
  * area of the rig to the canvas instead of the whole companion.
@@ -45,8 +47,10 @@ fun CompanionView(
     celebration: CompanionCelebration? = null,
     animated: Boolean = true,
     cropItem: Item? = null,
+    onGroundPosition: ((Offset) -> Unit)? = null,
 ) {
-    val rig = rigFor(kind) ?: return
+    val loadAccessories = needsRenderedAccessories(kind, outfit, celebration?.newOutfit)
+    val rig = rememberCompanionRig(kind, color, loadAccessories) ?: return
     val reduceMotion = rememberReduceMotion()
     val moving = animated && !reduceMotion
     val active = celebration?.takeIf { animated && (it.spin || it.jump) }
@@ -67,15 +71,32 @@ fun CompanionView(
         if (showNew && !reduceMotion) confetti?.sparkle(center.value)
     }
     val shown = active?.newOutfit?.takeIf { showNew } ?: outfit
-    val crop = if (cropItem == null) rig.full() else rig.crop(cropItem)
+    val crop = if (cropItem == null) rig.full(shown) else rig.crop(cropItem)
     val art =
         modifier
             .then(if (cropItem == null) Modifier.testTag("companion_${kind.name}") else Modifier)
             .then(if (active != null) Modifier.confettiAnchor { center.value = it } else Modifier)
+            .reportGroundPosition(crop, rig.groundCenter, onGroundPosition)
             .clearAndSetSemantics { }
     Canvas(art) {
-        val pose = if (moving) poseAt(nowMs.longValue, active) else RestPose
+        val pose = if (moving) poseAt(kind, nowMs.longValue, active) else RestPose
         drawFitted(rig, crop, clip = cropItem != null, color, shown, pose)
+    }
+}
+
+private fun Modifier.reportGroundPosition(
+    crop: Rect,
+    groundCenter: Offset,
+    onGroundPosition: ((Offset) -> Unit)?,
+): Modifier {
+    if (onGroundPosition == null) return this
+    return onGloballyPositioned { coordinates ->
+        val width = coordinates.size.width.toFloat()
+        val height = coordinates.size.height.toFloat()
+        val scale = min(width / crop.width, height / crop.height)
+        val inset = Offset((width - crop.width * scale) / 2, (height - crop.height * scale) / 2)
+        val centre = inset + (groundCenter - crop.topLeft) * scale
+        onGroundPosition(coordinates.positionInRoot() + centre)
     }
 }
 
@@ -128,17 +149,27 @@ private fun DrawScope.drawFitted(
 
 /** Idle motion, or the celebration frame with the idle blink, breathing and head tilt kept. */
 private fun poseAt(
+    kind: CompanionKind,
     nowMs: Long,
     active: CompanionCelebration?,
 ): CompanionPose {
-    val idle = CompanionMotion.idle(nowMs)
-    val event = active?.takeIf { nowMs >= it.delayMs } ?: return idle
-    val frame = CompanionMotion.celebration(nowMs - event.delayMs, event.spin, event.jump)
-    return if (frame.done) {
-        idle
-    } else {
-        frame.pose.copy(blink = idle.blink, breathe = idle.breathe, headTiltDeg = idle.headTiltDeg)
-    }
+    val motion = CompanionMotion.idle(nowMs)
+    val walking = kind == CompanionKind.UNICORN
+    val idle = if (walking) motion.copy(swayDeg = 0f, breathe = 0f, walkTimeMs = nowMs) else motion
+    val frame =
+        active?.takeIf { nowMs >= it.delayMs }?.let { event ->
+            CompanionMotion.celebration(nowMs - event.delayMs, event.spin, event.jump)
+        }
+    if (frame == null || frame.done) return idle
+    return frame.pose.copy(
+        blink = idle.blink,
+        breathe = idle.breathe,
+        turn = if (walking) 1f else frame.pose.turn,
+        swayDeg = if (walking) 0f else idle.swayDeg + frame.pose.swayDeg,
+        headTiltDeg = idle.headTiltDeg + frame.pose.headTiltDeg,
+        partDeg = idle.partDeg + frame.pose.partDeg * (1f - idle.partDeg / (2f * CompanionMotion.PART_SWING_DEG)),
+        walkTimeMs = idle.walkTimeMs,
+    )
 }
 
 private val RestPose = CompanionPose()

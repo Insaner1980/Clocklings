@@ -105,7 +105,6 @@ class GameViewModel(
 
     private val lv = Levels.all[level]
     private val tasks = Levels.makeTasks(lv, h24, random)
-    private var clockValue = 0
     private var advanceJob: Job? = null
 
     /** A hint the narrator is about to read once the wrong-answer sound has faded. */
@@ -115,12 +114,15 @@ class GameViewModel(
     val state: StateFlow<GameUiState> = _state.asStateFlow()
 
     init {
+        services.usage.count("game.$level.start")
         announce(_state.value.task)
     }
 
     /** The narrator reads each task's instruction, since read and set tasks take turns. */
     private fun announce(task: Task) {
         hintVoiceJob?.cancel()
+        val kind = if (task.type == TaskType.READ) "read" else "set"
+        services.usage.count("game.$level.$kind")
         services.play(if (task.type == TaskType.READ) Sound.QUESTION_READ else Sound.QUESTION_SET)
     }
 
@@ -159,7 +161,6 @@ class GameViewModel(
             base.copy(options = Levels.optionsFor(task.time, lv, h24, random))
         } else {
             val start = Levels.setTaskStart(task.time)
-            clockValue = start
             base.copy(
                 clock =
                     ClockCommand(
@@ -180,7 +181,6 @@ class GameViewModel(
 
     fun onClockChange(value: Int) {
         if (!_state.value.interactive) return
-        clockValue = value
         _state.update { it.copy(clock = it.clock.copy(time = value, ms = 0)) }
     }
 
@@ -201,6 +201,7 @@ class GameViewModel(
             )
         _state.value =
             if (wrong.taskMistakes >= MAX_TRIES) {
+                services.usage.count("game.$level.read_reveal")
                 wrong.copy(
                     busy = true,
                     optionStates = wrong.optionStates + (s.task.time to OptionState.CORRECT),
@@ -217,9 +218,9 @@ class GameViewModel(
     fun done() {
         val s = _state.value
         if (s.busy || s.task.type != TaskType.SET) return
-        val v = clockValue
+        val submittedTime = s.clock.time
         // Viisariasento ratkaisee: 3.30 ja 15.30 näyttävät kellotaululla samalta.
-        if (ClockTime.sameHands(v, s.task.time)) {
+        if (ClockTime.sameHands(submittedTime, s.task.time)) {
             success(s)
             return
         }
@@ -228,6 +229,7 @@ class GameViewModel(
         val wrong = s.copy(mistakes = s.mistakes + 1, taskMistakes = s.taskMistakes + 1)
         _state.value =
             if (wrong.taskMistakes >= MAX_TRIES) {
+                services.usage.count("game.$level.set_reveal")
                 wrong.copy(
                     busy = true,
                     interactive = false,
@@ -237,7 +239,7 @@ class GameViewModel(
                     showNext = true,
                 )
             } else {
-                val hint = Hints.forSet(s.task.time, v)
+                val hint = Hints.forSet(s.task.time, submittedTime)
                 readHint(hint)
                 wrong.copy(feedback = GameFeedback.HintText(hint))
             }
@@ -247,6 +249,9 @@ class GameViewModel(
         hintVoiceJob?.cancel()
         services.play(Sound.OK)
         val isSet = s.task.type == TaskType.SET
+        val kind = if (isSet) "set" else "read"
+        val outcome = if (s.taskMistakes == 0) "first" else "hint"
+        services.usage.count("game.$level.${kind}_$outcome")
         _state.value =
             s.copy(
                 busy = true,
@@ -302,6 +307,7 @@ class GameViewModel(
                     starsBefore = it.totalStars
                     it.withLevelResult(level, stars)
                 }
+                services.usage.count("game.$level.finish")
                 services.play(Sound.WIN)
                 _state.update {
                     it.copy(

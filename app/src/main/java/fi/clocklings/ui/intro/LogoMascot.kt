@@ -64,9 +64,10 @@ internal fun logoPose(
 ): CompanionPose {
     if (reducedMotion) return CompanionPose()
     val idle = CompanionMotion.idle(time)
+    val jumpTime = (time - IntroTimeline.MASCOT_IN_MS).coerceAtLeast(0L)
     val greeting =
         CompanionMotion.celebration(
-            (time - IntroTimeline.MASCOT_IN_MS).coerceAtLeast(0L),
+            jumpTime * CompanionMotion.JUMP_MS / IntroTimeline.MASCOT_JUMP_MS,
             spin = false,
             jump = true,
         )

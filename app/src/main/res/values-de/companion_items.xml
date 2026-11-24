@@ -29,7 +29,7 @@
     <string name="item_dog_head_party_hat">Partyhut</string>
     <string name="item_dog_extra_boots">Gummistiefel</string>
     <string name="item_dog_neck_lei">Blumenkette</string>
-    <string name="item_dog_head_aviator">Fliegermütze</string>
+    <string name="item_dog_head_aviator">Entdeckerhut</string>
     <string name="item_dog_extra_backpack">Rucksack</string>
     <string name="item_dog_neck_medal">Medaille</string>
     <string name="item_dog_head_helmet">Feuerwehrhelm</string>
@@ -75,7 +75,7 @@
     <!-- Dinosaur -->
     <string name="item_dinosaur_extra_backpack">Rucksack</string>
     <string name="item_dinosaur_head_flower">Blume auf dem Kopf</string>
-    <string name="item_dinosaur_extra_bucket">Sandeimer</string>
+    <string name="item_dinosaur_extra_bucket">Trinkbecher</string>
     <string name="item_dinosaur_neck_scarf">Schal</string>
     <string name="item_dinosaur_head_cap">Kappe</string>
     <string name="item_dinosaur_extra_balloon">Luftballon</string>
@@ -94,7 +94,7 @@
     <string name="item_bunny_neck_ribbon">Bandschleife</string>
     <string name="item_bunny_extra_carrot">Karotte</string>
     <string name="item_bunny_head_ear_bow">Ohrschleife</string>
-    <string name="item_bunny_neck_daisies">Gänseblümchenkette</string>
+    <string name="item_bunny_neck_daisies">Perlenkette</string>
     <string name="item_bunny_extra_basket">Eierkorb</string>
     <string name="item_bunny_head_sun_hat">Sonnenhut</string>
     <string name="item_bunny_neck_locket">Herzmedaillon</string>
@@ -103,7 +103,7 @@
     <string name="item_bunny_neck_bow_tie">Gepunktete Fliege</string>
     <string name="item_bunny_extra_bubbles">Seifenblasenstab</string>
     <string name="item_bunny_head_flower_crown">Blumenkranz</string>
-    <string name="item_bunny_extra_bouquet">Blumenstrauß</string>
+    <string name="item_bunny_extra_bouquet">Sternenzauberstab</string>
     <string name="item_bunny_neck_cape">Sternenumhang</string>
     <string name="item_bunny_head_tiara">Diadem</string>
     <string name="item_bunny_extra_wings">Feenflügel</string>
@@ -114,7 +114,7 @@
     <string name="item_unicorn_extra_cloud">Wolkenkissen</string>
     <string name="item_unicorn_neck_stars">Sternenkette</string>
     <string name="item_unicorn_head_flower_crown">Blumenkranz</string>
-    <string name="item_unicorn_extra_balloon">Sternenballon</string>
+    <string name="item_unicorn_extra_balloon">Sternenzauberstab</string>
     <string name="item_unicorn_neck_scarf">Halstuch</string>
     <string name="item_unicorn_head_ribbons">Mähnenbänder</string>
     <string name="item_unicorn_extra_boots">Glitzerstiefel</string>

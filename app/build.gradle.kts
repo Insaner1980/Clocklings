@@ -2,9 +2,11 @@ import com.android.build.api.variant.HostTestBuilder
 import io.gitlab.arturbosch.detekt.Detekt
 import org.gradle.testing.jacoco.plugins.JacocoTaskExtension
 import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
+import java.net.URI
 
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.androidx.baselineprofile)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ktlint)
@@ -13,32 +15,42 @@ plugins {
     alias(libs.plugins.stability.analyzer)
 }
 
+val analyticsEndpointOverride = providers.gradleProperty("analyticsEndpoint")
+
+fun analyticsEndpointField(defaultOrigin: String = ""): String {
+    val endpoint = analyticsEndpointOverride.getOrElse(defaultOrigin).trim().trimEnd('/')
+    if (endpoint.isNotEmpty()) {
+        val uri = URI(endpoint)
+        require(
+            uri.scheme == "https" && uri.host != null && uri.rawUserInfo == null &&
+                uri.rawPath.isEmpty() && uri.rawQuery == null && uri.rawFragment == null,
+        ) { "analyticsEndpoint must be an HTTPS origin." }
+    }
+    return "\"$endpoint\""
+}
+
 android {
     namespace = "fi.clocklings"
-    compileSdk = 37
+    testCoverage.jacocoVersion = libs.versions.jacoco.get()
+
+    compileSdk {
+        version =
+            release(37) {
+                minorApiLevel = 2
+            }
+    }
 
     defaultConfig {
-        applicationId = "fi.clocklings"
+        applicationId = "com.finnvek.clocklings"
         minSdk = 26
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "fi.clocklings.ClocklingsTestRunner"
+        buildConfigField("String", "ANALYTICS_ENDPOINT", analyticsEndpointField())
     }
 
-    // Julkaisuavain ja salasanat ovat repositorion ulkopuolella, esim. ~/.gradle/gradle.properties:
-    // CLOCKLINGS_KEYSTORE, CLOCKLINGS_KEYSTORE_PASSWORD, CLOCKLINGS_KEY_ALIAS, CLOCKLINGS_KEY_PASSWORD.
-    val keystorePath = providers.gradleProperty("CLOCKLINGS_KEYSTORE").orNull
-    signingConfigs {
-        if (keystorePath != null) {
-            create("release") {
-                storeFile = file(keystorePath)
-                storePassword = providers.gradleProperty("CLOCKLINGS_KEYSTORE_PASSWORD").get()
-                keyAlias = providers.gradleProperty("CLOCKLINGS_KEY_ALIAS").get()
-                keyPassword = providers.gradleProperty("CLOCKLINGS_KEY_PASSWORD").get()
-            }
-        }
-    }
+    // This independent visual experiment has no release signing configuration.
 
     buildTypes {
         debug {
@@ -46,10 +58,25 @@ android {
             enableAndroidTestCoverage = true
         }
         release {
+            buildConfigField(
+                "String",
+                "ANALYTICS_ENDPOINT",
+                analyticsEndpointField("https://clocklings-analytics.emmahota.workers.dev"),
+            )
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            if (keystorePath != null) signingConfig = signingConfigs.getByName("release")
+        }
+        // Only local measurement variants use the standard debug key.
+        create("benchmarkRelease") {
+            initWith(getByName("release"))
+            buildConfigField("String", "ANALYTICS_ENDPOINT", analyticsEndpointField())
+            signingConfig = signingConfigs.getByName("debug")
+        }
+        create("nonMinifiedRelease") {
+            initWith(getByName("release"))
+            buildConfigField("String", "ANALYTICS_ENDPOINT", analyticsEndpointField())
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
@@ -59,8 +86,16 @@ android {
     }
 
     buildFeatures {
+        buildConfig = true
         compose = true
     }
+
+    // Original pixels are packaged only in the test APK for Android decoder parity checks.
+    sourceSets
+        .getByName("androidTest")
+        .assets
+        .directories
+        .add(rootProject.file("art/models/atlases").absolutePath)
 
     testOptions {
         unitTests.isIncludeAndroidResources = true
@@ -92,10 +127,34 @@ android {
     }
 }
 
+baselineProfile {
+    automaticGenerationDuringBuild = false
+    saveInSrc = true
+}
+
 androidComponents {
     // AGP 9.5 preview tasks require unit-test resources when stability checks realize all tasks.
-    beforeVariants(selector().withBuildType("release")) {
+    beforeVariants {
         it.hostTests.getValue(HostTestBuilder.UNIT_TEST_TYPE).enable = true
+    }
+}
+
+abstract class ResourcePackagingLock : BuildService<BuildServiceParameters.None>
+
+if (System.getProperty("os.name").startsWith("Windows", ignoreCase = true)) {
+    // Avoid intermittent access errors when variants copy the same raw resources.
+    val resourcePackagingLock =
+        gradle.sharedServices
+            .registerIfAbsent(
+                "resourcePackagingLock",
+                ResourcePackagingLock::class,
+            ) {
+                maxParallelUsages.set(1)
+            }
+    tasks.configureEach {
+        if (name.startsWith("package") && name.endsWith("Resources")) {
+            usesService(resourcePackagingLock)
+        }
     }
 }
 
@@ -146,12 +205,7 @@ dependencyCheck {
         }
     }
     nvd {
-        providers
-            .environmentVariable("NVD_API_KEY")
-            .orNull
-            ?.trim()
-            ?.takeIf { it.isNotEmpty() }
-            ?.let { apiKey = it }
+        datafeedUrl = "https://nvd.nist.gov/feeds/json/cve/2.0/nvdcve-2.0-{0}.json.gz"
     }
 }
 
@@ -180,6 +234,7 @@ composeStabilityAnalyzer {
 }
 
 dependencies {
+    baselineProfile(project(":benchmark"))
     lintChecks(libs.android.security.lints)
     detektPlugins(libs.compose.rules.detekt)
     ktlintRuleset(libs.compose.rules.ktlint)
@@ -196,6 +251,7 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.navigation3)
@@ -203,14 +259,52 @@ dependencies {
     implementation(libs.androidx.navigation3.ui)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.serialization.core)
+    implementation(libs.kotlinx.coroutines.android)
     implementation(libs.google.play.billing)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
     constraints {
+        // Compose, Navigation 3, Activity and Billing still request older AndroidX libraries.
+        implementation(libs.androidx.annotation)
+        implementation(libs.androidx.annotation.experimental)
+        implementation(libs.androidx.appcompat.resources)
+        implementation(libs.androidx.autofill)
+        implementation(libs.androidx.collection.ktx)
+        implementation(libs.androidx.concurrent.futures)
+        implementation(libs.androidx.core.ktx)
+        implementation(libs.androidx.customview)
+        implementation(libs.androidx.customview.poolingcontainer)
+        implementation(libs.androidx.fragment)
+        implementation(libs.androidx.graphics.shapes)
+        implementation(libs.androidx.loader)
+        implementation(libs.androidx.navigationevent.compose)
+        implementation(libs.androidx.profileinstaller)
+        implementation(libs.androidx.startup.runtime)
+        implementation(libs.androidx.tracing)
+        implementation(libs.androidx.vectordrawable.animated)
+        implementation(libs.androidx.versionedparcelable)
+        implementation(libs.androidx.viewpager)
+        implementation(libs.androidx.window)
+
+        // Billing's transport backend selects the matching runtime, API and Firebase encoders.
+        implementation(libs.google.transport.backend.cct)
+        implementation(libs.google.play.services.base)
+        implementation(libs.google.play.services.basement)
+        implementation(libs.google.play.services.location)
+
+        // DataStore, Kotlin and AndroidX select these shared runtime and annotation libraries.
+        implementation(libs.okio)
+        implementation(libs.jetbrains.annotations)
+        implementation(libs.kotlinx.atomicfu)
+        implementation(libs.jspecify)
+
         testImplementation(libs.guava) {
             because("Fix CVE-2026-102554 in Robolectric's transitive dependency")
+        }
+        add("ktlint", libs.logback.classic.get()) {
+            because("Use the patched Logback release in ktlint")
         }
     }
     testImplementation(composeBom)

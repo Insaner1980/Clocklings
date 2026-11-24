@@ -46,8 +46,7 @@ import fi.clocklings.ui.clock.ClockFace
 import fi.clocklings.ui.companion.CompanionPose
 import fi.clocklings.ui.companion.CompanionRig
 import fi.clocklings.ui.companion.CompanionView
-import fi.clocklings.ui.companion.RobotRig
-import fi.clocklings.ui.companion.rigFor
+import fi.clocklings.ui.companion.rememberCompanionRig
 import fi.clocklings.ui.itemName
 import fi.clocklings.ui.theme.ClocklingsTheme
 import fi.clocklings.ui.theme.SkColors
@@ -58,8 +57,8 @@ import org.junit.runner.RunWith
 import java.io.File
 
 /**
- * Kuvagalleria silmämääräiseen vertailuun web-version kanssa: nukke jokaisessa vaatteessa ja
- * kello eri tiloissa. Kuvat tallentuvat laitteelle sovelluksen files/gallery-kansioon.
+ * Visual gallery of the production 3D companions, wardrobe thumbnails and clock styles.
+ * Images are saved in the test application's files/gallery directory.
  */
 @RunWith(AndroidJUnit4::class)
 class GalleryTest {
@@ -110,8 +109,8 @@ class GalleryTest {
     @Test
     fun bareLarge() {
         val name = InstrumentationRegistry.getArguments().getString("kind") ?: CompanionKind.BUNNY.name
-        val rig = rigFor(CompanionKind.valueOf(name))!!
         compose.setContent {
+            val rig = rememberCompanionRig(CompanionKind.valueOf(name), CompanionColor.ORIGINAL)!!
             ClocklingsTheme {
                 GalleryColumn {
                     androidx.compose.foundation.Canvas(
@@ -147,7 +146,7 @@ class GalleryTest {
                     kinds.chunked(3).forEach { row ->
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             row.forEach { kind ->
-                                val rig = rigFor(kind)!!
+                                val rig = rememberCompanionRig(kind, CompanionColor.ORIGINAL)!!
                                 val outfit = if (kind == CompanionKind.HUMAN) Outfit.Default else Outfit()
                                 poses.forEach { pose ->
                                     RigCanvas(rig, outfit, pose, Modifier.size(width = 62.dp, height = 106.dp))
@@ -171,7 +170,7 @@ class GalleryTest {
                     CompanionKind.entries.filter { it != CompanionKind.NONE }.chunked(GALLERY_COLUMNS).forEach { row ->
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             row.forEach { kind ->
-                                val rig = rigFor(kind)!!
+                                val rig = rememberCompanionRig(kind, CompanionColor.ORIGINAL)!!
                                 val outfit = if (kind == CompanionKind.HUMAN) Outfit.Default else Outfit()
                                 RigCanvas(
                                     rig,
@@ -279,7 +278,7 @@ class GalleryTest {
      * Saves `robot-large`: Original with antenna and bow tie, and Blue with headphones, the light-up
      * necklace and the heart-eyes screen (a hat worn with a screen face), each about 300 dp wide. Under
      * them, one row drawn straight through the rig at blink 1 (the bare robot, and the propeller cap with
-     * the heart-eyes screen) shows that blinking dims the glowing eyes instead of closing them.
+     * the heart-eyes screen) shows the 3D screen-eye blink on both eye styles.
      */
     @Test
     fun robotSampleLooks() {
@@ -298,9 +297,9 @@ class GalleryTest {
                 Outfit(),
                 Outfit().with(Slot.HEAD, "robot-head-propeller").with(Slot.EXTRA, "robot-extra-heart-eyes"),
             )
-        val rig = RobotRig
         val closed = CompanionPose(blink = 1f)
         compose.setContent {
+            val rig = rememberCompanionRig(CompanionKind.ROBOT, CompanionColor.ORIGINAL)!!
             ClocklingsTheme {
                 GalleryColumn {
                     looks.forEach { (color, outfit) ->

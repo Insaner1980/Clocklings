@@ -10,6 +10,13 @@ class IntroTimelineTest {
     private val eps = 0.001f
 
     @Test
+    fun `startup is usable within the short intro budget without waiting for the narrator`() {
+        assertTrue(T.END_MS <= 1250L)
+        assertTrue(T.STILL_MS <= 400L)
+        assertTrue(T.GREETING_VOICE_MS > T.END_MS)
+    }
+
+    @Test
     fun `mascot hops waves and blinks but stays still with reduced motion`() {
         val frames = (0L..T.FADE_START_MS step 10L).map { logoPose(it, reducedMotion = false) }
         assertTrue(frames.any { it.lift > 5f })

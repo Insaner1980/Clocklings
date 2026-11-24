@@ -1,11 +1,17 @@
 package fi.clocklings.ui
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
@@ -13,6 +19,8 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
@@ -21,6 +29,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isHeading
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -30,14 +39,22 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import fi.clocklings.Screen
 import fi.clocklings.domain.AccessPolicy
+import fi.clocklings.domain.AppLanguage
 import fi.clocklings.domain.CompanionKind
 import fi.clocklings.domain.Lessons
 import fi.clocklings.domain.Outfit
 import fi.clocklings.domain.Personalization
 import fi.clocklings.domain.Progress
 import fi.clocklings.domain.Settings
+import fi.clocklings.domain.Task
+import fi.clocklings.domain.TaskType
 import fi.clocklings.ui.appearance.LocalPersonalization
+import fi.clocklings.ui.clock.ClockCommand
 import fi.clocklings.ui.companion.companionAspectRatio
+import fi.clocklings.ui.components.ClockFit
+import fi.clocklings.ui.components.ClockTaskScaffold
+import fi.clocklings.ui.game.GameScreen
+import fi.clocklings.ui.game.GameUiState
 import fi.clocklings.ui.game.ResultScreen
 import fi.clocklings.ui.home.HomeDestination
 import fi.clocklings.ui.home.HomeScreen
@@ -46,6 +63,7 @@ import fi.clocklings.ui.home.companionStageLayout
 import fi.clocklings.ui.lesson.LessonListScreen
 import fi.clocklings.ui.levels.LevelsScreen
 import fi.clocklings.ui.theme.ClocklingsTheme
+import fi.clocklings.ui.theme.Section
 import fi.clocklings.ui.theme.SkDimens
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -57,6 +75,83 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class ScreenInteractionTest {
     @get:Rule val compose = createComposeRule()
+
+    @Test
+    fun pathPracticeRowNamesTheGame() {
+        val fullAccess = mutableStateOf(true)
+        val context = localizedContext(AppLanguage.FINNISH)
+        compose.setContent {
+            CompositionLocalProvider(LocalContext provides context, LocalResources provides context.resources) {
+                ClocklingsTheme {
+                    LessonListScreen(false, Progress(), AccessPolicy(fullAccess.value), {}, {}, {})
+                }
+            }
+        }
+        compose.onNodeWithText("Pelaa: Tasatunnit", useUnmergedTree = true).assertExists()
+        compose.onNodeWithText("Tasatunnit", useUnmergedTree = true).assertExists()
+        compose.runOnIdle { fullAccess.value = false }
+        compose.onNodeWithText("Pelaa: Puoli tuntia", useUnmergedTree = true).assertExists()
+        val locked = hasContentDescription("Puoli tuntia. Täysversio")
+        compose.onNode(locked).assertIsNotEnabled()
+        compose.onNode(hasText("Täysversio") and hasAnyAncestor(locked), useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun setTaskCheckButtonSaysCheck() {
+        val context = localizedContext(AppLanguage.FINNISH)
+        val state =
+            GameUiState(
+                level = 0,
+                h24 = false,
+                taskIndex = 0,
+                taskCount = 10,
+                task = Task(180, TaskType.SET),
+                clock = ClockCommand(0),
+                step = 60,
+                showDone = true,
+            )
+        compose.setContent {
+            CompositionLocalProvider(LocalContext provides context, LocalResources provides context.resources) {
+                ClocklingsTheme { GameScreen(state, true, {}, {}, {}, {}, {}, {}) }
+            }
+        }
+        compose.onNode(hasText("Tarkista") and hasClickAction()).assertIsDisplayed()
+        compose.onNode(hasText("Valmis") and hasClickAction()).assertDoesNotExist()
+    }
+
+    @Test
+    fun taskClockKeepsTheSmallerSizeWhenFeedbackGetsShorter() {
+        val controlsHeight = mutableStateOf(100.dp)
+        val taskIndex = mutableIntStateOf(0)
+        compose.setContent {
+            ClocklingsTheme {
+                Box(Modifier.requiredSize(411.dp, 914.dp)) {
+                    ClockTaskScaffold(
+                        section = Section.PLAY,
+                        topBar = {},
+                        visual = { Box(Modifier.size(it).testTag("measured_clock")) },
+                        clockFit = ClockFit.FIT,
+                        clockTaskKey = taskIndex.intValue,
+                    ) { Box(Modifier.height(controlsHeight.value)) }
+                }
+            }
+        }
+
+        fun clockWidth() =
+            compose
+                .onNodeWithTag("measured_clock")
+                .fetchSemanticsNode()
+                .size.width
+
+        val before = clockWidth()
+        compose.runOnIdle { controlsHeight.value = 700.dp }
+        val hint = clockWidth()
+        assertTrue("The tall feedback must shrink the clock", hint < before)
+        compose.runOnIdle { controlsHeight.value = 150.dp }
+        assertEquals("Shorter feedback must keep the smaller clock", hint, clockWidth())
+        compose.runOnIdle { taskIndex.intValue++ }
+        assertEquals("The next task must start at full size", before, clockWidth())
+    }
 
     @Test
     fun allHomeDestinationsRemainReachableAtNarrowWidthAndLargeFont() {
@@ -154,15 +249,16 @@ class ScreenInteractionTest {
         for (name in levelNames) {
             compose.onAllNodes(isHeading() and hasText(name)).assertCountEquals(0)
         }
-        compose.onAllNodesWithText("Practise").assertCountEquals(levelNames.size)
-        compose.onAllNodesWithText("Play again").assertCountEquals(1)
-        compose.onAllNodesWithText("Start playing!").assertCountEquals(levelNames.size - 1)
-        compose
-            .onNode(hasContentDescription("Whole hours. Practise. Play again.", substring = true) and hasClickAction())
-            .assertExists()
-        compose
-            .onNode(hasContentDescription("Half past. Practise. Start playing!", substring = true) and hasClickAction())
-            .assertExists()
+        // The level names now identify the practice rows, with one complete description per action.
+        levelNames.forEachIndexed { index, name ->
+            val action = if (index == 0) "Play again" else "Start playing!"
+            compose
+                .onNode(hasContentDescription("$name. $action.", substring = true) and hasClickAction())
+                .assertExists()
+            compose.onNodeWithText("Play: $name", useUnmergedTree = true).assertExists()
+        }
+        compose.onAllNodesWithText("Play again", useUnmergedTree = true).assertCountEquals(1)
+        compose.onAllNodesWithText("Start playing!", useUnmergedTree = true).assertCountEquals(levelNames.size - 1)
     }
 
     @Test
@@ -211,15 +307,14 @@ class ScreenInteractionTest {
             assertEquals(0f, viewport.config[SemanticsProperties.VerticalScrollAxisRange].maxValue(), 1f)
             for (title in listOf("Learn", "Explore", "Play", "Play Together")) {
                 val tile = compose.onNode(hasText(title) and hasClickAction()).assertIsDisplayed().fetchSemanticsNode()
-                val ledge = with(compose.density) { SkDimens.BigButtonDepth.toPx() }
-                val bottom = tile.positionInRoot.y + tile.size.height + ledge
-                assertTrue("$companion / $title: entire tile and ledge visible", bottom <= viewport.boundsInRoot.bottom)
+                val bottom = tile.positionInRoot.y + tile.size.height
+                assertTrue("$companion / $title: entire tile visible", bottom <= viewport.boundsInRoot.bottom)
             }
         }
     }
 
     @Test
-    fun homeTapTargetIsOnlyTheCentredContentBoxOnATallPhone() {
+    fun homeTapTargetFollowsTheContentBoxBelowTheTrimmedSky() {
         val companion = mutableStateOf(CompanionKind.CAT)
         compose.setContent {
             val personalization = Personalization(companion = companion.value)
@@ -244,10 +339,15 @@ class ScreenInteractionTest {
                     if (kind == CompanionKind.NONE) {
                         centredContentTop(slotHeight, contentHeight)
                     } else {
-                        companionStageLayout(slot.width.toDp(), slotHeight, contentHeight, companionAspectRatio(kind))
-                            .contentTop
+                        companionStageLayout(
+                            slot.width.toDp(),
+                            slotHeight,
+                            contentHeight,
+                            companionAspectRatio(kind),
+                            skyTrim = SkDimens.HomeStageSkyTrim,
+                        ).contentTop
                     }
-                assertTrue("$kind: the slot is taller than the content", slotHeight > contentHeight + 100.dp)
+                assertTrue("$kind: the slot is taller than the content", slotHeight > contentHeight)
                 assertTrue("$kind: target height", contentHeight <= SkDimens.HomeStageMaxHeight)
                 assertEquals("$kind: target height", contentHeight.value, target.height.toDp().value, 1f)
                 assertEquals("$kind: target top", contentTop.value, (target.top - slot.top).toDp().value, 1f)
@@ -383,7 +483,7 @@ class ScreenInteractionTest {
                 assertEquals("replay", action)
                 compose.onNodeWithText("Next level").scrollIfNeeded().performClick()
                 assertEquals("next", action)
-                compose.onNodeWithText("Back").scrollIfNeeded().performClick()
+                compose.onNodeWithContentDescription("Back").scrollIfNeeded().performClick()
                 assertEquals("levels", action)
             }
         }

@@ -5,26 +5,25 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.SubcomposeLayout
@@ -36,6 +35,7 @@ import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -49,22 +49,20 @@ import fi.clocklings.domain.timeLanguage
 import fi.clocklings.ui.AppViewModel
 import fi.clocklings.ui.LocalAppViewModel
 import fi.clocklings.ui.clock.ClockFace
-import fi.clocklings.ui.components.ActionPair
 import fi.clocklings.ui.components.ButtonKind
-import fi.clocklings.ui.components.ClockBox
 import fi.clocklings.ui.components.ClockFit
+import fi.clocklings.ui.components.ClockTaskLayout
 import fi.clocklings.ui.components.ClockTaskScaffold
 import fi.clocklings.ui.components.Eyebrow
 import fi.clocklings.ui.components.FlatPanel
-import fi.clocklings.ui.components.LocalConfetti
 import fi.clocklings.ui.components.OptionButton
 import fi.clocklings.ui.components.OptionState
 import fi.clocklings.ui.components.Pill
 import fi.clocklings.ui.components.ReadOptions
 import fi.clocklings.ui.components.SkButton
-import fi.clocklings.ui.components.TaskActionFocus
+import fi.clocklings.ui.components.SkIcons
 import fi.clocklings.ui.components.TopBar
-import fi.clocklings.ui.components.confettiAnchor
+import fi.clocklings.ui.components.bringFeedbackIntoView
 import fi.clocklings.ui.components.taskActionFocus
 import fi.clocklings.ui.locale.LocalAppLanguage
 import fi.clocklings.ui.theme.Section
@@ -73,6 +71,8 @@ import fi.clocklings.ui.theme.SkDimens
 import fi.clocklings.ui.theme.SkShapes
 import fi.clocklings.ui.theme.SkType
 import fi.clocklings.ui.timeLabel
+import java.util.concurrent.TimeUnit
+import kotlin.math.ceil
 
 @Composable
 fun ChallengeRoute(
@@ -124,59 +124,70 @@ fun ChallengeScreen(
     onStart: () -> Unit,
     onPick: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    nowNanos: () -> Long = System::nanoTime,
 ) {
-    val finalAnchor = remember { mutableStateOf(Offset.Zero) }
-    val barAnchor = remember { mutableStateOf(Offset.Zero) }
-    RecordCelebrationEffect(state) {
-        // A fully clipped score has empty bounds; celebrate from the visible result bar instead.
-        finalAnchor.value.takeUnless { it == Offset.Zero } ?: barAnchor.value
+    if (state.phase == ChallengePhase.END) {
+        ChallengeResultScreen(state, onStart, onBack, modifier)
+        return
     }
+    val running = state.phase == ChallengePhase.RUN
+    val scorePill: (@Composable () -> Unit)? =
+        if (running) ({ ChallengeScorePill(state.score) }) else null
+    val scroll = rememberSaveable(state.phase, state.question, saver = ScrollState.Saver) { ScrollState(0) }
+    val compactScroll = rememberSaveable(state.phase, state.question, saver = ScrollState.Saver) { ScrollState(0) }
     ClockTaskScaffold(
         modifier = modifier,
         clockHeightShare = SkDimens.PLAY_CLOCK_HEIGHT_SHARE,
         section = Section.PLAY,
-        topBar = {
+        topBar = { compactTitle ->
             TopBar(
                 title = stringResource(R.string.challenge_title),
                 onBack = onBack,
-                trailing = { Pill(stringResource(R.string.challenge_score, state.score)) },
+                compactTaskTitle = compactTitle,
+                trailing = scorePill.takeUnless { compactTitle },
             )
         },
-        // The start action and the result actions stay reachable below a narrow or large-font intro or result
-        // without scrolling.
         actions =
-            if (state.phase == ChallengePhase.RUN) {
+            if (running) {
                 null
             } else {
                 { focus, _ ->
-                    Box(Modifier.fillMaxWidth().confettiAnchor { barAnchor.value = it }) {
-                        ChallengeActions(state, onStart, onBack, focus)
-                    }
+                    SkButton(
+                        stringResource(R.string.challenge_go),
+                        onStart,
+                        Modifier.fillMaxWidth().taskActionFocus(focus),
+                        kind = ButtonKind.PRIMARY,
+                    )
                 }
             },
-        // A run shows all its answers without scrolling where the clock can shrink for them, and the result keeps
-        // that size whatever the height its bar takes, so the score and its confetti stay put. The clock resizes
-        // into the height the START bar frees instead of jumping.
-        clockFit =
-            when (state.phase) {
-                ChallengePhase.START -> ClockFit.NONE
-                ChallengePhase.RUN -> ClockFit.FIT
-                ChallengePhase.END -> ClockFit.KEEP
-            },
+        clockFit = if (running) ClockFit.FIT else ClockFit.NONE,
+        clockTaskKey = state.runId.takeIf { running },
         animateClock = true,
-        // Each phase opens at the top, so a run never starts with the clock scrolled away.
-        scrollState = rememberSaveable(state.phase, saver = ScrollState.Saver) { ScrollState(0) },
-        compactScrollState = rememberSaveable(state.phase, saver = ScrollState.Saver) { ScrollState(0) },
-        status = { TimerBar(state) },
+        scrollState = scroll,
+        compactScrollState = compactScroll,
+        status = { TimerBar(state, nowNanos) },
+        largeTextStatusAction = if (running) ({ ChallengeScorePill(state.score, compact = true) }) else null,
         visual = { size -> ChallengeClock(state, h24, help, size) },
-    ) { compact ->
-        ChallengePanel(
-            state,
-            h24,
-            onPick,
-            onAnchorChange = { finalAnchor.value = it },
-            compact = compact,
+    ) { layout ->
+        val compact = layout == ClockTaskLayout.COMPACT
+        ChallengePanel(state, h24, onPick, compact, if (compact) compactScroll else scroll)
+    }
+}
+
+@Composable
+private fun ChallengeScorePill(
+    score: Int,
+    compact: Boolean = false,
+) {
+    val label = stringResource(R.string.challenge_score, score)
+    if (compact) {
+        Pill(
+            score.toString(),
+            Modifier.clearAndSetSemantics { contentDescription = label },
+            icon = SkIcons.Check,
         )
+    } else {
+        Pill(label)
     }
 }
 
@@ -197,11 +208,13 @@ private fun RunOptions(
     state: ChallengeUiState,
     h24: Boolean,
     onPick: (Int) -> Unit,
+    scroll: ScrollState,
 ) {
     val keyFor = rememberAnswerRoomKey(h24)
     val density = LocalDensity.current
     val measurer = rememberTextMeasurer()
     val measuredInRun = remember { MeasuredInRun() }
+    val showCorrect = OptionState.WRONG in state.optionStates.values
     SubcomposeLayout { constraints ->
         val loose = constraints.copy(minHeight = 0)
         val key = keyFor(constraints.maxWidth)
@@ -226,6 +239,12 @@ private fun RunOptions(
                             h24,
                             state.optionStates[t] ?: OptionState.NORMAL,
                             onClick = { onPick(t) },
+                            modifier =
+                                if (showCorrect && t == state.question) {
+                                    Modifier.bringFeedbackIntoView(state.question.toString(), scroll)
+                                } else {
+                                    Modifier
+                                },
                             enabled = !state.busy,
                         )
                     }
@@ -257,114 +276,53 @@ internal fun RunOption(
     )
 }
 
-@Composable
-private fun RecordCelebrationEffect(
-    state: ChallengeUiState,
-    anchor: () -> Offset,
-) {
-    val confetti = LocalConfetti.current
-    val currentAnchor by rememberUpdatedState(anchor)
-    var celebratedRun by rememberSaveable { mutableIntStateOf(-1) }
-    LaunchedEffect(state.phase, state.newRecord, state.runId) {
-        if (state.phase == ChallengePhase.END && state.newRecord && celebratedRun != state.runId) {
-            celebratedRun = state.runId
-            confetti?.burst(currentAnchor(), RECORD_CONFETTI)
-        }
-    }
-}
-
 /** Sateenkaaren väreillä täyttyvä ajastinpalkki, joka tyhjenee minuutissa (web: .timer). */
 @Composable
-private fun TimerBar(state: ChallengeUiState) {
+private fun TimerBar(
+    state: ChallengeUiState,
+    nowNanos: () -> Long,
+) {
     val label = stringResource(R.string.challenge_time_remaining)
+    val currentNowNanos by rememberUpdatedState(nowNanos)
     // Ajastin on tietoa eikä koristetta, joten se lasketaan ruutujen ajasta (ei animaatioasetuksen mukaan).
     var fraction by remember(
         state.runId,
         state.phase,
-    ) { mutableFloatStateOf(state.remainingFraction(System.nanoTime())) }
+    ) { mutableFloatStateOf(state.remainingFraction(nowNanos())) }
     LaunchedEffect(state.runId, state.phase) {
         if (state.phase != ChallengePhase.RUN) return@LaunchedEffect
         while (fraction > 0f) {
-            withFrameNanos { fraction = state.remainingFraction(System.nanoTime()) }
+            withFrameNanos { fraction = state.remainingFraction(currentNowNanos()) }
         }
     }
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .height(SkDimens.TimerHeight)
-            .clip(SkShapes.Timer)
-            .background(SkColors.DotEmpty)
-            .clearAndSetSemantics {
-                contentDescription = label
-                progressBarRangeInfo = ProgressBarRangeInfo(fraction, 0f..1f)
-            },
+    val seconds = ceil(fraction * TimeUnit.MILLISECONDS.toSeconds(ChallengeViewModel.DURATION_MS)).toInt()
+    val time = stringResource(R.string.challenge_seconds_left, seconds)
+    Row(
+        Modifier.fillMaxWidth().clearAndSetSemantics {
+            contentDescription = label
+            if (state.phase == ChallengePhase.RUN) stateDescription = time
+            progressBarRangeInfo = ProgressBarRangeInfo(fraction, 0f..1f)
+        },
+        horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             Modifier
-                .fillMaxHeight()
-                .fillMaxWidth(fraction)
-                .background(Brush.horizontalGradient(SkColors.Rainbow7)),
-        )
-    }
-}
-
-private const val RECORD_CONFETTI = 120
-
-@Composable
-private fun ColumnScope.ChallengeResult(
-    state: ChallengeUiState,
-    onAnchorChange: (Offset) -> Unit,
-) {
-    Eyebrow(stringResource(if (state.newRecord) R.string.challenge_new_best else R.string.challenge_over))
-    Text(
-        state.score.toString(),
-        style = SkType.BigNumber,
-        modifier = Modifier.confettiAnchor(onAnchorChange),
-    )
-    Text(
-        if (state.newRecord) {
-            stringResource(R.string.challenge_new_record, state.score)
-        } else {
-            stringResource(R.string.challenge_result, state.score, state.best)
-        },
-        style = SkType.ResultText,
-    )
-    if (state.saveFailed) Text(stringResource(R.string.settings_save_error), style = SkType.Body)
-}
-
-/** Start, or Back and Play again (Retry after a failed save), in the current layout's action area. */
-@Composable
-private fun ChallengeActions(
-    state: ChallengeUiState,
-    onStart: () -> Unit,
-    onBack: () -> Unit,
-    focus: TaskActionFocus,
-) {
-    if (state.phase == ChallengePhase.START) {
-        SkButton(
-            stringResource(R.string.challenge_go),
-            onStart,
-            Modifier.fillMaxWidth().taskActionFocus(focus),
-            kind = ButtonKind.PRIMARY,
-        )
-        return
-    }
-    val back = stringResource(R.string.back_description)
-    val again = stringResource(if (state.saveFailed) R.string.settings_retry else R.string.play_again)
-    ActionPair(
-        back,
-        again,
-        start = { SkButton(back, onBack, it.taskActionFocus(focus)) },
-        end = {
-            SkButton(
-                again,
-                onStart,
-                it.taskActionFocus(focus),
-                kind = ButtonKind.PRIMARY,
-                enabled = !state.savePending,
+                .weight(1f)
+                .height(SkDimens.TimerHeight)
+                .testTag("challenge_timer")
+                .clip(SkShapes.Timer)
+                .background(SkColors.DotEmpty),
+        ) {
+            Box(
+                Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(fraction)
+                    .background(Brush.horizontalGradient(SkColors.Rainbow7)),
             )
-        },
-    )
+        }
+        if (state.phase == ChallengePhase.RUN) Text(time, style = SkType.Small)
+    }
 }
 
 @Composable
@@ -372,29 +330,23 @@ private fun ChallengePanel(
     state: ChallengeUiState,
     h24: Boolean,
     onPick: (Int) -> Unit,
-    onAnchorChange: (Offset) -> Unit,
     compact: Boolean,
+    scroll: ScrollState,
 ) {
-    FlatPanel(padding = if (compact) SkDimens.GapS else SkDimens.PanelPadding) {
-        when (state.phase) {
-            ChallengePhase.START -> {
-                Text(stringResource(R.string.challenge_desc), style = SkType.Question)
-                Text(stringResource(R.string.challenge_intro), style = SkType.Body)
-                val best = stringResource(R.string.challenge_best, state.best)
-                // The panel is as wide as a run's answers, so their room is prepared here, before Start.
-                Box(Modifier.fillMaxWidth()) {
-                    Eyebrow(if (state.best > 0) best else stringResource(R.string.challenge_no_best))
-                    AnswerRoomPreparation(h24, Modifier.matchParentSize())
-                }
+    FlatPanel(
+        padding = if (compact) SkDimens.GapS else SkDimens.PanelPadding,
+    ) {
+        if (state.phase == ChallengePhase.START) {
+            Text(stringResource(R.string.challenge_desc), style = SkType.Question)
+            Text(stringResource(R.string.challenge_intro), style = SkType.Body)
+            val best = stringResource(R.string.challenge_best, state.best)
+            // The panel is as wide as a run's answers, so their room is prepared here, before Start.
+            Box(Modifier.fillMaxWidth()) {
+                Eyebrow(if (state.best > 0) best else stringResource(R.string.challenge_no_best))
+                AnswerRoomPreparation(h24, Modifier.matchParentSize())
             }
-
-            ChallengePhase.RUN -> {
-                ReadOptions { RunOptions(state, h24, onPick) }
-            }
-
-            ChallengePhase.END -> {
-                ChallengeResult(state, onAnchorChange = onAnchorChange)
-            }
+        } else if (state.phase == ChallengePhase.RUN) {
+            ReadOptions { RunOptions(state, h24, onPick, scroll) }
         }
     }
 }
@@ -406,20 +358,19 @@ private fun ChallengeClock(
     help: Boolean,
     clockSize: Dp,
 ) {
-    ClockBox(clockSize) {
-        ClockFace(
-            command = state.clock,
-            period = ClockTime.period(h24),
-            help = help,
-            describeTime = state.phase != ChallengePhase.RUN || state.busy,
-            modifier =
-                Modifier.testTag("challenge_clock").then(
-                    if (state.phase == ChallengePhase.START) {
-                        Modifier.alpha(SkDimens.INACTIVE_CLOCK_ALPHA)
-                    } else {
-                        Modifier
-                    },
-                ),
-        )
-    }
+    ClockFace(
+        command = state.clock,
+        period = ClockTime.period(h24),
+        help = help,
+        describeTime = state.phase != ChallengePhase.RUN || state.busy,
+        modifier =
+            Modifier.testTag("challenge_clock").then(
+                if (state.phase == ChallengePhase.START) {
+                    Modifier.alpha(SkDimens.INACTIVE_CLOCK_ALPHA)
+                } else {
+                    Modifier
+                },
+            ),
+        clockSize = clockSize,
+    )
 }

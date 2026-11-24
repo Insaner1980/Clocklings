@@ -1,5 +1,5 @@
 # RP-01. English D0 synthetic fixture. Exactly 20 Home destination/Back cycles.
-appId: fi.clocklings
+appId: com.finnvek.clocklings
 ---
 - launchApp:
     clearState: false

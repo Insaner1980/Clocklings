@@ -1,25 +1,24 @@
 package fi.clocklings.ui.intro
 
-import fi.clocklings.ui.companion.CompanionMotion
-
 /** Startup choreography in milliseconds, shared by rendering and focused tests. */
 object IntroTimeline {
     const val MASCOT_IN_MS = 350L
     const val MASCOT_FADE_MS = 150L
-    const val TICK_AT_MS = MASCOT_IN_MS + CompanionMotion.JUMP_MS
-    const val TITLE_START_MS = 1350L
-    const val LETTER_STAGGER_MS = 40L
+    const val MASCOT_JUMP_MS = 600L
+    const val TICK_AT_MS = MASCOT_IN_MS + MASCOT_JUMP_MS
+    const val TITLE_START_MS = 100L
+    const val LETTER_STAGGER_MS = 25L
     const val LETTER_MS = 300L
     const val LETTER_FADE_MS = 100L
-    const val GREETING_START_MS = 1900L
-    const val GREETING_MS = 350L
-    const val FADE_START_MS = 2700L
-    const val CONTENT_FADE_MS = 200L
-    const val BACKGROUND_FADE_MS = 250L
+    const val GREETING_START_MS = 350L
+    const val GREETING_MS = 250L
+    const val FADE_START_MS = 1000L
+    const val CONTENT_FADE_MS = 100L
+    const val BACKGROUND_FADE_MS = 150L
     const val END_MS = FADE_START_MS + CONTENT_FADE_MS + BACKGROUND_FADE_MS
-    const val STILL_MS = 1200L
+    const val STILL_MS = 400L
 
-    /** The narrator greets once the intro jingle (loud for its first 1.8 s) has faded, as Home appears. */
+    /** The jingle and greeting can finish on Home without holding the startup overlay open. */
     const val GREETING_VOICE_MS = TICK_AT_MS + 1800L
 
     /** Without motion there is no jingle: the greeting is spoken while the still pose shows it. */

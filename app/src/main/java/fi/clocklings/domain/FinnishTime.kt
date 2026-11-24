@@ -1,8 +1,7 @@
 package fi.clocklings.domain
 
 /**
- * Kellonajat suomeksi puhekielen tapaan. Suora käännös web-version funktioista
- * timeWords, digital, dayPart ja spoken24. Aika on minuutteja keskiyöstä tai kello 12:sta.
+ * Colloquial Finnish clock readings. Time is measured in minutes from midnight or noon.
  */
 object FinnishTime : TimeLanguage {
     private val NUM =
@@ -100,9 +99,6 @@ object FinnishTime : TimeLanguage {
             else -> TENS[n / DECIMAL_BASE] + (if (n % DECIMAL_BASE != 0) NUM[n % DECIMAL_BASE] else "")
         }
 
-    /** Numeroaika ääneen, esim. 15.30 = "viisitoista kolmekymmentä". */
-    fun spoken24(total: Int): String = numericWords(total, true)
-
     override fun numericWords(
         total: Int,
         h24: Boolean,
@@ -126,17 +122,6 @@ object FinnishTime : TimeLanguage {
                 else -> numWord(m)
             }
         return "${numWord(h)} $minutes"
-    }
-
-    /** Tervehdys vuorokaudenajan mukaan (samat rajat kuin [dayPart]). */
-    override fun greeting(total: Int): Greeting {
-        val h = ClockTime.mod(total, ClockTime.DAY) / ClockTime.MINUTES_PER_HOUR
-        return when {
-            h < MORNING_FROM || h >= NIGHT_FROM -> Greeting.NIGHT
-            h < LATE_MORNING_FROM -> Greeting.MORNING
-            h < EVENING_FROM -> Greeting.DAY
-            else -> Greeting.EVENING
-        }
     }
 }
 

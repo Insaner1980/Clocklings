@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -39,77 +38,114 @@ import fi.clocklings.ui.theme.Section
 import fi.clocklings.ui.theme.SkDimens
 import fi.clocklings.ui.theme.sectionBackground
 
+internal enum class ClockTaskLayout {
+    COMPACT,
+    REGULAR,
+    TALL,
+}
+
 /** Short windows reserve a right-hand action row while the clock uses the full left-hand height. */
 @Composable
 internal fun ClockTaskScaffold(
     section: Section,
-    topBar: @Composable () -> Unit,
+    topBar: @Composable (compactTitle: Boolean) -> Unit,
     visual: @Composable (Dp) -> Unit,
     modifier: Modifier = Modifier,
-    actions: (@Composable (TaskActionFocus, Boolean) -> Unit)? = null,
+    actions: (@Composable (TaskActionFocus, ClockTaskLayout) -> Unit)? = null,
     status: @Composable () -> Unit = {},
+    largeTextStatusAction: (@Composable () -> Unit)? = null,
     scrollState: ScrollState = rememberScrollState(),
     compactScrollState: ScrollState = rememberScrollState(),
     clockHeightShare: Float = SkDimens.CLOCK_HEIGHT_SHARE,
     clockFit: ClockFit = ClockFit.NONE,
+    tallFitMin: Dp = SkDimens.FeedbackClockMin,
+    centerStacked: Boolean = false,
+    stackedClockMax: Dp = SkDimens.ClockMax,
     animateClock: Boolean = false,
-    content: @Composable (compact: Boolean) -> Unit,
+    clockTaskKey: Int? = null,
+    content: @Composable (ClockTaskLayout) -> Unit,
 ) {
     val header = rememberMovingTaskContent(topBar)
     val progress = rememberMovingTaskContent(status)
     val actionFocus = remember { TaskActionFocus() }
-    val latestActions by rememberUpdatedState(actions)
-    val buttons = remember { movableContentOf<Boolean> { latestActions?.invoke(actionFocus, it) } }
-    val latestVisual by rememberUpdatedState(visual)
-    val clock = remember { movableContentOf<Dp> { latestVisual(it) } }
-    val latestContent by rememberUpdatedState(content)
-    val controls = remember { movableContentOf<Boolean> { latestContent(it) } }
+    val buttons = rememberMovingTaskContent<ClockTaskLayout> { actions?.invoke(actionFocus, it) }
+    val clock = rememberMovingTaskContent(visual)
+    val controls = rememberMovingTaskContent(content)
     BoxWithConstraints(modifier.fillMaxSize()) {
-        val compact = isCompactTask(maxWidth - SkDimens.Gutter * 2, maxHeight, LocalDensity.current.fontScale)
-        val restoreFocus = remember(compact) { actionFocus.current }
-        LaunchedEffect(compact) {
-            if (restoreFocus != null) {
-                withFrameNanos { }
-                restoreFocus.requestFocus()
+        val fontScale = LocalDensity.current.fontScale
+        val width = min(maxWidth, SkDimens.WideContentWidth) - SkDimens.Gutter * 2
+        val compact = isCompactTask(width, maxHeight, fontScale)
+        val tall = maxHeight >= SkDimens.TallTaskHeight && fontScale <= SkDimens.MAX_ROW_FONT_SCALE
+        val layout =
+            when {
+                compact -> ClockTaskLayout.COMPACT
+                tall && maxWidth >= SkDimens.ControlsMinWidth -> ClockTaskLayout.TALL
+                else -> ClockTaskLayout.REGULAR
             }
-        }
+        RestoreTaskActionFocus(compact, actionFocus)
+        val footer: (@Composable () -> Unit)? = if (actions != null) ({ buttons(layout) }) else null
         if (compact) {
-            CompactClockTask(
-                section,
-                header,
-                progress,
-                clock,
-                if (actions !=
-                    null
-                ) {
-                    { buttons(true) }
-                } else {
-                    null
-                },
-                compactScrollState,
-            ) {
-                controls(true)
+            CompactClockTask(section, { header(false) }, progress, clock, footer, compactScrollState) {
+                controls(layout)
             }
         } else {
+            val stacked = !hasSideBySideRoom(width, fontScale)
+            val compactTitle = stacked && fontScale > SkDimens.MAX_ROW_FONT_SCALE
+            val stackedProgress = taskProgressWithAction(progress, largeTextStatusAction.takeIf { compactTitle })
             ScreenScaffold(
                 section = section,
                 wideContent = true,
-                centerContent = true,
-                topBar = header,
-                bottomBar =
-                    if (actions != null) {
-                        { buttons(false) }
-                    } else {
-                        null
-                    },
+                centerContent = !stacked || centerStacked,
+                topBar = { header(compactTitle) },
+                bottomBar = footer,
                 scrollState = scrollState,
                 clockHeightShare = clockHeightShare,
                 clockFit = clockFit,
+                fitMin = if (tall) tallFitMin else SkDimens.FitClockMin,
                 animateClock = animateClock,
+                clockTaskKey = clockTaskKey,
+                stackedClock = if (stacked) clock else null,
+                stackedStatus = stackedProgress.takeIf { stacked },
+                stackedClockMax = stackedClockMax,
             ) { size ->
-                progress()
-                AdaptiveContent(size, clock, controlsAlignment = Alignment.CenterVertically) { controls(false) }
+                if (stacked) {
+                    controls(layout)
+                } else {
+                    progress()
+                    AdaptiveContent(size, clock, controlsAlignment = Alignment.CenterVertically) { controls(layout) }
+                }
             }
+        }
+    }
+}
+
+private fun taskProgressWithAction(
+    progress: @Composable () -> Unit,
+    action: (@Composable () -> Unit)?,
+): @Composable () -> Unit {
+    if (action == null) return progress
+    return {
+        Row(
+            Modifier.fillMaxWidth().testTag("task_progress_row"),
+            horizontalArrangement = Arrangement.spacedBy(SkDimens.GapM),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.weight(1f)) { progress() }
+            action()
+        }
+    }
+}
+
+@Composable
+private fun RestoreTaskActionFocus(
+    compact: Boolean,
+    actionFocus: TaskActionFocus,
+) {
+    val restoreFocus = remember(compact) { actionFocus.current }
+    LaunchedEffect(compact) {
+        if (restoreFocus != null) {
+            withFrameNanos { }
+            restoreFocus.requestFocus()
         }
     }
 }
@@ -149,7 +185,7 @@ private fun CompactClockTask(
                     ) {
                         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                             val size = min(min(maxWidth, maxHeight), SkDimens.ClockMax)
-                            Box(Modifier.size(size).testTag("task_clock")) { visual(size) }
+                            visual(size)
                         }
                         status()
                     }
@@ -199,6 +235,12 @@ internal fun isCompactTask(
 private fun rememberMovingTaskContent(content: @Composable () -> Unit): @Composable () -> Unit {
     val latest by rememberUpdatedState(content)
     return remember { movableContentOf { latest() } }
+}
+
+@Composable
+private fun <T> rememberMovingTaskContent(content: @Composable (T) -> Unit): @Composable (T) -> Unit {
+    val latest by rememberUpdatedState(content)
+    return remember { movableContentOf<T> { latest(it) } }
 }
 
 private const val COMPACT_VISUAL_SHARE = 1f / 3f

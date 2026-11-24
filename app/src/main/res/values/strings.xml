@@ -3,8 +3,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name" translatable="false">Clocklings</string>
     <string name="back_description">Back</string>
-    <string name="help_on">Help on</string>
-    <string name="help_off">Help off</string>
     <string name="listen">Listen</string>
     <string name="random_time">Random time</string>
     <string name="next">Next</string>
@@ -43,6 +41,8 @@
     <string name="menu_vapaa">Explore</string>
     <string name="menu_vapaa_sub">Move the hands and explore the time</string>
     <string name="menu_pelaa">Play</string>
+    <string name="path_practice_title">Play: %1$s</string>
+    <string name="check_answer">Check</string>
     <string name="menu_pelaa_sub">Practise reading and setting the clock</string>
     <string name="menu_kysy">Play Together</string>
     <string name="menu_kysy_sub">Set a time, take a guess, and swap turns</string>
@@ -71,7 +71,7 @@
     <string name="reveal_set">Here is how the hands show %1$s.</string>
 
     <!-- Hints refer to the actual hand positions. -->
-    <string name="hint_hands_right">The hands match! Look at the %1$s and the label in the centre: %2$s.</string>
+    <string name="hint_hands_right">The hands match! Look at the %1$s and the label under the clock: %2$s.</string>
     <string name="hint_sun">sun</string>
     <string name="hint_moon">moon</string>
     <string name="hint_read_hour">Look at the short pink hand. It %1$s.</string>
@@ -111,11 +111,17 @@
     <string name="dress_doll">Choose an outfit</string>
     <plurals name="result_stars_description"><item quantity="one">%1$d\u00A0star out of three</item><item quantity="other">%1$d\u00A0stars out of three</item></plurals>
     <string name="challenge_score" tools:ignore="PluralsCandidate">%1$d correct</string>
-    <string name="challenge_intro">You have one minute. Answer as many as you can. After a wrong answer, the clock shows the time and play continues.</string>
+    <string name="progress_save_error">Your result couldn’t be saved. Try again.</string>
+    <string name="challenge_intro">Answer as many as you can. If you get one wrong, keep playing.</string>
+    <string name="ask_revealed_text">Did you guess right? Now swap turns.</string>
     <string name="challenge_best" tools:ignore="PluralsCandidate">Best score: %1$d correct</string>
     <string name="challenge_no_best">No score yet</string>
     <string name="challenge_go">Start!</string>
     <string name="challenge_over">Time is up!</string>
+    <plurals name="challenge_correct_label">
+        <item quantity="one">correct answer</item>
+        <item quantity="other">correct answers</item>
+    </plurals>
     <string name="challenge_new_best">New best!</string>
     <string name="challenge_new_record" tools:ignore="PluralsCandidate">New best! You answered %1$d correctly.</string>
     <string name="challenge_result" tools:ignore="PluralsCandidate">You answered %1$d correctly. Your best is %2$d.</string>
@@ -142,10 +148,6 @@
     <string name="doll_all_open">All outfit items are available. Try any combination!</string>
     <string name="doll_optional_hint">Tap an item to put it on. Tap it again to take it off.</string>
     <string name="doll_optional_hint_partial">Tap an item to put it on. Hats and extras come off when you tap them again.</string>
-    <plurals name="doll_item_locked">
-        <item quantity="one">Locked. Opens at %1$d\u00A0star. You have %2$d.</item>
-        <item quantity="other">Locked. Opens at %1$d\u00A0stars. You have %2$d.</item>
-    </plurals>
     <string name="slot_hair">Hair</string>
     <string name="slot_dress">Dresses</string>
     <string name="slot_shoes">Shoes</string>
@@ -185,7 +187,6 @@
     <string name="lesson_try">Try it</string>
     <string name="lesson_next_lesson">Next lesson</string>
     <string name="lesson_start_game">Start playing!</string>
-    <string name="lesson_practise">Practise</string>
     <string name="lesson_learned">%1$s You completed %2$s.</string>
     <!-- Full sentences end with punctuation; bare labels do not. Measurements use digits.
          Counting phrases may spell out counts. Keep numbers and units together. -->
@@ -286,7 +287,7 @@
     <string name="l_viisi_title">Five-minute steps</string>
     <string name="l_viisi_desc">Numbers and minutes</string>
     <string name="l_viisi_p1a">For the long hand, each step from one number to the next takes five minutes.</string>
-    <string name="l_viisi_p1b">Number 1 marks 5\u00A0minutes, number 2 marks 10, and so on.</string>
+    <string name="l_viisi_p1b">Number 1 marks 5\u00A0minutes, number 2 marks 10, and so on. At number 12 the hour is full, and the minutes start again from 0.</string>
     <string name="l_viisi_p2a">Count in fives: 5, 10, 15, 20.</string>
     <string name="l_viisi_p2b">At number 4, 20\u00A0minutes have passed. We say twenty past.</string>
     <string name="l_viisi_p3a">Keep counting in fives on either side of half past.</string>
@@ -321,14 +322,27 @@
     <string name="l_vrk_say_night">Three at night: 03:00</string>
     <string name="l_vrk_say_sum">3 + 12 = 15: the time is 15:00.</string>
     <string name="l_vrk_p3a">The hands look the same at three at night and three in the afternoon.</string>
-    <string name="l_vrk_p3b">Read the label in the centre to find the part of the day. The hands alone cannot tell you.</string>
+    <string name="l_vrk_p3b">Read the label under the clock to find the part of the day. The hands alone cannot tell you.</string>
     <string name="l_vrk_say_afternoon">Three in the afternoon: 15:00</string>
     <string name="l_vrk_q">What time is it?</string>
     <string name="l_vrk_c1">Seven in the evening: 19:00</string>
     <string name="l_vrk_c2">Seven in the morning: 07:00</string>
     <string name="l_vrk_c3">Five in the afternoon: 17:00</string>
-    <string name="l_vrk_hint">The centre label says evening. Add 12 to the hour: 7 + 12 = 19.</string>
+    <string name="l_vrk_hint">The label under the clock says evening. Add 12 to the hour: 7 + 12 = 19.</string>
     <string name="doll_stars_explained">Stars are never used up. New clothes open when you have enough stars.</string>
     <string name="answer_correct">Correct</string>
     <string name="answer_incorrect">Incorrect</string>
+    <string name="lesson_start">Start</string>
+    <string name="task_position">%1$d / %2$d</string>
+    <string name="task_outcome_first_try">Task %1$d. Correct on the first try</string>
+    <string name="task_outcome_with_hint">Task %1$d. Correct after a hint</string>
+    <string name="task_outcome_shown">Task %1$d. Answer shown</string>
+    <string name="item_star_need">%1$d</string>
+    <plurals name="item_star_need_description">
+        <item quantity="one">Needs %1$d star</item>
+        <item quantity="other">Needs %1$d stars</item>
+    </plurals>
+    <string name="guides_on">Clock guides on</string>
+    <string name="guides_off">Clock guides off</string>
+    <string name="challenge_seconds_left">%1$d s</string>
 </resources>

@@ -28,12 +28,15 @@ fun WordSafeText(
     modifier: Modifier = Modifier,
     minScale: Float = MIN_SCALE,
     textAlign: TextAlign = TextAlign.Center,
+    maxLines: Int = Int.MAX_VALUE,
+    preferredMaxLines: Int = maxLines,
 ) {
     BasicText(
         text = text,
         style = style.merge(TextStyle(textAlign = textAlign)),
         modifier = modifier,
-        autoSize = WordSafeAutoSize(style.fontSize.value, style.fontSize.value * minScale),
+        maxLines = maxLines,
+        autoSize = WordSafeAutoSize(style.fontSize.value, style.fontSize.value * minScale, preferredMaxLines),
     )
 }
 
@@ -41,11 +44,12 @@ fun WordSafeText(
 private data class WordSafeAutoSize(
     val maxSp: Float,
     val minSp: Float,
+    val maxLines: Int,
 ) : TextAutoSize {
     override fun TextAutoSizeLayoutScope.getFontSize(
         constraints: Constraints,
         text: AnnotatedString,
-    ): TextUnit = wordSafeFontSize(maxSp, minSp, text.text) { performLayout(constraints, text, it) }
+    ): TextUnit = wordSafeFontSize(maxSp, minSp, text.text, maxLines) { performLayout(constraints, text, it) }
 }
 
 /** The largest size from [maxSp] down to [minSp] at which the [layout] of [text] breaks no word. */
@@ -53,12 +57,13 @@ private inline fun wordSafeFontSize(
     maxSp: Float,
     minSp: Float,
     text: String,
+    maxLines: Int = Int.MAX_VALUE,
     layout: (TextUnit) -> TextLayoutResult,
 ): TextUnit {
     var size = maxSp
     while (size > minSp) {
         val result = layout(size.sp)
-        if (!result.didOverflowWidth && !result.breaksInsideWord(text)) return size.sp
+        if (!result.hasVisualOverflow && result.lineCount <= maxLines && !result.breaksInsideWord(text)) return size.sp
         size -= WORD_SAFE_STEP_SP
     }
     return minSp.sp

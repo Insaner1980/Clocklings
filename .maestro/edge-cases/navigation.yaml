@@ -1,6 +1,6 @@
 # NV-01/NV-02. English, synthetic data, any display cell. No data reset.
 # Launch is explicitly a force-stop/relaunch, not process-death restoration.
-appId: fi.clocklings
+appId: com.finnvek.clocklings
 ---
 - launchApp:
     clearState: false

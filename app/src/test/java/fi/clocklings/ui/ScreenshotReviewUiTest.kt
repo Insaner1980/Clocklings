@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
@@ -24,6 +25,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -60,6 +62,7 @@ import fi.clocklings.ui.lesson.LessonCatalog
 import fi.clocklings.ui.lesson.LessonListScreen
 import fi.clocklings.ui.lesson.LessonScreen
 import fi.clocklings.ui.lesson.LessonUiState
+import fi.clocklings.ui.levels.LevelsScreen
 import fi.clocklings.ui.locale.LocalAppLanguage
 import fi.clocklings.ui.theme.ClocklingsTheme
 import kotlinx.coroutines.CompletableDeferred
@@ -278,7 +281,7 @@ class ScreenshotReviewUiTest {
                 val name = if (kind == CompanionKind.CAT) "Cat" else "Dog"
                 compose.onNodeWithTag("choose_companion_${kind.name}").performScrollTo().performClick()
                 compose.onNodeWithText("Try again").assertIsDisplayed()
-                compose.onNodeWithText("Clock styles").performScrollTo().performClick()
+                compose.onNodeWithText("Clock styles").assertIsDisplayed().performClick()
                 compose.onNodeWithText("Companions").performClick()
                 compose.runOnIdle { reject = false }
                 compose.onNodeWithText("Try again").performClick()
@@ -328,18 +331,9 @@ class ScreenshotReviewUiTest {
         }
         val descriptions =
             mapOf(
-                "en" to
-                    listOf("Locked. Opens at 1\u00a0star. You have 0.", "Locked. Opens at 2\u00a0stars. You have 0."),
-                "fi" to
-                    listOf(
-                        "Lukittu. Avautuu, kun tähtiä on 1. Sinulla on 0.",
-                        "Lukittu. Avautuu, kun tähtiä on 2. Sinulla on 0.",
-                    ),
-                "sv" to
-                    listOf(
-                        "Låst. Låses upp vid 1\u00a0stjärna. Du har 0.",
-                        "Låst. Låses upp vid 2\u00a0stjärnor. Du har 0.",
-                    ),
+                "en" to listOf("Needs 1 star", "Needs 2 stars"),
+                "fi" to listOf("Tarvitsee 1 tähden", "Tarvitsee 2 tähteä"),
+                "sv" to listOf("Kräver 1 stjärna", "Kräver 2 stjärnor"),
             )
         for ((tag, expected) in descriptions) {
             for (cell in listOf(411 to 1f, 320 to 1f, 411 to 2f, 320 to 2f)) {
@@ -447,8 +441,9 @@ class ScreenshotReviewUiTest {
     }
 
     @Test
-    fun eachLessonChapterStartsItsOwnPracticeLevel() {
+    fun lessonAndLevelRowsKeepWholeWordsAndOpenTheCorrectPractice() {
         var opened = -1
+        val levels = mutableStateOf(false)
         val context = finnishContext()
         compose.setContent {
             CompositionLocalProvider(
@@ -459,10 +454,21 @@ class ScreenshotReviewUiTest {
             ) {
                 ClocklingsTheme {
                     Box(Modifier.requiredSize(320.dp, 640.dp)) {
-                        LessonListScreen(true, Progress(), fi.clocklings.domain.AccessPolicy(fullAccess = true), {
-                            opened =
-                                it
-                        }, {}, {})
+                        if (levels.value) {
+                            LevelsScreen(
+                                Progress(),
+                                fi.clocklings.domain.AccessPolicy(fullAccess = true),
+                                {},
+                                {},
+                                {},
+                                {},
+                            )
+                        } else {
+                            LessonListScreen(true, Progress(), fi.clocklings.domain.AccessPolicy(fullAccess = true), {
+                                opened =
+                                    it
+                            }, {}, {})
+                        }
                     }
                 }
             }
@@ -472,13 +478,16 @@ class ScreenshotReviewUiTest {
             assertWholeWords("Aloita pelaaminen!", level)
             compose
                 .onNode(
-                    hasContentDescription("$name. Harjoittele. Aloita pelaaminen!", substring = true) and
+                    hasContentDescription("$name. Aloita pelaaminen!", substring = true) and
                         hasClickAction(),
                 ).performScrollTo()
                 .assertIsDisplayed()
                 .performClick()
             assertEquals(level, opened)
         }
+        assertWholeWords(context.getString(R.string.l_vrk_title))
+        compose.runOnIdle { levels.value = true }
+        assertWholeWords(context.getString(R.string.challenge_title))
     }
 
     private fun finnishContext() =
@@ -492,13 +501,19 @@ class ScreenshotReviewUiTest {
     fun lessonNavigationRemainsVisibleWithoutScrollingAtNarrowWidthAndLargeText() {
         var next = 0
         val viewport = mutableStateOf(320 to 1f)
+        val lesson = LessonCatalog.lesson("minuutit")
+        val showQuiz = mutableStateOf(false)
         compose.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, viewport.value.second)) {
                 ClocklingsTheme {
                     Box(Modifier.requiredSize(viewport.value.first.dp, 640.dp)) {
                         LessonScreen(
-                            LessonUiState(LessonCatalog.lesson("minuutit")),
+                            LessonUiState(
+                                lesson,
+                                page = if (showQuiz.value) lesson.pages.size else 0,
+                                choices = if (showQuiz.value) lesson.quiz.choices else emptyList(),
+                            ),
                             false,
                             true,
                             {},
@@ -513,9 +528,17 @@ class ScreenshotReviewUiTest {
             }
         }
         for (cell in listOf(320 to 1f, 411 to 2f, 320 to 2f)) {
-            compose.runOnIdle { viewport.value = cell }
-            compose.onNodeWithText("Previous").assertIsDisplayed()
+            compose.runOnIdle {
+                viewport.value = cell
+                showQuiz.value = false
+            }
+            val previousLabel = hasText("Previous") or hasContentDescription("Previous")
+            val previous = compose.onNode(previousLabel and hasClickAction())
+            previous.assertDoesNotExist()
             compose.onNodeWithText("Next").assertIsDisplayed().performClick()
+            compose.runOnIdle { showQuiz.value = true }
+            previous.assertIsDisplayed()
+            compose.onNodeWithText("Done").assertIsDisplayed().assertIsNotEnabled()
         }
         assertEquals(3, next)
     }
@@ -532,6 +555,9 @@ class ScreenshotReviewUiTest {
         }
         val first = compose.onNodeWithText("1:00", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         val second = compose.onNodeWithText("11:25", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
-        assertEquals(first.right, second.right, 1f)
+        val pills = compose.onAllNodesWithTag("option_time", useUnmergedTree = true).fetchSemanticsNodes()
+        assertEquals(pills[0].boundsInRoot.right, pills[1].boundsInRoot.right, 1f)
+        assertEquals(pills[0].boundsInRoot.center.x, first.center.x, 1f)
+        assertEquals(pills[1].boundsInRoot.center.x, second.center.x, 1f)
     }
 }

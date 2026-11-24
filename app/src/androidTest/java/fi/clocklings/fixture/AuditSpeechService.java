@@ -1,5 +1,7 @@
 package fi.clocklings.fixture;
 
+import fi.clocklings.BuildConfig;
+
 import android.content.Intent;
 import android.media.AudioFormat;
 import android.speech.tts.SynthesisCallback;
@@ -76,6 +78,6 @@ public final class AuditSpeechService extends TextToSpeechService {
     private void event(String value) {
         android.util.Log.i("ClocklingsAuditSpeech", value);
         sendBroadcast(new Intent("fi.clocklings.audit.SPEECH_EVENT")
-                .setPackage("fi.clocklings").putExtra("event", value));
+                .setPackage(BuildConfig.APPLICATION_ID).putExtra("event", value));
     }
 }

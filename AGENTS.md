@@ -2,7 +2,9 @@
 
 ## Scope and authority
 
-- This is the separate public Android application. Work only in `C:\Dev\Clocklings`.
+- This is the main Clocklings Android project with 3D artwork. Work only in `C:\Dev\Clocklings`.
+- The earlier version with code-drawn characters is archived separately.
+- Launcher name: **Clocklings**. Application ID: `com.finnvek.clocklings`; release signing is unconfigured.
 - `C:\Dev\Sateenkaarikello-Android` is read-only source material. Never change its files, Git state, settings, signing material, or installed application data.
 - App name: **Clocklings**. Google Play title: **Clocklings: Learn to Tell Time**.
 - Read `docs/implementation/STATUS.md` for current decisions and validation evidence, and `docs/superpowers/plans/2026-10-20-public-clock-learning-app.md` for the product proposal.

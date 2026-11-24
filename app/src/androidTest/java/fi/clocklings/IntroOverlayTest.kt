@@ -58,11 +58,11 @@ class IntroOverlayTest {
         }
         compose.mainClock.advanceTimeBy(IntroTimeline.TICK_AT_MS / 2)
         compose.runOnIdle { assertEquals(0, ticks) }
-        compose.mainClock.advanceTimeBy(IntroTimeline.TICK_AT_MS / 2 + 100L)
+        compose.mainClock.advanceTimeBy(IntroTimeline.TICK_AT_MS / 2 + 32L)
         compose.runOnIdle { assertEquals(1, ticks) }
-        compose.mainClock.advanceTimeBy(500L)
         LocalizationScreenshots.capture("intro", compose.onRoot().captureToImage().asAndroidBitmap())
-        compose.mainClock.advanceTimeBy(IntroTimeline.END_MS)
+        // Including frame alignment, these steps allow only 1.3 seconds for startup.
+        compose.mainClock.advanceTimeBy(300L)
         compose.runOnIdle { assertEquals(1, ticksAtDone) }
     }
 
@@ -74,7 +74,7 @@ class IntroOverlayTest {
             ClocklingsTheme { LogoMascot({ time }, reduced, Modifier.size(240.dp)) }
         }
         val first = mascotPixels()
-        compose.runOnIdle { time = 1050L }
+        compose.runOnIdle { time = IntroTimeline.MASCOT_IN_MS + IntroTimeline.MASCOT_JUMP_MS / 2 }
         assertFalse("The waving pose must change the rendered artwork", first.contentEquals(mascotPixels()))
         compose.runOnIdle { reduced = true }
         val still = mascotPixels()
