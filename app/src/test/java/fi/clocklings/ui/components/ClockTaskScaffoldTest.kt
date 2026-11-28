@@ -20,6 +20,7 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.unit.dp
 import fi.clocklings.ui.theme.ClocklingsTheme
 import fi.clocklings.ui.theme.Section
+import fi.clocklings.ui.theme.SkDimens
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -30,6 +31,32 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class ClockTaskScaffoldTest {
     @get:Rule val compose = createComposeRule()
+
+    @Test
+    fun narrowWindowDoesNotUseTallClockMinimumEvenAtTallHeight() {
+        val width = mutableStateOf(320.dp)
+        compose.setContent {
+            ClocklingsTheme {
+                Box(Modifier.requiredSize(width.value, 800.dp)) {
+                    ClockTaskScaffold(
+                        section = Section.LEARN,
+                        topBar = {},
+                        visual = { ClockBox(it) {} },
+                        clockFit = ClockFit.FIT,
+                        tallFitMin = SkDimens.FiveMinuteDemoClockMin,
+                    ) {
+                        Box(Modifier.height(800.dp))
+                    }
+                }
+            }
+        }
+        val visual = compose.onNodeWithTag("task_clock", useUnmergedTree = true)
+        with(compose.density) {
+            assertEquals(SkDimens.FitClockMin.roundToPx(), visual.fetchSemanticsNode().size.width)
+            compose.runOnIdle { width.value = 360.dp }
+            assertEquals(SkDimens.FiveMinuteDemoClockMin.roundToPx(), visual.fetchSemanticsNode().size.width)
+        }
+    }
 
     @Test
     fun actionFocusAndPortraitScrollSurviveMovingIntoAndOutOfTheCompactPane() {

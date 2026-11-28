@@ -82,7 +82,10 @@ class AppContainer(
     }
 
     override fun speak(text: String) {
-        if (resumedActivities > 0) speech.speak(text)
+        if (resumedActivities > 0 && speechAvailable.value) {
+            sfx.stopNarration()
+            speech.speak(text)
+        }
     }
 
     override fun stopSpeech() {

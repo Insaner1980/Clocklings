@@ -80,14 +80,15 @@ class ActiveLocaleStateTest {
         assertEquals(seed, runBlocking { locale.repository.progress.first() })
 
         // Complete the real ten-question round using only visible choices/feedback.
+        val checkAnswer = locale.resources(AppLanguage.FINNISH).getString(R.string.check_answer)
         repeat(10) { index ->
             waitText(if (index % 2 == 0) "Mitä kello on?" else "Aseta kelloon aika")
             if (index % 2 == 0) {
-                finishReadQuestion()
+                finishReadQuestion(AppLanguage.FINNISH)
             } else {
                 // Whole-hour SET questions deliberately start away from the answer.
-                click("Valmis")
-                click("Valmis")
+                click(checkAnswer)
+                click(checkAnswer)
                 click("Seuraava")
             }
         }
@@ -113,18 +114,7 @@ class ActiveLocaleStateTest {
         click("Play")
         click("Whole hours")
         waitText("What time is it?")
-        val labels =
-            compose.onAllNodes(hasClickAction()).fetchSemanticsNodes().mapNotNull { node ->
-                node.config
-                    .getOrElse(SemanticsProperties.Text) { emptyList() }
-                    .firstOrNull { DIGITAL.matches(it.text) }
-                    ?.text
-            }
-        for (label in labels) {
-            click(label)
-            if (!shown("What time is it?") || shown("Clock face:")) break
-        }
-        if (shown("Next")) click("Next")
+        finishReadQuestion(AppLanguage.ENGLISH)
         waitText("Set the clock to")
         val clock = compose.onNode(hasContentDescription("Clock face:", substring = true))
         val before = clock.fetchSemanticsNode().config[SemanticsProperties.ContentDescription]
@@ -195,14 +185,14 @@ class ActiveLocaleStateTest {
             assertHiddenClock(AppLanguage.FINNISH)
             // A restarted 60-second run would end around 80 seconds, beyond this bound.
             val remaining = (started + 72_000 - SystemClock.elapsedRealtime()).coerceAtLeast(1)
+            val result = locale.resources(AppLanguage.FINNISH).getString(R.string.challenge_result, 0, 0)
             compose.waitUntil(remaining) {
                 compose.mainClock.advanceTimeByFrame()
-                shown("AIKA LOPPUI!")
+                shown(result)
             }
             val elapsed = SystemClock.elapsedRealtime() - started
             assertTrue("Challenge ended too early: $elapsed ms", elapsed >= 55_000)
             assertTrue("Challenge restarted its minute: $elapsed ms", elapsed < 72_000)
-            waitText("Oikeita vastauksia: 0. Paras tuloksesi on 0.")
             assertEquals(seed, runBlocking { locale.repository.progress.first() })
             assertNoIntro(AppLanguage.FINNISH)
         } finally {
@@ -217,7 +207,10 @@ class ActiveLocaleStateTest {
         }
     }
 
-    private fun finishReadQuestion() {
+    private fun finishReadQuestion(language: AppLanguage) {
+        val resources = locale.resources(language)
+        val hiddenClock = resources.getString(R.string.clock_question_description)
+        val next = resources.getString(R.string.next)
         val labels =
             compose
                 .onAllNodes(hasClickAction())
@@ -228,16 +221,9 @@ class ActiveLocaleStateTest {
                 }
         for (label in labels) {
             click(label)
-            if (!shown("Mitä kello on?") ||
-                compose
-                    .onAllNodes(hasContentDescription("Kellotaulu:", substring = true))
-                    .fetchSemanticsNodes()
-                    .isNotEmpty()
-            ) {
-                break
-            }
+            if (!shown(hiddenClock)) break
         }
-        if (shown("Seuraava")) click("Seuraava")
+        if (shown(next)) click(next)
     }
 
     private fun optionTimes(): List<String> =

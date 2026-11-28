@@ -36,6 +36,7 @@ class AppLocaleController(
     private val mutableSelection = MutableStateFlow(LanguageSelection())
     val selection = mutableSelection.asStateFlow()
     private var handoffAttempted = false
+    private var legacyCleanupComplete = false
 
     init {
         refresh()
@@ -52,13 +53,14 @@ class AppLocaleController(
                     mutableSelection.value = mutableSelection.value.copy(choice = platformChoice, ready = true)
                 }
                 val legacy = repository.legacyLanguageForMigration.first()
-                if (!handoffAttempted) {
+                if (!handoffAttempted && platform.read() == null) {
                     AppLanguage.fromTag(legacy)?.let(platform::write)
                 }
                 // A failed cleanup must not re-import over a subsequent system selection.
                 handoffAttempted = true
                 mutableSelection.value = mutableSelection.value.copy(choice = platform.read(), ready = true)
                 if (legacy != null) repository.setLegacyLanguage(null)
+                legacyCleanupComplete = true
                 platform.read()
             } else {
                 AppLanguage.fromTag(repository.legacyLanguage.first())
@@ -71,6 +73,11 @@ class AppLocaleController(
         if (!current.ready || current.pending || current.choice == language) return
         update {
             if (platform.supported) {
+                // An empty platform choice must not expose an old language after process restart.
+                if (language == null && !legacyCleanupComplete) {
+                    repository.setLegacyLanguage(null)
+                    legacyCleanupComplete = true
+                }
                 platform.write(language)
                 platform.read()
             } else {

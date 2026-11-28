@@ -33,6 +33,7 @@ import fi.clocklings.domain.AccessPolicy
 import fi.clocklings.domain.Lessons
 import fi.clocklings.ui.AppViewModel
 import fi.clocklings.ui.LocalAppViewModel
+import fi.clocklings.ui.LocalClockTime
 import fi.clocklings.ui.LocalSharedTransitionScope
 import fi.clocklings.ui.appearance.AppearanceScreen
 import fi.clocklings.ui.appearance.LocalCompanionOutfit
@@ -129,7 +130,7 @@ fun ClocklingsApp(
                             remember(backStack, app, usage) {
                                 Navigator(
                                     backStack,
-                                    beforeNavigate = app::stopSpeech,
+                                    beforeNavigate = app::beforeNavigate,
                                     onDestinationChanged = { destination ->
                                         destination.usageMetric()?.let(usage::count)
                                     },
@@ -338,14 +339,18 @@ fun ClocklingsApp(
                                 )
                             }
                         }
-                        if (!introDone) {
-                            IntroOverlay(
-                                onTick = { app.play(Sound.INTRO) },
-                                onDone = { introDone = true },
-                            )
-                        }
-                        IntroGreetingVoiceEffect(active = backStack.last() == Screen.Home) { greeting ->
-                            app.play(greetingVoice(greeting))
+                        val readClock = LocalClockTime.current
+                        val introTime = rememberSaveable { readClock() }
+                        CompositionLocalProvider(LocalClockTime provides { introTime }) {
+                            if (!introDone) {
+                                IntroOverlay(
+                                    onTick = { app.play(Sound.INTRO) },
+                                    onDone = { introDone = true },
+                                )
+                            }
+                            IntroGreetingVoiceEffect(active = backStack.last() == Screen.Home) { greeting ->
+                                app.play(greetingVoice(greeting))
+                            }
                         }
                     }
                 }

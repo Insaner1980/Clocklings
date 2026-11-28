@@ -130,10 +130,19 @@ class PersistenceFailureTest {
             val correct =
                 lesson.state.value.choices
                     .indexOfFirst { it.correct }
+            lesson.pick(
+                lesson.state.value.choices
+                    .indexOfFirst { !it.correct },
+            )
+            val before = lesson.state.value
+            assertTrue(before.showHint)
             store.failure = IOException("Synthetic write failure")
             lesson.pick(correct)
             advanceUntilIdle()
             assertFalse(lesson.state.value.quizDone)
+            assertEquals(before.choiceStates, lesson.state.value.choiceStates)
+            assertFalse(lesson.state.value.showHint)
+            assertTrue(lesson.state.value.saveFailed)
             assertTrue(
                 repository.progress
                     .first()

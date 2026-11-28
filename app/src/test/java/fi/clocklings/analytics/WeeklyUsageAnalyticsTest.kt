@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import fi.clocklings.data.InMemoryPreferencesStore
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -91,8 +92,28 @@ class WeeklyUsageAnalyticsTest {
             advanceTimeBy(5_000)
             runCurrent()
             assertFalse(usage.enabled.first())
-            assertEquals(listOf(false), scheduled)
+            assertEquals(listOf(false, false), scheduled)
             assertTrue(upload(usage))
+            assertTrue(requests.isEmpty())
+        }
+
+    @Test
+    fun startupWithoutConsentClearsAStaleJobAndSkipsTransport() =
+        runTest {
+            scheduled.add(true)
+            store.edit { it[intPreferencesKey("2026-11-02/game.0.start")] = 1 }
+
+            val usage = analytics()
+            assertTrue(upload(usage))
+
+            assertFalse(usage.enabled.first())
+            assertEquals(listOf(true, false), scheduled)
+            assertTrue(
+                store.data
+                    .first()
+                    .asMap()
+                    .isEmpty(),
+            )
             assertTrue(requests.isEmpty())
         }
 
@@ -145,12 +166,12 @@ class WeeklyUsageAnalyticsTest {
             val usage = analytics()
             runCurrent()
             assertFalse(usage.enabled.first())
-            assertTrue(scheduled.isEmpty())
+            assertEquals(listOf(false), scheduled)
             usage.count("game.0.start")
             usage.setEnabled(true)
             runCurrent()
             assertTrue(usage.enabled.first())
-            assertEquals(listOf(true), scheduled)
+            assertEquals(listOf(false, true), scheduled)
             repeat(1_001) { usage.count("game.0.read") }
             usage.count("lesson.0.replay")
             usage.count("game.99.set_reveal")

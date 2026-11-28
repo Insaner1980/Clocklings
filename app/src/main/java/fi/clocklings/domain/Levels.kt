@@ -42,6 +42,9 @@ object Levels {
     /** 24 h -tilassa sama viisariasento toiseen vuorokaudenaikaan näytetään 70 %:ssa kysymyksistä. */
     private const val MIRROR_CHANCE = 0.7
 
+    private val individualMinutes =
+        (0 until ClockTime.MINUTES_PER_HOUR).filter { it % ClockTime.MINUTES_PER_NUMBER != 0 }
+
     val all: List<Level> =
         listOf(
             Level(0, step = 60, sample = 180) { 0 },
@@ -58,7 +61,7 @@ object Levels {
             },
             Level(4, step = 1, sample = 463) { r ->
                 if (r.nextDouble() < 0.75) {
-                    generateSequence { r.nextInt(60) }.first { it % 5 != 0 }
+                    individualMinutes.random(r)
                 } else {
                     r.nextInt(12) * 5
                 }

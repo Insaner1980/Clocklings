@@ -27,6 +27,7 @@ import fi.clocklings.ui.companion.RenderedUnicornRig
 import fi.clocklings.ui.companion.RobotAccessoryRegions
 import fi.clocklings.ui.companion.UnicornAccessoryRegions
 import fi.clocklings.ui.companion.rememberCompanionRig
+import fi.clocklings.ui.companion.transformationArt
 import fi.clocklings.ui.doll.RenderedDollRig
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -137,7 +138,11 @@ class CompanionArtCoverageTest {
         bodyItems: Set<String> = emptySet(),
     ) {
         val ids = Wardrobe.itemsFor(kind).map { it.id }.toSet()
-        assertEquals("Unmapped wardrobe choices: $kind", ids, regions.keys + bodyItems)
+        assertEquals(
+            "Unmapped wardrobe choices: $kind",
+            ids,
+            regions.keys + bodyItems + transformationArt.keys.filter { Wardrobe.item(it).companion == kind },
+        )
         var selectedRig: CompanionRig? = null
         compose.setContent { selectedRig = rememberCompanionRig(kind, CompanionColor.ORIGINAL) }
         compose.runOnIdle { assertEquals(expectedRig, checkNotNull(selectedRig)::class.java) }

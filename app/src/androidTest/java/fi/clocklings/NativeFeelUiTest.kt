@@ -4,10 +4,13 @@ import androidx.activity.BackEventCompat
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -17,7 +20,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performCustomAccessibilityActionWithLabel
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import fi.clocklings.domain.AccessPolicy
@@ -161,13 +163,29 @@ class NativeFeelUiTest {
             environment.repository.updateProgress { it.copy(stars = listOf(AccessPolicy.COMPANION_STARS, 0, 0, 0, 0)) }
         }
         click("My Companion")
-        compose.onNodeWithTag("companion_pager").performTouchInput { swipeLeft() }
+        val dress = compose.onNodeWithText(compose.activity.getString(R.string.dress_doll))
+        val pager = compose.onNodeWithTag("companion_pager")
+        dress.assertIsEnabled()
+        pager.performTouchInput {
+            down(center)
+            moveTo(centerLeft)
+        }
+        try {
+            dress.assertIsNotEnabled()
+        } finally {
+            pager.performTouchInput {
+                moveTo(centerLeft.copy(x = -width / 4f))
+                up()
+            }
+        }
         compose.waitUntil(10_000) {
             compose
                 .onNodeWithTag("choose_companion_CAT")
                 .fetchSemanticsNode()
                 .config[SemanticsProperties.Selected]
         }
+        val enabledDress = hasText(compose.activity.getString(R.string.dress_doll)) and isEnabled()
+        compose.waitUntil(10_000) { compose.onAllNodes(enabledDress).fetchSemanticsNodes().size == 1 }
         compose.onNodeWithTag("choose_companion_ROBOT").scrollToIfScrollable().performClick()
         compose.waitUntil(10_000) {
             compose

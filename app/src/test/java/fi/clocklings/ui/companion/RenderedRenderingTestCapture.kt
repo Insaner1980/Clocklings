@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
@@ -18,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
 import androidx.test.runner.lifecycle.Stage
 import fi.clocklings.domain.CompanionColor
+import fi.clocklings.domain.CompanionKind
 import fi.clocklings.domain.Outfit
 import fi.clocklings.domain.Slot
 import org.junit.Assert.assertTrue
@@ -60,12 +62,21 @@ internal class RenderedRigRendering(
         outfit: () -> Outfit,
         pose: () -> CompanionPose = { CompanionPose() },
         color: CompanionColor = CompanionColor.ORIGINAL,
+        transformationKind: CompanionKind? = null,
     ) {
         compose.setContent {
-            val rig = rememberRig(color)
+            val transformation = transformationKind?.let { rememberTransformationRig(it, outfit(), color) }
+            val rig = transformation ?: rememberRig(color)
             Canvas(Modifier.size(width.dp, height.dp).testTag(tag)) {
                 scale(size.width / width, size.height / height, Offset.Zero) {
-                    with(rig) { draw(color, outfit(), pose()) }
+                    if (transformation == null) {
+                        with(rig) { draw(color, outfit(), pose()) }
+                    } else {
+                        val fit = minOf(width / rig.width, height / rig.height)
+                        translate((width - fit * rig.width) / 2f, height - fit * rig.height) {
+                            scale(fit, fit, Offset.Zero) { with(rig) { draw(color, outfit(), pose()) } }
+                        }
+                    }
                 }
             }
         }

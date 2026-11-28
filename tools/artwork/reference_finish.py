@@ -3,6 +3,41 @@
 import bpy
 
 
+def ground_contact(name,vertices,opacity,material_name):
+    """A soft contact patch using four projected corners in UV order."""
+    from render_car_layers import mesh_form
+    mat=bpy.data.materials.new(material_name)
+    mat.use_nodes=True
+    nodes=mat.node_tree.nodes
+    nodes.clear()
+    uv=nodes.new("ShaderNodeTexCoord")
+    dist=nodes.new("ShaderNodeVectorMath")
+    dist.operation="DISTANCE"
+    dist.inputs[1].default_value=(.5,.5,0)
+    ramp=nodes.new("ShaderNodeValToRGB")
+    dark,clear=ramp.color_ramp.elements
+    dark.position=.045
+    dark.color=(opacity,opacity,opacity,1)
+    clear.position=.5
+    clear.color=(0,0,0,1)
+    ramp.color_ramp.interpolation="EASE"
+    mix=nodes.new("ShaderNodeMixShader")
+    transparent=nodes.new("ShaderNodeBsdfTransparent")
+    tint=nodes.new("ShaderNodeEmission")
+    tint.inputs[0].default_value=(.065,.037,.068,1)
+    output=nodes.new("ShaderNodeOutputMaterial")
+    links=mat.node_tree.links
+    for a,b in [(uv.outputs["UV"],dist.inputs[0]),(dist.outputs["Value"],ramp.inputs[0]),
+                (ramp.outputs[0],mix.inputs[0]),(transparent.outputs[0],mix.inputs[1]),
+                (tint.outputs[0],mix.inputs[2]),(mix.outputs[0],output.inputs[0])]:
+        links.new(a,b)
+    obj=mesh_form(name, vertices, [(0,1,2,3)], mat, "ground")
+    uv_map=obj.data.uv_layers.new()
+    for loop in obj.data.loops:
+        uv_map.data[loop.index].uv=((0,0),(1,0),(1,1),(0,1))[loop.vertex_index]
+    obj.visible_shadow=False
+
+
 def fuse(names, name, voxel=0.024):
     """Join intersecting forms into a single soft surface within one animation layer."""
     objects = [bpy.context.scene.objects[n] for n in names]

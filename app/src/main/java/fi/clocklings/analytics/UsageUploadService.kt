@@ -33,7 +33,10 @@ private const val NETWORK_TIMEOUT_MS = 10_000
 private val Context.usageDataStore by preferencesDataStore(name = "weekly_usage")
 
 internal fun createUsageAnalytics(context: Context): UsageAnalytics {
-    if (BuildConfig.ANALYTICS_ENDPOINT.isEmpty()) return UsageAnalytics.Disabled
+    if (BuildConfig.ANALYTICS_ENDPOINT.isEmpty()) {
+        scheduleUpload(context, enabled = false)
+        return UsageAnalytics.Disabled
+    }
     val dispatcher = Dispatchers.Main.immediate
     return WeeklyUsageAnalytics(
         store = context.usageDataStore,

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
@@ -32,10 +33,11 @@ class WardrobeNavigationTest {
     fun tabsAlignVisibleAndOffscreenHeadingsAndFollowResizedViewport() {
         val height = mutableIntStateOf(640)
         val header = mutableIntStateOf(56)
+        val kind = mutableStateOf(CompanionKind.CAT)
         val labels = listOf("Colors", "Clothes", "Extras")
         lateinit var navigation: WardrobeSections
         compose.setContent {
-            navigation = rememberWardrobeSections(CompanionKind.CAT)
+            navigation = rememberWardrobeSections(kind.value)
             ClocklingsTheme {
                 Box(Modifier.requiredSize(320.dp, height.intValue.dp)) {
                     ScreenScaffold(
@@ -58,13 +60,7 @@ class WardrobeNavigationTest {
                 }
             }
         }
-        assertEquals(0, navigation.selected(labels.size))
-        for (index in listOf(0, 1)) {
-            compose.onNode(hasText(labels[index]) and hasClickAction()).performScrollTo().performClick()
-            compose.waitForIdle()
-            assertEquals(navigation.viewportTop, navigation.headings.getValue(index), 1f)
-            assertEquals(index, navigation.selected(labels.size))
-        }
+        assertTabsAlignHeadings(navigation, labels)
         compose.runOnIdle {
             navigation.select(2, false)
             navigation.select(0, false)
@@ -84,6 +80,24 @@ class WardrobeNavigationTest {
             assertEquals(navigation.viewportTop, navigation.headings.getValue(1), 1f)
             assertEquals(1, navigation.selected(labels.size))
             assertTrue(navigation.scroll.value > 0)
+        }
+        compose.runOnIdle { kind.value = CompanionKind.HUMAN }
+        compose.runOnIdle {
+            assertEquals(0, navigation.scroll.value)
+            assertEquals(0, navigation.selected(labels.size))
+        }
+    }
+
+    private fun assertTabsAlignHeadings(
+        navigation: WardrobeSections,
+        labels: List<String>,
+    ) {
+        assertEquals(0, navigation.selected(labels.size))
+        for (index in listOf(0, 1)) {
+            compose.onNode(hasText(labels[index]) and hasClickAction()).performScrollTo().performClick()
+            compose.waitForIdle()
+            assertEquals(navigation.viewportTop, navigation.headings.getValue(index), 1f)
+            assertEquals(index, navigation.selected(labels.size))
         }
     }
 }

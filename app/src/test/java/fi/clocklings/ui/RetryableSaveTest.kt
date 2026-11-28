@@ -1,10 +1,30 @@
 package fi.clocklings.ui
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
 
 class RetryableSaveTest {
+    @Test
+    fun aRetainedRetryCannotStartAnotherWrite() {
+        val save = RetryableSave()
+        var attempts = 0
+        lateinit var result: (Boolean) -> Unit
+        save.run {
+            attempts++
+            result = it
+        }
+        result(false)
+        val retry = checkNotNull(save.retry)
+
+        retry()
+        retry()
+
+        assertEquals(2, attempts)
+        assertNull(save.retry)
+    }
+
     @Test
     fun newRequestClearsFailureAndIgnoresOlderResults() {
         val save = RetryableSave()

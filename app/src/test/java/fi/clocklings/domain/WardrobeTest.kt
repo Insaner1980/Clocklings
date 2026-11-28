@@ -9,8 +9,8 @@ import org.junit.Test
 
 class WardrobeTest {
     @Test
-    fun `eighteen items with three free and one per star`() {
-        val items = Wardrobe.itemsFor(HUMAN)
+    fun `original eighteen doll items retain their star ladder`() {
+        val items = Wardrobe.itemsFor(HUMAN).filter { it.slot != Slot.MODEL }
         assertEquals(18, items.size)
         assertEquals(3, items.count { it.star == 0 })
         assertEquals(
@@ -55,7 +55,7 @@ class WardrobeTest {
 
     @Test
     fun `items left counts locked items`() {
-        assertEquals(15, Wardrobe.lockedCount(HUMAN, 0))
+        assertEquals(17, Wardrobe.lockedCount(HUMAN, 0))
         assertEquals(0, Wardrobe.lockedCount(HUMAN, 15))
     }
 

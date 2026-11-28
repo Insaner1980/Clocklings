@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import fi.clocklings.ui.companion.NameField
 import fi.clocklings.ui.theme.ClocklingsTheme
+import fi.clocklings.ui.theme.SkDimens
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -61,8 +62,11 @@ class AdaptiveContentTest {
         val id = field.fetchSemanticsNode().id
         for ((window, scale, horizontal) in listOf(
             Triple(320, 1f, false),
+            Triple(751, 1f, false),
+            Triple(752, 1f, true),
             Triple(800, 1f, true),
             Triple(800, 2f, false),
+            Triple(1090, 2f, true),
             Triple(1120, 2f, true),
             Triple(320, 2f, false),
         )) {
@@ -70,15 +74,40 @@ class AdaptiveContentTest {
                 width.intValue = window
                 font.floatValue = scale
             }
-            val visual = compose.onNodeWithTag("adaptive_visual").fetchSemanticsNode().boundsInRoot
-            val controls = compose.onNodeWithTag("adaptive_controls").fetchSemanticsNode().boundsInRoot
+            val visual = compose.onNodeWithTag("adaptive_visual").fetchSemanticsNode()
+            val controls = compose.onNodeWithTag("adaptive_controls").fetchSemanticsNode()
             if (horizontal) {
-                assertTrue("$window/$scale: controls beside clock", controls.left >= visual.right)
+                assertTrue(
+                    "$window/$scale: controls beside clock",
+                    controls.positionInRoot.x >= visual.positionInRoot.x + visual.size.width,
+                )
+                assertMinimumPaneWidths(window, scale, visual.size.width, controls.size.width)
             } else {
-                assertTrue("$window/$scale: controls below clock", controls.top >= visual.bottom)
+                assertTrue(
+                    "$window/$scale: controls below clock",
+                    controls.positionInRoot.y >= visual.positionInRoot.y + visual.size.height,
+                )
             }
             assertEquals(id, field.fetchSemanticsNode().id)
             assertEquals(TextRange(1, 4), field.fetchSemanticsNode().config[SemanticsProperties.TextSelectionRange])
+        }
+    }
+
+    private fun assertMinimumPaneWidths(
+        window: Int,
+        scale: Float,
+        visualWidth: Int,
+        controlsWidth: Int,
+    ) {
+        with(compose.density) {
+            assertTrue(
+                "$window/$scale: visual pane minimum",
+                visualWidth >= SkDimens.GridBreakpoint.roundToPx(),
+            )
+            assertTrue(
+                "$window/$scale: controls pane minimum",
+                controlsWidth >= (SkDimens.ControlsMinWidth * scale).roundToPx() - 1,
+            )
         }
     }
 

@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def publish(source: Path, output: Path, check: bool) -> list[dict]:
-    sources = sorted(source.glob("*rendered*.png"))
+    sources = sorted(source.rglob("*rendered*.png"))
     if not sources:
         raise ValueError(f"No Rendered PNG masters in {source}")
     if not check:

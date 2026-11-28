@@ -53,6 +53,8 @@ class AppViewModel(
 
     private val currentSettings get() = settings.value ?: Settings()
     private val currentProgress get() = progress.value ?: Progress()
+    internal var navigationRevision = 0
+        private set
 
     fun play(
         sound: Sound,
@@ -62,6 +64,11 @@ class AppViewModel(
     fun speak(text: String) = services.speak(text)
 
     fun stopSpeech() = services.stopSpeech()
+
+    internal fun beforeNavigate() {
+        navigationRevision++
+        stopSpeech()
+    }
 
     fun setSound(enabled: Boolean) =
         settingsWrite {

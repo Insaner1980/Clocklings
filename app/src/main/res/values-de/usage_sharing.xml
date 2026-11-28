@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="usage_sharing_title">Nutzungsstatistiken teilen</string>
-    <string name="usage_sharing_description">Hilf mit, Clocklings zu verbessern, indem du Zahlen zu Ansichten, Übungen und richtigen oder falschen Antworten teilst. Cloudflare verarbeitet die IP-Adresse deiner Verbindung, wenn die App diese Zahlen sendet. PostHog erhält die wöchentlichen Gesamtzahlen. Du kannst das Teilen jederzeit beenden.</string>
+    <string name="usage_sharing_description">Hilf mit, Clocklings zu verbessern, indem du Zahlen zu Ansichten, Übungen und richtigen oder falschen Antworten teilst. Cloudflare verarbeitet die IP-Adresse deiner Verbindung, wenn die App diese Zahlen sendet. PostHog erhält die wöchentlichen Gesamtzahlen. Du kannst das Teilen jederzeit beenden. Berichte mit zu wenigen Beiträgen werden ausgelassen, und die Übermittlung kann fehlschlagen. Eine fehlende Summe bedeutet nicht null. Wenn du das Teilen beendest, werden keine weiteren Zahlen geteilt. Bereits zusammengefasste Zahlen können nicht einzeln entfernt werden.</string>
 </resources>

@@ -8,6 +8,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isHeading
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
@@ -103,6 +104,9 @@ class PendingLessonDeviceTest : StorageDeviceTest() {
             click("Next")
             click("Next")
             click("Try it")
+            val wrong = "The long blue hand"
+            click(wrong)
+            compose.onNodeWithText(wrong).assertIsNotEnabled()
             hold.set(true)
             click("The short pink hand")
             val completion = hasText("You completed Two hands.", substring = true)
@@ -114,6 +118,7 @@ class PendingLessonDeviceTest : StorageDeviceTest() {
             writable.complete(Unit)
             val error = context.getString(R.string.progress_save_error)
             compose.waitUntil(5_000) { compose.onAllNodesWithText(error).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithText(wrong).assertIsNotEnabled()
             val retry = context.getString(R.string.settings_retry)
             click(retry)
             compose.onNodeWithText(retry).assertIsDisplayed().assertIsNotEnabled()
@@ -124,6 +129,8 @@ class PendingLessonDeviceTest : StorageDeviceTest() {
             val saved = runBlocking { services.repository.progress.first() }
             assertEquals(setOf("viisarit"), saved.lessonsDone)
             done.assertIsEnabled()
+            done.performClick()
+            compose.onNode(hasText(context.getString(R.string.koulu_title)) and isHeading()).assertIsDisplayed()
         } finally {
             writable.cancel()
             retryWritable.cancel()

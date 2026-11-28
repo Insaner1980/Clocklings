@@ -6,13 +6,18 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -71,7 +76,12 @@ internal fun ClockTaskScaffold(
     val buttons = rememberMovingTaskContent<ClockTaskLayout> { actions?.invoke(actionFocus, it) }
     val clock = rememberMovingTaskContent(visual)
     val controls = rememberMovingTaskContent(content)
-    BoxWithConstraints(modifier.fillMaxSize()) {
+    BoxWithConstraints(
+        modifier
+            .fillMaxSize()
+            .sectionBackground(section)
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)),
+    ) {
         val fontScale = LocalDensity.current.fontScale
         val width = min(maxWidth, SkDimens.WideContentWidth) - SkDimens.Gutter * 2
         val compact = isCompactTask(width, maxHeight, fontScale)
@@ -101,7 +111,7 @@ internal fun ClockTaskScaffold(
                 scrollState = scrollState,
                 clockHeightShare = clockHeightShare,
                 clockFit = clockFit,
-                fitMin = if (tall) tallFitMin else SkDimens.FitClockMin,
+                fitMin = if (layout == ClockTaskLayout.TALL) tallFitMin else SkDimens.FitClockMin,
                 animateClock = animateClock,
                 clockTaskKey = clockTaskKey,
                 stackedClock = if (stacked) clock else null,

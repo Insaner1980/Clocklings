@@ -171,7 +171,7 @@ internal fun fi.clocklings.ui.appearance.rememberCompanionPager(companion: fi.cl
     - onSelect: STABLE (function type)
 
 @Composable
-private fun fi.clocklings.ui.ask.AskActions(phase: fi.clocklings.ui.ask.AskPhase, focus: fi.clocklings.ui.components.TaskActionFocus, compact: kotlin.Boolean, onRandom: kotlin.Function0<kotlin.Unit>, onAsk: kotlin.Function0<kotlin.Unit>, onReveal: kotlin.Function0<kotlin.Unit>, onSwap: kotlin.Function0<kotlin.Unit>): kotlin.Unit
+private fun fi.clocklings.ui.ask.AskActions(phase: fi.clocklings.ui.ask.AskPhase, focus: fi.clocklings.ui.components.TaskActionFocus, compact: kotlin.Boolean, onRandom: kotlin.Function0<kotlin.Unit>, isCurrentPhase: kotlin.Function1<fi.clocklings.ui.ask.AskPhase, kotlin.Boolean>, onAsk: kotlin.Function0<kotlin.Unit>, onReveal: kotlin.Function0<kotlin.Unit>, onSwap: kotlin.Function0<kotlin.Unit>): kotlin.Unit
   skippable: true
   restartable: true
   params:
@@ -179,6 +179,7 @@ private fun fi.clocklings.ui.ask.AskActions(phase: fi.clocklings.ui.ask.AskPhase
     - focus: STABLE (marked @Stable or @Immutable)
     - compact: STABLE (primitive type)
     - onRandom: STABLE (function type)
+    - isCurrentPhase: STABLE (function type)
     - onAsk: STABLE (function type)
     - onReveal: STABLE (function type)
     - onSwap: STABLE (function type)
@@ -763,6 +764,15 @@ internal fun fi.clocklings.ui.companion.rememberNameSave(kind: fi.clocklings.dom
   params:
     - kind: STABLE (stability configuration file type)
     - editor: STABLE (marked @Stable or @Immutable)
+
+@Composable
+internal fun fi.clocklings.ui.companion.rememberTransformationRig(kind: fi.clocklings.domain.CompanionKind, outfit: fi.clocklings.domain.Outfit, color: fi.clocklings.domain.CompanionColor): fi.clocklings.ui.companion.CompanionRig?
+  skippable: false
+  restartable: false
+  params:
+    - kind: STABLE (stability configuration file type)
+    - outfit: STABLE (stability configuration file type)
+    - color: STABLE (stability configuration file type)
 
 @Composable
 internal fun fi.clocklings.ui.companion.rememberWardrobeSections(kind: fi.clocklings.domain.CompanionKind): fi.clocklings.ui.companion.WardrobeSections
@@ -1848,18 +1858,19 @@ private fun fi.clocklings.ui.game.timeText(t: kotlin.Int, h24: kotlin.Boolean): 
     - h24: STABLE (primitive type)
 
 @Composable
-private fun fi.clocklings.ui.home.ClockOnlyStage(words: kotlin.String, time: kotlin.Int, stageWidth: androidx.compose.ui.unit.Dp, stageHeight: androidx.compose.ui.unit.Dp, compact: kotlin.Boolean): kotlin.Unit
+private fun fi.clocklings.ui.home.ClockOnlyStage(words: kotlin.String, time: kotlin.Int, clockPeriod: kotlin.Int, stageWidth: androidx.compose.ui.unit.Dp, stageHeight: androidx.compose.ui.unit.Dp, compact: kotlin.Boolean): kotlin.Unit
   skippable: true
   restartable: true
   params:
     - words: STABLE (String is immutable)
     - time: STABLE (primitive type)
+    - clockPeriod: STABLE (primitive type)
     - stageWidth: STABLE (marked @Stable or @Immutable)
     - stageHeight: STABLE (marked @Stable or @Immutable)
     - compact: STABLE (primitive type)
 
 @Composable
-private fun fi.clocklings.ui.home.CompactCompanionStage(kind: fi.clocklings.domain.CompanionKind, progress: fi.clocklings.domain.Progress, words: kotlin.String, time: kotlin.Int, stageWidth: androidx.compose.ui.unit.Dp, onOpen: kotlin.Function1<fi.clocklings.ui.home.HomeDestination, kotlin.Unit>, onGroundPosition: kotlin.Function1<androidx.compose.ui.geometry.Offset, kotlin.Unit>): kotlin.Unit
+private fun fi.clocklings.ui.home.CompactCompanionStage(kind: fi.clocklings.domain.CompanionKind, progress: fi.clocklings.domain.Progress, words: kotlin.String, time: kotlin.Int, clockPeriod: kotlin.Int, stageWidth: androidx.compose.ui.unit.Dp, onOpen: kotlin.Function1<fi.clocklings.ui.home.HomeDestination, kotlin.Unit>, onGroundPosition: kotlin.Function1<androidx.compose.ui.geometry.Offset, kotlin.Unit>): kotlin.Unit
   skippable: true
   restartable: true
   params:
@@ -1867,12 +1878,13 @@ private fun fi.clocklings.ui.home.CompactCompanionStage(kind: fi.clocklings.doma
     - progress: STABLE (stability configuration file type)
     - words: STABLE (String is immutable)
     - time: STABLE (primitive type)
+    - clockPeriod: STABLE (primitive type)
     - stageWidth: STABLE (marked @Stable or @Immutable)
     - onOpen: STABLE (function type)
     - onGroundPosition: STABLE (function type)
 
 @Composable
-private fun fi.clocklings.ui.home.CompanionStage(kind: fi.clocklings.domain.CompanionKind, progress: fi.clocklings.domain.Progress, words: kotlin.String, time: kotlin.Int, stageWidth: androidx.compose.ui.unit.Dp, stageHeight: androidx.compose.ui.unit.Dp, stage: fi.clocklings.ui.home.CompanionStageLayout, onGroundPosition: kotlin.Function1<androidx.compose.ui.geometry.Offset, kotlin.Unit>): kotlin.Unit
+private fun fi.clocklings.ui.home.CompanionStage(kind: fi.clocklings.domain.CompanionKind, progress: fi.clocklings.domain.Progress, words: kotlin.String, time: kotlin.Int, clockPeriod: kotlin.Int, stageWidth: androidx.compose.ui.unit.Dp, stageHeight: androidx.compose.ui.unit.Dp, stage: fi.clocklings.ui.home.CompanionStageLayout, onGroundPosition: kotlin.Function1<androidx.compose.ui.geometry.Offset, kotlin.Unit>): kotlin.Unit
   skippable: true
   restartable: true
   params:
@@ -1880,6 +1892,7 @@ private fun fi.clocklings.ui.home.CompanionStage(kind: fi.clocklings.domain.Comp
     - progress: STABLE (stability configuration file type)
     - words: STABLE (String is immutable)
     - time: STABLE (primitive type)
+    - clockPeriod: STABLE (primitive type)
     - stageWidth: STABLE (marked @Stable or @Immutable)
     - stageHeight: STABLE (marked @Stable or @Immutable)
     - stage: STABLE (class with no mutable properties)
@@ -1953,11 +1966,12 @@ private fun fi.clocklings.ui.home.Scenery(ground: kotlin.Function0<androidx.comp
     - scene: STABLE (function type)
 
 @Composable
-private fun fi.clocklings.ui.home.StageClock(time: kotlin.Int, size: androidx.compose.ui.unit.Dp): kotlin.Unit
+private fun fi.clocklings.ui.home.StageClock(time: kotlin.Int, period: kotlin.Int, size: androidx.compose.ui.unit.Dp): kotlin.Unit
   skippable: true
   restartable: true
   params:
     - time: STABLE (primitive type)
+    - period: STABLE (primitive type)
     - size: STABLE (marked @Stable or @Immutable)
 
 @Composable

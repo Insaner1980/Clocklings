@@ -1,5 +1,6 @@
 package fi.clocklings
 
+import android.content.ComponentName
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.AdaptiveIconDrawable
@@ -121,12 +122,13 @@ class IntroOverlayTest {
         }
         assertTrue(context.getDrawable(R.drawable.ic_splash_animated) is AnimatedVectorDrawable)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val theme = context.resources.newTheme().apply { applyStyle(R.style.Theme_Clocklings, true) }
+            val activity = context.packageManager.getActivityInfo(ComponentName(context, MainActivity::class.java), 0)
+            val theme = context.resources.newTheme().apply { applyStyle(activity.themeResource, true) }
             val value = android.util.TypedValue()
             assertTrue(theme.resolveAttribute(android.R.attr.windowSplashScreenAnimatedIcon, value, true))
             assertEquals(R.drawable.ic_splash_animated, value.resourceId)
             assertTrue(theme.resolveAttribute(android.R.attr.windowSplashScreenIconBackgroundColor, value, true))
-            assertEquals(context.getColor(R.color.icon_background), value.data)
+            assertEquals(context.getColor(R.color.window_background), value.data)
         }
     }
 

@@ -7,8 +7,11 @@ import androidx.compose.ui.test.SemanticsNodeInteractionCollection
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -83,7 +86,8 @@ abstract class RenderedWardrobeDeviceTest(
         }
     }
 
-    protected fun companionPreview() = compose.onNodeWithTag(companionTag, useUnmergedTree = true)
+    protected fun companionPreview() =
+        compose.onNode(hasTestTag(companionTag) and hasAnyAncestor(hasScrollAction()), useUnmergedTree = true)
 
     protected fun captureColors(colors: List<String> = listOf("BLUE", "GREEN", "ORIGINAL")) {
         for (color in colors) {

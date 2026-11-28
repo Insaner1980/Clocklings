@@ -47,6 +47,8 @@ import fi.clocklings.domain.Item
 import fi.clocklings.domain.Levels
 import fi.clocklings.domain.Outfit
 import fi.clocklings.domain.Wardrobe
+import fi.clocklings.domain.equip
+import fi.clocklings.domain.isTransformation
 import fi.clocklings.ui.appearance.LocalPersonalization
 import fi.clocklings.ui.companion.CompanionCelebration
 import fi.clocklings.ui.companion.CompanionView
@@ -382,7 +384,11 @@ private fun dollCelebration(
     stars: Int,
 ): CompanionCelebration =
     CompanionCelebration(
-        newOutfit = newItems.takeIf { it.isNotEmpty() }?.fold(outfit) { o, item -> o.with(item.slot, item.id) },
+        newOutfit =
+            newItems
+                .takeIf { it.isNotEmpty() }
+                ?.sortedBy { it.isTransformation }
+                ?.fold(outfit) { current, item -> current.equip(item) },
         jump = stars == MAX_STARS,
         delayMs = DOLL_CELEBRATE_DELAY_MS,
     )

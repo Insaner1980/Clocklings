@@ -257,7 +257,11 @@ class DeviceInputVerificationTest : InputDeviceTest() {
                 .config[SemanticsProperties.Text]
                 .first()
                 .text
-        activate(hasText(choice) and hasClickAction())
+        val answer = hasText(choice) and hasClickAction()
+        focus(answer)
+        compose.onNode(answer).assertIsDisplayed()
+        // Observe short-lived feedback before the usual key helper advances the animation clock.
+        instrumentation.sendKeyDownUpSync(KeyEvent.KEYCODE_ENTER)
         compose.waitUntil(5_000) {
             compose.mainClock.advanceTimeByFrame()
             compose

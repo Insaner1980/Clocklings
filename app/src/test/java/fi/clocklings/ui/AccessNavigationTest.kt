@@ -8,6 +8,13 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class AccessNavigationTest {
+    private val restrictedRoutes =
+        listOf(
+            Screen.Game(4) to Screen.Levels,
+            Screen.Challenge to Screen.Levels,
+            Screen.Lesson(listOf("minuutit")) to Screen.LessonList,
+        )
+
     @Test
     fun navigationStopsOldSpeechBeforeChangingTheDestination() {
         val stack = mutableListOf<NavKey>(Screen.Home)
@@ -50,14 +57,30 @@ class AccessNavigationTest {
 
     @Test
     fun restoredGamesChallengesAndEntirelyRestrictedQueuesFallBackToLists() {
-        for ((route, fallback) in listOf(
-            Screen.Game(4) to Screen.Levels,
-            Screen.Challenge to Screen.Levels,
-            Screen.Lesson(listOf("minuutit")) to Screen.LessonList,
-        )) {
+        for ((route, fallback) in restrictedRoutes) {
             val stack = mutableListOf<NavKey>(Screen.Home, route)
             Navigator(stack) { AccessPolicy(fullAccess = false) }
             assertEquals(fallback, stack.last())
+        }
+    }
+
+    @Test
+    fun restoredRestrictedRoutesReuseTheirExistingFallback() {
+        for ((route, fallback) in restrictedRoutes) {
+            val stack = mutableListOf<NavKey>(Screen.Home, fallback, route)
+            val nav = Navigator(stack) { AccessPolicy(fullAccess = false) }
+            assertEquals(listOf(Screen.Home, fallback), stack)
+            nav.pop()
+            assertEquals(listOf(Screen.Home), stack)
+        }
+    }
+
+    @Test
+    fun restorationRemovesDuplicateFallbacksAlreadySavedByAnOlderVersion() {
+        for (fallback in listOf(Screen.Levels, Screen.LessonList)) {
+            val stack = mutableListOf<NavKey>(Screen.Home, fallback, fallback)
+            Navigator(stack) { AccessPolicy(fullAccess = false) }
+            assertEquals(listOf(Screen.Home, fallback), stack)
         }
     }
 
@@ -72,7 +95,7 @@ class AccessNavigationTest {
         nav.replace(Screen.Game(3, 1))
         assertEquals(Screen.Levels, stack.last())
         nav.push(Screen.Challenge)
-        assertEquals(Screen.Levels, stack.last())
+        assertEquals(listOf(Screen.Home, Screen.Levels), stack)
         nav.popTo(Screen.Game(3))
         assertEquals(Screen.Levels, stack.last())
         val before = stack.toList()
@@ -82,12 +105,12 @@ class AccessNavigationTest {
 
     @Test
     fun backAfterAccessLossDoesNotReopenRestrictedContent() {
-        val stack = mutableListOf<NavKey>(Screen.Home, Screen.Game(2), Screen.Settings)
+        val stack = mutableListOf<NavKey>(Screen.Home, Screen.Levels, Screen.Game(2), Screen.Settings)
         var full = true
         val nav = Navigator(stack) { AccessPolicy(full) }
         full = false
         nav.pop()
-        assertEquals(Screen.Levels, stack.last())
+        assertEquals(listOf(Screen.Home, Screen.Levels), stack)
     }
 
     @Test

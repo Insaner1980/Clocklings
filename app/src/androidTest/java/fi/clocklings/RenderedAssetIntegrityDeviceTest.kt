@@ -19,12 +19,21 @@ class RenderedAssetIntegrityDeviceTest {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val assets = instrumentation.context.assets
         val context = instrumentation.targetContext
-        val originals = assets.list("").orEmpty().filter { "rendered" in it && it.endsWith(".png") }
-        assertEquals("Every character/color/accessory atlas must be checked", 42, originals.size)
-        for (name in originals) {
+        val originals =
+            assets.list("").orEmpty().asList() +
+                assets.list("transformations").orEmpty().map { "transformations/$it" }
+        val atlases = originals.filter { "rendered" in it && it.endsWith(".png") }
+        // 42 base/wardrobe atlases, nine transformed originals and three dyes for eight companions.
+        assertEquals(
+            "Every character, accessory and transformation atlas must be checked",
+            42 + 9 + 3 * 8,
+            atlases.size,
+        )
+        for (path in atlases) {
+            val name = path.substringAfterLast('/')
             val resource = context.resources.getIdentifier(name.removeSuffix(".png"), "drawable", context.packageName)
             assertTrue("Missing Android resource for $name", resource != 0)
-            val original = assets.open(name).use { checkNotNull(BitmapFactory.decodeStream(it)) }
+            val original = assets.open(path).use { checkNotNull(BitmapFactory.decodeStream(it)) }
             val atlas = RenderedAtlas.load(context.resources, resource)
             val packaged = atlas.asAndroidBitmap()
             try {

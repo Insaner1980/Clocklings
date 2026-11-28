@@ -11,7 +11,7 @@ class RenderedBunnyDeviceTest : RenderedWardrobeDeviceTest(CompanionKind.BUNNY) 
     fun bunnyColorsAndOutfitSurviveRecreation() {
         openWardrobe()
         captureColors()
-        compose.clickByLabel("Magician's top hat")
+        compose.clickByLabel("Magic hat bunny")
         selectColor("PURPLE")
         selectItem("Carrot")
         verifyOutfitAfterRecreation("PURPLE", "Carrot", "purple_carrot")

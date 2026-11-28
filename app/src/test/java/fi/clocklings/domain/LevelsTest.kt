@@ -69,6 +69,20 @@ class LevelsTest {
     }
 
     @Test
+    fun repeatedDrawsAtTheMinutesLevelReturnAShortRound() {
+        var draws = 0
+        val repeated =
+            object : Random() {
+                override fun nextBits(bitCount: Int): Int {
+                    check(++draws <= 2_000) { "Practice time generation exceeded its draw limit" }
+                    return 0
+                }
+            }
+        val tasks = Levels.makeTasks(Levels.all[4], false, repeated)
+        assertEquals(listOf(Task(1, TaskType.READ)), tasks)
+    }
+
+    @Test
     fun `make tasks gives ten unique valid times alternating question types`() {
         for (level in Levels.all) {
             for (h24 in listOf(false, true)) {

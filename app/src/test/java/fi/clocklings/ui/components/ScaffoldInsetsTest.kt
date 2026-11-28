@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import fi.clocklings.ui.theme.Section
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -34,6 +35,31 @@ import org.robolectric.annotation.Config
 @Config(sdk = [33])
 class ScaffoldInsetsTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+
+    @Test
+    fun horizontalInsetsCanMakeTheCompactTaskTooNarrow() {
+        val insetView = View(compose.activity)
+        compose.setContent {
+            CompositionLocalProvider(LocalView provides insetView, LocalDensity provides Density(2f)) {
+                Box(Modifier.requiredSize(770.dp, 440.dp)) {
+                    ClockTaskScaffold(section = Section.LEARN, topBar = {}, visual = {}) { layout ->
+                        Text(layout.name)
+                    }
+                }
+            }
+        }
+        compose.runOnIdle { compose.activity.addContentView(insetView, ViewGroup.LayoutParams(1, 1)) }
+        compose.onNodeWithText("COMPACT").assertExists()
+        compose.runOnIdle {
+            val sideBars =
+                WindowInsetsCompat
+                    .Builder()
+                    .setInsets(WindowInsetsCompat.Type.systemBars(), Insets.of(32, 0, 32, 0))
+                    .build()
+            ViewCompat.dispatchApplyWindowInsets(insetView, sideBars)
+        }
+        compose.onNodeWithText("REGULAR").assertExists()
+    }
 
     @Test
     fun restoredContentWaitsInitiallyButSurvivesLaterInsetGrowth() {

@@ -13,7 +13,7 @@ class RenderedDogDeviceTest : RenderedWardrobeDeviceTest(CompanionKind.DOG) {
         captureColors()
         compose.clickByLabel("Party hat")
         selectColor("PURPLE")
-        for (label in listOf("Backpack", "Raincoat", "Frisbee")) selectItem(label)
+        for (label in listOf("Backpack", "Puddle puppy", "Frisbee")) selectItem(label)
         verifyOutfitAfterRecreation("PURPLE", "Frisbee", "purple_frisbee")
     }
 }

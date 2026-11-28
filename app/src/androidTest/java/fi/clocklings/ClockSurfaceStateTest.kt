@@ -12,6 +12,7 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasAnySibling
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
@@ -113,14 +114,15 @@ class ClockSurfaceStateTest {
                     .getOrNull(state.page)
                     ?.text
                     ?.forEach { assertTextFits(it.resolve(res)) }
-                if (state.page > 0) assertActionFits(res.getString(R.string.lesson_prev))
                 val next =
                     when {
-                        state.isQuiz -> R.string.done
+                        state.isQuiz -> R.string.lesson_next_lesson
                         state.nextAction == NextAction.TRY_IT -> R.string.lesson_try
                         else -> R.string.next
                     }
-                assertActionFits(res.getString(next))
+                val nextLabel = res.getString(next)
+                if (state.page > 0) assertActionFits(res.getString(R.string.lesson_prev), alongside = nextLabel)
+                assertActionFits(nextLabel)
             }
         }
     }
@@ -160,9 +162,24 @@ class ClockSurfaceStateTest {
         )
     }
 
-    private fun assertActionFits(text: String) {
-        assertTextFits(text)
-        val node = compose.onNode(hasText(text) and hasClickAction()).scrollToIfScrollable()
+    private fun assertActionFits(
+        text: String,
+        alongside: String? = null,
+    ) {
+        val textAction = hasText(text) and hasClickAction()
+        val iconAction =
+            alongside?.let {
+                hasContentDescription(text) and hasClickAction() and
+                    hasAnySibling(hasText(it))
+            }
+        val action =
+            if (iconAction != null && compose.onAllNodes(textAction).fetchSemanticsNodes().isEmpty()) {
+                iconAction
+            } else {
+                assertTextFits(text)
+                textAction
+            }
+        val node = compose.onNode(action).scrollToIfScrollable()
         val bounds = node.getUnclippedBoundsInRoot()
         val root = compose.onRoot().getUnclippedBoundsInRoot()
         compose.waitForIdle()

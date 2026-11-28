@@ -243,7 +243,7 @@ private fun ScaffoldBody(
     var restHeight by remember { mutableStateOf<Int?>(null) }
     val density = LocalDensity.current
     val sideBySide = wideContent && hasSideBySideRoom(availableWidth, density.fontScale)
-    val clockWidth = if (sideBySide) visualPaneWidth(availableWidth) else availableWidth
+    val clockWidth = if (sideBySide) visualPaneWidth(availableWidth, density.fontScale) else availableWidth
     val height =
         if (sideBySide && !scrollChrome) {
             viewportHeight - SkDimens.IconButton

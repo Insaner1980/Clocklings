@@ -14,8 +14,17 @@ class Navigator(
 ) {
     init {
         // Restored routes are checked before any restricted ViewModel is constructed.
-        stack.indices.forEach { index ->
-            stack[index] = (stack[index] as Screen).accessibleDestination(access())
+        val policy = access()
+        val restored =
+            buildList<NavKey> {
+                stack.forEach { key ->
+                    val screen = key as Screen
+                    appendDestination(screen, screen.accessibleDestination(policy))
+                }
+            }
+        if (restored != stack) {
+            stack.clear()
+            stack.addAll(restored)
         }
     }
 
@@ -29,30 +38,33 @@ class Navigator(
 
     fun push(screen: Screen) =
         navigate {
-            stack.add(screen.accessibleDestination(access()))
+            stack.appendDestination(screen, screen.accessibleDestination(access()))
         }
 
     fun pop() =
         navigate {
             if (stack.size > 1) stack.removeAt(stack.lastIndex)
-            stack[stack.lastIndex] = (stack.last() as Screen).accessibleDestination(access())
+            val screen = stack.last() as Screen
+            val target = screen.accessibleDestination(access())
+            if (target != screen) {
+                stack.removeAt(stack.lastIndex)
+                stack.appendDestination(screen, target)
+            }
         }
 
     /** Korvaa päällimmäisen näkymän (esim. peli → tulos), jolloin takaisin vie edelliseen näkymään. */
     fun replace(screen: Screen) =
         navigate {
             val target = screen.accessibleDestination(access())
-            if (stack.size > 1) stack[stack.lastIndex] = target else stack.add(target)
+            if (stack.size > 1) stack.removeAt(stack.lastIndex)
+            stack.appendDestination(screen, target)
         }
 
     /** Palaa pinossa näkymään [screen] tai lisää sen kodin päälle. */
     fun popTo(screen: Screen) =
         navigate {
             val target = screen.accessibleDestination(access())
-            val index = stack.indexOfLast { it == target }
-            if (index >= 0) {
-                while (stack.size > index + 1) stack.removeAt(stack.lastIndex)
-            } else {
+            if (!stack.popToExisting(target)) {
                 while (stack.size > 1) stack.removeAt(stack.lastIndex)
                 stack.add(target)
             }
@@ -83,6 +95,22 @@ class Navigator(
         val destination = stack.last() as Screen
         if (stack.size != depth || destination != previous) onDestinationChanged(destination)
     }
+}
+
+private fun MutableList<NavKey>.appendDestination(
+    requested: Screen,
+    target: Screen,
+) {
+    if (lastOrNull() == target && (target == Screen.Levels || target == Screen.LessonList)) return
+    // A fallback already in the stack owns its existing entry state.
+    if (target == requested || !popToExisting(target)) add(target)
+}
+
+private fun MutableList<NavKey>.popToExisting(target: Screen): Boolean {
+    val index = indexOfLast { it == target }
+    if (index < 0) return false
+    while (lastIndex > index) removeAt(lastIndex)
+    return true
 }
 
 internal fun Screen.accessibleDestination(access: AccessPolicy): Screen =

@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import fi.clocklings.domain.CompanionColor
 import fi.clocklings.domain.Item
@@ -32,6 +33,7 @@ internal fun ItemArtWindow(
     Box(
         modifier
             .size(displaySize)
+            .testTag("item_art_${item.id}")
             .clip(SkShapes.ArtWindow),
         contentAlignment = Alignment.Center,
     ) {

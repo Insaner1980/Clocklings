@@ -73,15 +73,16 @@ fun AskScreen(
     val scrollState = rememberScrollState()
     val compactScrollState = rememberScrollState()
     var previousPhase by rememberSaveable { mutableStateOf(phase) }
-    val onRandom = {
-        time = Levels.randomClockTime(ClockTime.period(h24), time, Random.Default)
-        command = ClockCommand(time, RANDOM_MOVE_MS)
-        app.play(Sound.POP)
+    val onRandom: () -> Unit = {
+        if (phase == AskPhase.SET) {
+            time = Levels.randomClockTime(ClockTime.period(h24), time, Random.Default)
+            command = ClockCommand(time, RANDOM_MOVE_MS)
+            app.play(Sound.POP)
+        }
     }
     LaunchedEffect(phase) {
         if (previousPhase != phase && phase == AskPhase.SET) {
-            scrollState.scrollTo(0)
-            compactScrollState.scrollTo(0)
+            listOf(scrollState, compactScrollState).forEach { it.scrollTo(0) }
         }
         previousPhase = phase
     }
@@ -99,19 +100,25 @@ fun AskScreen(
                 focus,
                 layout == ClockTaskLayout.COMPACT,
                 onRandom,
+                isCurrentPhase = { it == phase },
                 onAsk = {
+                    command = ClockCommand(time)
                     app.play(Sound.POP)
                     app.play(Sound.QUESTION_READ)
                     phase = AskPhase.ASK
                 },
                 onReveal = { phase = AskPhase.REVEALED },
                 onSwap = {
-                    if (phase == AskPhase.REVEALED) setter = PLAYER_NUMBER_SUM - setter
+                    setter = PLAYER_NUMBER_SUM - setter
                     phase = AskPhase.SET
                 },
             )
         },
-        visual = { size -> AskClock(command, phase, h24, help, size) { time = it } },
+        visual = { size ->
+            AskClock(command, phase, h24, help, size) {
+                if (phase == AskPhase.SET) time = it
+            }
+        },
     ) { layout ->
         AskPanel(phase, setter, layout == ClockTaskLayout.COMPACT, time, h24, speechAvailable, onRandom)
     }
@@ -226,6 +233,7 @@ private fun AskActions(
     focus: TaskActionFocus,
     compact: Boolean,
     onRandom: () -> Unit,
+    isCurrentPhase: (AskPhase) -> Boolean,
     onAsk: () -> Unit,
     onReveal: () -> Unit,
     onSwap: () -> Unit,
@@ -248,6 +256,7 @@ private fun AskActions(
         SkButton(
             stringResource(label),
             {
+                if (!isCurrentPhase(phase)) return@SkButton
                 when (phase) {
                     AskPhase.SET -> {
                         onAsk()

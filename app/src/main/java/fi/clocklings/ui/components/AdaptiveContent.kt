@@ -13,6 +13,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.min
 import fi.clocklings.ui.theme.SkDimens
 
@@ -34,8 +35,14 @@ internal fun hasSideBySideRoom(
     width >= SkDimens.SideBySideWidth &&
         width >= SkDimens.GridBreakpoint + SkDimens.ControlsMinWidth * fontScale + SkDimens.GapL
 
-internal fun visualPaneWidth(width: Dp): Dp =
-    min(SkDimens.VisualPaneWidth, (width - SkDimens.GapL) * VISUAL_WIDTH_SHARE)
+internal fun visualPaneWidth(
+    width: Dp,
+    fontScale: Float,
+): Dp {
+    val paneWidth = width - SkDimens.GapL
+    val preferred = min(SkDimens.VisualPaneWidth, max(SkDimens.GridBreakpoint, paneWidth * VISUAL_WIDTH_SHARE))
+    return min(preferred, paneWidth - SkDimens.ControlsMinWidth * fontScale)
+}
 
 /**
  * Repositions two parts of the same task without replacing their composition, focus or editor state.
@@ -50,8 +57,9 @@ fun AdaptiveContent(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     BoxWithConstraints(modifier.fillMaxWidth()) {
-        val sideBySide = hasSideBySideRoom(maxWidth, LocalDensity.current.fontScale)
-        val visualWidth = if (sideBySide) visualPaneWidth(maxWidth) else maxWidth
+        val fontScale = LocalDensity.current.fontScale
+        val sideBySide = hasSideBySideRoom(maxWidth, fontScale)
+        val visualWidth = if (sideBySide) visualPaneWidth(maxWidth, fontScale) else maxWidth
         Layout(
             contents =
                 listOf(

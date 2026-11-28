@@ -73,9 +73,10 @@ internal class WeeklyUsageAnalytics(
                         store.edit {
                             if (it[CONSENT] == true) it.prune(currentWeek()) else it.clear()
                         }
-                    if (consentRevision == 0L && persisted[CONSENT] == true) {
-                        consent.value = true
-                        schedule(true)
+                    if (consentRevision == 0L) {
+                        val enabled = persisted[CONSENT] == true
+                        consent.value = enabled
+                        schedule(enabled)
                     }
                     return@launch
                 } catch (_: IOException) {

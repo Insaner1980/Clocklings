@@ -2,10 +2,14 @@ package fi.clocklings.ui.challenge
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.navigation3.runtime.NavKey
 import fi.clocklings.AppServices
+import fi.clocklings.Navigator
+import fi.clocklings.Screen
 import fi.clocklings.audio.Sound
 import fi.clocklings.data.InMemoryPreferencesStore
 import fi.clocklings.data.ProgressRepository
+import fi.clocklings.ui.AppViewModel
 import fi.clocklings.ui.FakeServices
 import fi.clocklings.ui.components.OptionState
 import kotlinx.coroutines.CompletableDeferred
@@ -41,6 +45,54 @@ class ChallengeViewModelTest {
     @After fun tearDown() = Dispatchers.resetMain()
 
     @Test
+    fun duplicateStartLeavesTheCurrentRunUnchanged() =
+        scope.runTest {
+            var now = 0L
+            val vm = ChallengeViewModel(false, services, Random(1)) { now }
+            vm.start()
+            runCurrent()
+            vm.pick(vm.state.value.question)
+            val firstRun = vm.state.value
+            now = 1_000_000L
+
+            vm.start()
+
+            assertEquals(firstRun, vm.state.value)
+            assertEquals(1, services.sounds.count { it == Sound.CHALLENGE_GO })
+            advanceUntilIdle()
+        }
+
+    @Test
+    fun leavingBeforeTheFanfareKeepsTheScoreWithoutPlayingOverTheLesson() =
+        scope.runTest {
+            val app = AppViewModel(services)
+            val stack = mutableListOf<NavKey>(Screen.Home, Screen.Levels, Screen.Challenge)
+            val nav = Navigator(stack, beforeNavigate = app::beforeNavigate) { app.access }
+            val vm = ChallengeViewModel(false, services, Random(1), navigationRevision = { app.navigationRevision })
+            vm.start()
+            vm.pick(vm.state.value.question)
+            advanceTimeBy(61_450)
+            assertEquals(Sound.CHALLENGE_OVER, services.sounds.last())
+            nav.pop()
+            nav.pop()
+            nav.push(Screen.LessonList)
+            val lesson = Screen.Lesson(listOf("viisarit"))
+            nav.push(lesson)
+            app.speak("Lesson playback")
+            advanceTimeBy(100)
+
+            assertEquals(lesson, stack.last())
+            assertEquals(listOf("Lesson playback"), services.spoken)
+            assertFalse(services.sounds.any { it == Sound.RECORD || it == Sound.WIN })
+            assertEquals(
+                1,
+                services.repository.progress
+                    .first()
+                    .challengeBest,
+            )
+        }
+
+    @Test
     fun expiredMonotonicDeadlineRejectsAnswerBeforeTimerDispatch() =
         scope.runTest {
             var now = 0L
@@ -74,6 +126,37 @@ class ChallengeViewModelTest {
             assertEquals(ChallengePhase.END, vm.state.value.phase)
             assertEquals(0, vm.state.value.score)
             assertEquals(before, services.repository.progress.first())
+        }
+
+    @Test
+    fun feedbackDoesNotShowAnotherQuestionAfterTheMonotonicDeadline() =
+        scope.runTest {
+            for (correct in listOf(true, false)) {
+                var now = 59_999_000_000L
+                val vm = ChallengeViewModel(false, services, Random(1)) { now }
+                vm.start()
+                runCurrent()
+                now = vm.state.value.deadlineNanos - 1L
+                val question = vm.state.value.question
+                vm.pick(
+                    if (correct) {
+                        question
+                    } else {
+                        vm.state.value.options
+                            .first { it != question }
+                    },
+                )
+                now = vm.state.value.deadlineNanos
+
+                advanceTimeBy(1_300)
+                runCurrent()
+
+                assertEquals(question, vm.state.value.question)
+                assertEquals(if (correct) 1 else 0, vm.state.value.score)
+                assertTrue(vm.state.value.busy)
+                advanceUntilIdle()
+                assertEquals(ChallengePhase.END, vm.state.value.phase)
+            }
         }
 
     @Test

@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
@@ -75,11 +76,12 @@ internal class WardrobeSections(
 }
 
 @Composable
-internal fun rememberWardrobeSections(kind: CompanionKind): WardrobeSections {
-    val scroll = rememberScrollState()
-    val scope = rememberCoroutineScope()
-    return remember(kind, scroll, scope) { WardrobeSections(scroll, scope) }
-}
+internal fun rememberWardrobeSections(kind: CompanionKind): WardrobeSections =
+    key(kind) {
+        val scroll = rememberScrollState()
+        val scope = rememberCoroutineScope()
+        remember(scroll, scope) { WardrobeSections(scroll, scope) }
+    }
 
 @Composable
 internal fun WardrobeHeader(

@@ -7,6 +7,7 @@ import fi.clocklings.data.ProgressRepository
 import fi.clocklings.domain.AppLanguage
 import fi.clocklings.domain.Progress
 import fi.clocklings.ui.MainDispatcherRule
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
@@ -185,6 +186,35 @@ class AppLocaleControllerTest {
         }
 
     @Test
+    fun platformChoiceMadeDuringLegacyReadWins() =
+        runTest(main.dispatcher) {
+            val store = InMemoryPreferencesStore()
+            val releaseRead = CompletableDeferred<Unit>()
+            val delayedStore =
+                object : DataStore<Preferences> by store {
+                    override val data =
+                        flow {
+                            releaseRead.await()
+                            emitAll(store.data)
+                        }
+                }
+            val repository = ProgressRepository(delayedStore)
+            repository.setLegacyLanguage("fi")
+            val platform = FakeLocalePlatform(true)
+            val controller = AppLocaleController(repository, platform)
+            advanceUntilIdle()
+
+            platform.choice = AppLanguage.SWEDISH
+            releaseRead.complete(Unit)
+            advanceUntilIdle()
+
+            assertEquals(AppLanguage.SWEDISH, controller.selection.value.choice)
+            assertEquals(AppLanguage.SWEDISH, platform.choice)
+            assertNull(repository.legacyLanguage.first())
+            assertEquals(0, platform.writes)
+        }
+
+    @Test
     fun cleanupFailureRetriesWithoutOverwritingExternalDeviceChoice() =
         runTest(main.dispatcher) {
             val store = FailingPreferencesStore()
@@ -206,6 +236,32 @@ class AppLocaleControllerTest {
             assertNull(controller.selection.value.choice)
             assertNull(repository.legacyLanguage.first())
             assertEquals(1, platform.writes)
+        }
+
+    @Test
+    fun deviceChoiceSurvivesRestartAfterFailedLegacyCleanup() =
+        runTest(main.dispatcher) {
+            val store = FailingPreferencesStore()
+            val repository = ProgressRepository(store)
+            repository.setLegacyLanguage("fi")
+            val platform = FakeLocalePlatform(true)
+            store.fail = true
+            val controller = AppLocaleController(repository, platform)
+            advanceUntilIdle()
+            assertEquals(AppLanguage.FINNISH, platform.choice)
+
+            controller.select(null)
+            advanceUntilIdle()
+            assertTrue(controller.selection.value.failed)
+            assertEquals(AppLanguage.FINNISH, platform.choice)
+
+            store.fail = false
+            controller.select(null)
+            advanceUntilIdle()
+            val restarted = AppLocaleController(repository, platform)
+            advanceUntilIdle()
+            assertNull(restarted.selection.value.choice)
+            assertNull(repository.legacyLanguage.first())
         }
 
     @Test

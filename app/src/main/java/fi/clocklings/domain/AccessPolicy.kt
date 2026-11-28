@@ -47,6 +47,12 @@ data class AccessPolicy(
                 saved.items.filter { (slot, id) ->
                     Wardrobe.itemOrNull(id)?.let { it.companion == kind && it.slot == slot && item(it, stars) } == true
                 },
+            transformation =
+                saved.transformation?.takeIf { id ->
+                    Wardrobe.itemOrNull(id)?.let {
+                        it.companion == kind && it.isTransformation && item(it, stars)
+                    } == true
+                },
         )
 
     companion object {

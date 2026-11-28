@@ -24,6 +24,7 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.captureToImage
@@ -84,6 +85,7 @@ import fi.clocklings.ui.game.GameScreen
 import fi.clocklings.ui.game.GameUiState
 import fi.clocklings.ui.game.ResultScreen
 import fi.clocklings.ui.lesson.LessonCatalog
+import fi.clocklings.ui.lesson.LessonRoute
 import fi.clocklings.ui.lesson.LessonScreen
 import fi.clocklings.ui.lesson.LessonUiState
 import fi.clocklings.ui.lesson.NextAction
@@ -452,7 +454,10 @@ class ReviewRegressionTest : ReviewTaskRegressionCases() {
             }
         }
         store.fail = true
-        compose.onNodeWithContentDescription("Companion name").scrollIfNeeded().performTextReplacement("Draft")
+        val field = compose.onNodeWithContentDescription("Companion name")
+        field.scrollIfNeeded().performTextReplacement("Old draft")
+        compose.onNodeWithText(retryText()).assertIsDisplayed()
+        field.scrollIfNeeded().performTextReplacement("Latest draft")
         compose.onNodeWithText(retryText()).assertIsDisplayed()
         restoration.emulateSavedInstanceStateRestore()
         forEachCell {
@@ -463,11 +468,15 @@ class ReviewRegressionTest : ReviewTaskRegressionCases() {
         compose
             .onNodeWithContentDescription(localizedContext(language.value).getString(R.string.doll_name_label))
             .scrollIfNeeded()
-            .assertTextEquals("Draft")
+            .assertTextEquals("Latest draft")
         assertEquals("", model.progress.value!!.nameFor(CompanionKind.CAT))
         store.fail = false
         compose.onNodeWithText(retryText()).performClick()
-        compose.runOnIdle { assertEquals("Draft", model.progress.value!!.nameFor(CompanionKind.CAT)) }
+        compose.runOnIdle {
+            val saved = model.progress.value!!
+            assertEquals("Latest draft", saved.nameFor(CompanionKind.CAT))
+            assertEquals("", saved.nameFor(CompanionKind.HUMAN))
+        }
         compose.onNodeWithText(retryText()).assertDoesNotExist()
         assertEquals(null, nameError())
     }
@@ -601,33 +610,30 @@ class ReviewRegressionTest : ReviewTaskRegressionCases() {
     fun lessonHintTakesPriorityOverAnEarlierSaveFailure() {
         compose.setContent {
             Viewport {
-                val lesson = LessonCatalog.lesson("viisarit", language.value)
-                LessonScreen(
-                    LessonUiState(
-                        lesson = lesson,
-                        page = lesson.pages.size,
-                        choices = lesson.quiz.choices,
-                        saveFailed = true,
-                        showHint = true,
-                    ),
-                    false,
-                    false,
-                    {},
-                    {},
-                    {},
-                    {},
-                    {},
-                    {},
-                )
+                LessonRoute(Screen.Lesson(listOf("viisarit")), speechAvailable = false, onLeave = {}, onStartGame = {})
             }
         }
+
+        fun node(id: Int) = compose.onNodeWithText(localizedContext(language.value).getString(id))
+
+        repeat(2) { node(R.string.next).performClick() }
+        node(R.string.lesson_try).performClick()
+        store.fail = true
+        node(R.string.l_viisarit_c1).scrollIfNeeded().performClick()
+        node(R.string.progress_save_error).scrollIfNeeded().assertIsDisplayed()
+        node(R.string.l_viisarit_c2).scrollIfNeeded().performClick()
         forEachCell {
-            val lesson = LessonCatalog.lesson("viisarit", language.value)
-            val hint = lesson.quiz.hint.resolve(localizedContext(language.value).resources)
-            compose.onNodeWithText(hint).scrollIfNeeded().assertIsDisplayed()
-            val saveError = localizedContext(language.value).getString(R.string.progress_save_error)
-            compose.onNodeWithText(saveError).assertDoesNotExist()
+            node(R.string.l_viisarit_hint).scrollIfNeeded().assertIsDisplayed()
+            node(R.string.progress_save_error).assertDoesNotExist()
+            node(R.string.settings_retry).assertIsDisplayed().assertIsEnabled()
         }
+        node(R.string.settings_retry).performClick()
+        node(R.string.progress_save_error).scrollIfNeeded().assertIsDisplayed()
+        node(R.string.l_viisarit_hint).assertDoesNotExist()
+        store.fail = false
+        node(R.string.settings_retry).performClick()
+        node(R.string.progress_save_error).assertDoesNotExist()
+        node(R.string.done).assertIsEnabled()
     }
 
     private fun showAppearanceScreen() {

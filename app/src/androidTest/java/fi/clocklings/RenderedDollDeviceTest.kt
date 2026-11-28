@@ -33,7 +33,7 @@ class RenderedDollDeviceTest : RenderedWardrobeDeviceTest(CompanionKind.HUMAN, "
         assertTrue("Star balance covers the doll or its crown", stars.bottom <= companion.top)
         compose.onAllNodesWithTag("color_ORIGINAL").assertCountEquals(0)
         for (item in listOf("Golden hair", "Pink curls", "Rainbow hair", "Brown braids")) selectItem(item)
-        val selected = listOf("Overalls", "Crown", "Roller skates", "Strawberry bag")
+        val selected = listOf("Overalls", "Crown", "Purple boots", "Strawberry bag")
         for (item in selected) selectItem(item)
         compose.activityRule.scenario.recreate()
         for (item in selected + "Brown braids") waitForItem(item)

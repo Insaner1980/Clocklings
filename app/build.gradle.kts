@@ -23,7 +23,8 @@ fun analyticsEndpointField(defaultOrigin: String = ""): String {
         val uri = URI(endpoint)
         require(
             uri.scheme == "https" && uri.host != null && uri.rawUserInfo == null &&
-                uri.rawPath.isEmpty() && uri.rawQuery == null && uri.rawFragment == null,
+                uri.rawPath.isEmpty() && uri.rawQuery == null && uri.rawFragment == null &&
+                (uri.port == -1 || uri.port in 1..65535),
         ) { "analyticsEndpoint must be an HTTPS origin." }
     }
     return "\"$endpoint\""

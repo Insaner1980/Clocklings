@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.min
 import fi.clocklings.R
+import fi.clocklings.domain.ClockTime
 import fi.clocklings.domain.CompanionKind
 import fi.clocklings.domain.Progress
 import fi.clocklings.domain.Settings
@@ -89,13 +90,14 @@ internal fun HomeStage(
     val kind = settings.personalization.companion
     val description = "${stringResource(R.string.menu_nukke)}. ${stringResource(R.string.home_companion_choices)}"
     val words = timeLabel(LocalAppLanguage.current, time, settings.h24)
+    val clockPeriod = ClockTime.period(settings.h24)
     var ground by remember(kind) { mutableStateOf<Offset?>(null) }
     if (kind == CompanionKind.NONE || compact) {
         GroupStage(description, onOpen, { ground }) { stageWidth, plannedHeight ->
             if (kind == CompanionKind.NONE) {
-                ClockOnlyStage(words, time, stageWidth, plannedHeight, compact)
+                ClockOnlyStage(words, time, clockPeriod, stageWidth, plannedHeight, compact)
             } else {
-                CompactCompanionStage(kind, progress, words, time, stageWidth, onOpen) { ground = it }
+                CompactCompanionStage(kind, progress, words, time, clockPeriod, stageWidth, onOpen) { ground = it }
             }
         }
     } else {
@@ -122,7 +124,8 @@ internal fun HomeStage(
                 Modifier.offset(y = stage.contentTop).fillMaxWidth().height(contentHeight),
             ) {
                 BoxWithConstraints(Modifier.fillMaxSize()) {
-                    CompanionStage(kind, progress, words, time, maxWidth, maxHeight + skyTrim, stage) { ground = it }
+                    val height = maxHeight + skyTrim
+                    CompanionStage(kind, progress, words, time, clockPeriod, maxWidth, height, stage) { ground = it }
                 }
             }
             WardrobeButton(
@@ -262,6 +265,7 @@ private fun DrawScope.drawSkyAndGround(
 private fun ClockOnlyStage(
     words: String,
     time: Int,
+    clockPeriod: Int,
     stageWidth: Dp,
     stageHeight: Dp,
     compact: Boolean,
@@ -278,7 +282,7 @@ private fun ClockOnlyStage(
             fill = false,
             color = SkColors.Surface,
         )
-        StageClock(time, min(stageWidth, stageHeight * NONE_CLOCK_SHARE))
+        StageClock(time, clockPeriod, min(stageWidth, stageHeight * NONE_CLOCK_SHARE))
     }
 }
 
@@ -293,6 +297,7 @@ private fun CompactCompanionStage(
     progress: Progress,
     words: String,
     time: Int,
+    clockPeriod: Int,
     stageWidth: Dp,
     onOpen: (HomeDestination) -> Unit,
     onGroundPosition: (Offset) -> Unit,
@@ -320,7 +325,7 @@ private fun CompactCompanionStage(
                     .aspectRatio(companionAspectRatio(kind), matchHeightConstraintsFirst = true),
                 onGroundPosition = onGroundPosition,
             )
-            StageClock(time, clockSize)
+            StageClock(time, clockPeriod, clockSize)
         }
         WardrobeButton(onOpen, Modifier.padding(start = SkDimens.GapS, bottom = SkDimens.GapS))
     }
@@ -336,6 +341,7 @@ private fun BoxScope.CompanionStage(
     progress: Progress,
     words: String,
     time: Int,
+    clockPeriod: Int,
     stageWidth: Dp,
     stageHeight: Dp,
     stage: CompanionStageLayout,
@@ -373,18 +379,20 @@ private fun BoxScope.CompanionStage(
             fill = false,
             color = SkColors.Surface,
         )
-        StageClock(time, min(stageWidth * CLOCK_WIDTH_SHARE, stageHeight * CLOCK_HEIGHT_SHARE))
+        StageClock(time, clockPeriod, min(stageWidth * CLOCK_WIDTH_SHARE, stageHeight * CLOCK_HEIGHT_SHARE))
     }
 }
 
 @Composable
 private fun StageClock(
     time: Int,
+    period: Int,
     size: Dp,
 ) {
     ClockFace(
         remember(time) { ClockCommand(time) },
         Modifier.sharedClocklingsElement("clock").size(size),
+        period = period,
         mini = true,
     )
 }

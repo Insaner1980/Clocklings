@@ -20,9 +20,9 @@ class CompanionItemsTest {
     private val wardrobes = animals + CAR
 
     @Test
-    fun `every companion but the doll has one free item and one item per star`() =
+    fun `original companion rewards retain one free item and one unlock per star`() =
         wardrobes.forEach { kind ->
-            val items = Wardrobe.itemsFor(kind)
+            val items = Wardrobe.itemsFor(kind) - additionalModelItems.toSet()
             assertEquals(16, items.size)
             assertEquals(1, items.count { it.star == 0 })
             assertEquals((1..15).toList(), items.filter { it.star > 0 }.map { it.star }.sorted())
@@ -58,15 +58,15 @@ class CompanionItemsTest {
 
     @Test
     fun `locked count is per companion`() {
-        assertEquals(15, Wardrobe.lockedCount(DOG, 0))
+        assertEquals(18, Wardrobe.lockedCount(DOG, 0))
         assertEquals(0, Wardrobe.lockedCount(DOG, 15))
     }
 
     @Test
     fun `slots per companion`() {
-        assertEquals(listOf(Slot.HAIR, Slot.DRESS, Slot.SHOES, Slot.HEAD, Slot.EXTRA), HUMAN.slots)
+        assertEquals(listOf(Slot.HAIR, Slot.DRESS, Slot.SHOES, Slot.HEAD, Slot.EXTRA, Slot.MODEL), HUMAN.slots)
         assertTrue(NONE.slots.isEmpty())
-        animals.forEach { assertEquals(listOf(Slot.HEAD, Slot.NECK, Slot.EXTRA), it.slots) }
+        animals.forEach { assertEquals(listOf(Slot.HEAD, Slot.NECK, Slot.EXTRA, Slot.MODEL), it.slots) }
         assertEquals(listOf(Slot.ROOF, Slot.FRONT, Slot.WHEELS, Slot.MODEL), CAR.slots)
     }
 

@@ -81,7 +81,18 @@ fun ChallengeRoute(
     onBack: () -> Unit,
     app: AppViewModel = LocalAppViewModel.current,
     vm: ChallengeViewModel =
-        viewModel(factory = viewModelFactory { initializer { ChallengeViewModel(h24, app.services) } }),
+        viewModel(
+            factory =
+                viewModelFactory {
+                    initializer {
+                        ChallengeViewModel(
+                            h24,
+                            app.services,
+                            navigationRevision = { app.navigationRevision },
+                        )
+                    }
+                },
+        ),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
     val haptic = LocalHapticFeedback.current

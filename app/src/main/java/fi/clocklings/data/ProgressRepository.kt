@@ -18,6 +18,7 @@ import fi.clocklings.domain.Progress
 import fi.clocklings.domain.Settings
 import fi.clocklings.domain.Slot
 import fi.clocklings.domain.Wardrobe
+import fi.clocklings.domain.isTransformation
 import fi.clocklings.domain.slots
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -112,8 +113,12 @@ class ProgressRepository(
             )
         return DRESSABLE.fold(base) { progress, kind ->
             val outfit = if (kind == CompanionKind.HUMAN) readHumanOutfit() else readAnimalOutfit(kind)
+            val transformation =
+                this[transformationKey(kind)]
+                    ?.let(Wardrobe::itemOrNull)
+                    ?.takeIf { it.companion == kind && it.isTransformation }
             progress
-                .withOutfit(kind, outfit)
+                .withOutfit(kind, outfit.copy(transformation = transformation?.id))
                 .withName(kind, this[nameKey(kind)].orEmpty())
         }
     }
@@ -179,6 +184,8 @@ class ProgressRepository(
         for (kind in DRESSABLE) {
             val outfit = p.outfitFor(kind)
             for (slot in kind.slots) this[outfitKey(kind, slot)] = outfit[slot].orEmpty()
+            val key = transformationKey(kind)
+            if (outfit.transformation != null) this[key] = outfit.transformation else remove(key)
             this[nameKey(kind)] = p.nameFor(kind)
         }
         this[DONE] = p.lessonsDone
@@ -224,6 +231,8 @@ class ProgressRepository(
                 "outfit_${kind.name.lowercase()}_${slot.name.lowercase()}"
             },
         )
+
+        fun transformationKey(kind: CompanionKind) = stringPreferencesKey("transformation_${kind.name.lowercase()}")
 
         fun nameKey(kind: CompanionKind) =
             stringPreferencesKey(

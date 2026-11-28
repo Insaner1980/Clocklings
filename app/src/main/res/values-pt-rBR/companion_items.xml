@@ -4,12 +4,12 @@
     <!-- Cat -->
     <string name="item_cat_neck_scarf">Cachecol listrado</string>
     <string name="item_cat_head_bow">Laço</string>
-    <string name="item_cat_extra_yarn">Novelo de lã</string>
+    <string name="item_cat_extra_yarn">Leão de lã</string>
     <string name="item_cat_neck_bell_collar">Coleira com sino</string>
     <string name="item_cat_head_bobble_hat">Gorro com pompom</string>
     <string name="item_cat_extra_glasses">Óculos redondos</string>
     <string name="item_cat_neck_bow_tie">Gravata-borboleta</string>
-    <string name="item_cat_head_sailor_hat">Chapéu de marinheiro</string>
+    <string name="item_cat_head_sailor_hat">Capitão de papelão</string>
     <string name="item_cat_extra_fish_backpack">Mochila de peixe</string>
     <string name="item_cat_neck_ruffle">Gola de babados</string>
     <string name="item_cat_head_flower_crown">Coroa de flores</string>
@@ -33,7 +33,7 @@
     <string name="item_dog_extra_backpack">Mochila</string>
     <string name="item_dog_neck_medal">Medalha</string>
     <string name="item_dog_head_helmet">Capacete de bombeiro</string>
-    <string name="item_dog_extra_raincoat">Capa de chuva</string>
+    <string name="item_dog_extra_raincoat">Filhote na poça</string>
     <string name="item_dog_neck_cape">Capa de herói</string>
     <!-- Robot -->
     <string name="item_robot_head_antenna">Antena</string>
@@ -43,7 +43,7 @@
     <string name="item_robot_neck_cape">Capa de herói</string>
     <string name="item_robot_extra_heart_eyes">Tela com olhos de coração</string>
     <string name="item_robot_head_headphones">Fones de ouvido</string>
-    <string name="item_robot_extra_bubble_pack">Mochila de bolhas</string>
+    <string name="item_robot_extra_bubble_pack">Máquina de bolhas</string>
     <string name="item_robot_extra_star_eyes">Tela com olhos de estrela</string>
     <string name="item_robot_head_chef_hat">Chapéu de chef</string>
     <string name="item_robot_extra_wind_up_key">Chave de corda</string>
@@ -85,7 +85,7 @@
     <string name="item_dinosaur_neck_binoculars">Binóculos</string>
     <string name="item_dinosaur_neck_medal">Medalha</string>
     <string name="item_dinosaur_extra_ice_cream">Sorvete</string>
-    <string name="item_dinosaur_extra_skateboard">Skate</string>
+    <string name="item_dinosaur_extra_skateboard">Dino de skate</string>
     <!-- Bunny -->
     <string name="item_bunny_neck_ribbon">Laço de fita</string>
     <string name="item_bunny_extra_carrot">Cenoura</string>
@@ -95,7 +95,7 @@
     <string name="item_bunny_head_sun_hat">Chapéu de palha</string>
     <string name="item_bunny_neck_locket">Medalhão de coração</string>
     <string name="item_bunny_extra_watering_can">Regador</string>
-    <string name="item_bunny_head_top_hat">Cartola de mágico</string>
+    <string name="item_bunny_head_top_hat">Coelho na cartola</string>
     <string name="item_bunny_neck_bow_tie">Gravata-borboleta de bolinhas</string>
     <string name="item_bunny_extra_bubbles">Brinquedo de bolhas de sabão</string>
     <string name="item_bunny_head_flower_crown">Coroa de flores</string>
@@ -114,7 +114,7 @@
     <string name="item_unicorn_head_ribbons">Fitas na crina</string>
     <string name="item_unicorn_extra_boots">Botas brilhantes</string>
     <string name="item_unicorn_neck_rainbow_scarf">Cachecol de arco-íris</string>
-    <string name="item_unicorn_head_butterfly">Presilha de borboleta</string>
+    <string name="item_unicorn_head_butterfly">Crina florida</string>
     <string name="item_unicorn_extra_rainbow">Arco-íris</string>
     <string name="item_unicorn_neck_moon">Pingente de lua</string>
     <string name="item_unicorn_head_crown">Coroa</string>
@@ -136,5 +136,31 @@
     <string name="item_car_roof_taxi">Placa de táxi</string>
     <string name="item_car_wheels_gold">Rodas douradas</string>
     <string name="item_car_roof_rally_lights">Faróis de rali</string>
-    <string name="item_car_model_rocket">Carro-foguete</string>
+    <string name="item_car_model_rocket">Carro-foguete retrô</string>
+    <string name="item_car_model_ice_cream">Sorveteria móvel</string>
+    <string name="item_car_model_monster">Caminhão monstro</string>
+    <string name="item_car_model_recycling">Caminhão de lixo</string>
+    <string name="item_cat_model_detective">Gatinho detetive</string>
+    <string name="item_cat_model_boots">Botas gigantes</string>
+    <string name="item_dog_model_branch">Galho com folha</string>
+    <string name="item_dog_model_rescue">Filhote salva-vidas</string>
+    <string name="item_dog_model_post">Filhote carteiro</string>
+    <string name="item_robot_model_cuckoo">Relógio cuco</string>
+    <string name="item_robot_model_rover">Veículo lunar</string>
+    <string name="item_robot_model_driver">Minipiloto</string>
+    <string name="item_dragon_model_marshmallow">Marshmallow assado</string>
+    <string name="item_dragon_model_ice">Dragão de gelo</string>
+    <string name="item_dragon_model_ruby">Tesouro de rubi</string>
+    <string name="item_dragon_model_woodland">Dragão da floresta</string>
+    <string name="item_dinosaur_model_egg">Dino no ovo</string>
+    <string name="item_dinosaur_model_stegosaurus">Estegossauro</string>
+    <string name="item_dinosaur_model_fossil">Caça aos fósseis</string>
+    <string name="item_bunny_model_carrot_car">Carro de cenoura</string>
+    <string name="item_bunny_model_moon">Berço de lua</string>
+    <string name="item_bunny_model_strawberry">Coelho morango</string>
+    <string name="item_unicorn_model_sea">Unicórnio do mar</string>
+    <string name="item_unicorn_model_carousel">Unicórnio de carrossel</string>
+    <string name="item_unicorn_model_shooting_star">Estrela cadente</string>
+    <string name="item_model_veterinarian">Veterinária com filhote</string>
+    <string name="item_model_dragon_costume">Fantasia de dragão</string>
 </resources>

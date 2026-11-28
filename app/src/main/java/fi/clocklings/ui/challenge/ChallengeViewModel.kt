@@ -69,6 +69,7 @@ class ChallengeViewModel(
     private val h24: Boolean,
     private val services: AppServices,
     private val random: Random = Random.Default,
+    private val navigationRevision: () -> Int = { 0 },
     private val nowNanos: () -> Long = System::nanoTime,
 ) : ViewModel() {
     private val _state = MutableStateFlow(ChallengeUiState())
@@ -90,7 +91,7 @@ class ChallengeViewModel(
 
     fun start() {
         if (!services.purchases.state.value.fullAccess) return
-        if (_state.value.savePending) return
+        if (_state.value.phase == ChallengePhase.RUN || _state.value.savePending) return
         timer?.cancel()
         pending?.cancel()
         endSound?.cancel()
@@ -107,10 +108,11 @@ class ChallengeViewModel(
             )
         }
         nextQuestion()
+        val runNavigation = navigationRevision()
         timer =
             viewModelScope.launch {
                 delay(DURATION_MS)
-                end()
+                end(runNavigation)
             }
     }
 
@@ -144,17 +146,18 @@ class ChallengeViewModel(
         pending =
             viewModelScope.launch {
                 delay(if (correct) NEXT_AFTER_CORRECT_MS else NEXT_AFTER_WRONG_MS)
-                if (_state.value.phase == ChallengePhase.RUN) nextQuestion()
+                if (_state.value.phase == ChallengePhase.RUN && nowNanos() < s.deadlineNanos) nextQuestion()
             }
     }
 
     fun retrySave() {
         if (!_state.value.saveFailed || _state.value.savePending) return
         _state.update { it.copy(savePending = true) }
-        viewModelScope.launch { end() }
+        val retryNavigation = navigationRevision()
+        viewModelScope.launch { end(retryNavigation) }
     }
 
-    private suspend fun end() {
+    private suspend fun end(startedOn: Int) {
         pending?.cancel()
         endSound?.cancel()
         _state.update { it.copy(busy = true, savePending = true) }
@@ -179,17 +182,8 @@ class ChallengeViewModel(
             }
         val newRecord = saved && record && s.score > 0
         val fanfare = if (newRecord) Sound.RECORD else Sound.WIN
-        if (timeRanOut) {
-            services.usage.count("challenge.finish")
-            services.play(Sound.CHALLENGE_OVER)
-            endSound =
-                viewModelScope.launch {
-                    delay(FANFARE_AFTER_VOICE_MS)
-                    services.play(fanfare)
-                }
-        } else {
-            services.play(fanfare)
-        }
+        if (timeRanOut) services.usage.count("challenge.finish")
+        playEndSounds(startedOn, timeRanOut, fanfare)
         _state.update {
             it.copy(
                 phase = ChallengePhase.END,
@@ -200,6 +194,25 @@ class ChallengeViewModel(
                 busy = true,
             )
         }
+    }
+
+    private fun playEndSounds(
+        startedOn: Int,
+        timeRanOut: Boolean,
+        fanfare: Sound,
+    ) {
+        // Navigation can leave this entry composed while its exit animation is running.
+        if (navigationRevision() != startedOn) return
+        if (!timeRanOut) {
+            services.play(fanfare)
+            return
+        }
+        services.play(Sound.CHALLENGE_OVER)
+        endSound =
+            viewModelScope.launch {
+                delay(FANFARE_AFTER_VOICE_MS)
+                if (navigationRevision() == startedOn) services.play(fanfare)
+            }
     }
 
     companion object {

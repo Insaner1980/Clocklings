@@ -4,6 +4,7 @@ import androidx.compose.animation.core.withInfiniteAnimationFrameNanos
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableLongState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -49,8 +50,6 @@ fun CompanionView(
     cropItem: Item? = null,
     onGroundPosition: ((Offset) -> Unit)? = null,
 ) {
-    val loadAccessories = needsRenderedAccessories(kind, outfit, celebration?.newOutfit)
-    val rig = rememberCompanionRig(kind, color, loadAccessories) ?: return
     val reduceMotion = rememberReduceMotion()
     val moving = animated && !reduceMotion
     val active = celebration?.takeIf { animated && (it.spin || it.jump) }
@@ -58,9 +57,7 @@ fun CompanionView(
     val nowMs = remember(kind, active) { mutableLongStateOf(0L) }
     LaunchedEffect(kind, moving, active) {
         nowMs.longValue = 0L
-        if (!moving) return@LaunchedEffect
-        val start = withInfiniteAnimationFrameNanos { it }
-        while (true) withInfiniteAnimationFrameNanos { nowMs.longValue = (it - start) / NANOS_PER_MS }
+        if (moving) updateCompanionTime(nowMs)
     }
     val showNew by remember(kind, active, reduceMotion) {
         derivedStateOf { CompanionMotion.revealsNewOutfit(active, nowMs.longValue, reduceMotion) }
@@ -71,6 +68,8 @@ fun CompanionView(
         if (showNew && !reduceMotion) confetti?.sparkle(center.value)
     }
     val shown = active?.newOutfit?.takeIf { showNew } ?: outfit
+    val transformation = rememberTransformationRig(kind, shown, color)
+    val rig = transformation ?: rememberCompanionRig(kind, color, needsRenderedAccessories(kind, shown, null)) ?: return
     val crop = if (cropItem == null) rig.full(shown) else rig.crop(cropItem)
     val art =
         modifier
@@ -79,9 +78,14 @@ fun CompanionView(
             .reportGroundPosition(crop, rig.groundCenter, onGroundPosition)
             .clearAndSetSemantics { }
     Canvas(art) {
-        val pose = if (moving) poseAt(kind, nowMs.longValue, active) else RestPose
+        val pose = if (moving) poseAt(kind, nowMs.longValue, active, transformation != null) else RestPose
         drawFitted(rig, crop, clip = cropItem != null, color, shown, pose)
     }
+}
+
+private suspend fun updateCompanionTime(nowMs: MutableLongState) {
+    val start = withInfiniteAnimationFrameNanos { it }
+    while (true) withInfiniteAnimationFrameNanos { nowMs.longValue = (it - start) / NANOS_PER_MS }
 }
 
 private fun Modifier.reportGroundPosition(
@@ -152,9 +156,10 @@ private fun poseAt(
     kind: CompanionKind,
     nowMs: Long,
     active: CompanionCelebration?,
+    transformed: Boolean,
 ): CompanionPose {
     val motion = CompanionMotion.idle(nowMs)
-    val walking = kind == CompanionKind.UNICORN
+    val walking = kind == CompanionKind.UNICORN && !transformed
     val idle = if (walking) motion.copy(swayDeg = 0f, breathe = 0f, walkTimeMs = nowMs) else motion
     val frame =
         active?.takeIf { nowMs >= it.delayMs }?.let { event ->

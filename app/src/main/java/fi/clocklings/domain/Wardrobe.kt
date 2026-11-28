@@ -2,7 +2,7 @@ package fi.clocklings.domain
 
 /**
  * Clothing slots. Only the doll's hair, dress and shoes are required. Neck is an animal-only slot; roof,
- * front, wheels and model (transformations) are the car's.
+ * front and wheels are the car's. Every companion has a transformation slot.
  */
 enum class Slot(
     val optional: Boolean,
@@ -20,16 +20,15 @@ enum class Slot(
 }
 
 /**
- * The slots a companion can dress, chosen by its anatomy. The doll has no neck slot; animals have only
- * head, neck and extra; the car has no head at all.
+ * The slots a companion can dress, chosen by its anatomy. Each dressable companion also has a model slot.
  */
 val CompanionKind.slots: List<Slot>
     get() =
         when (this) {
-            CompanionKind.HUMAN -> listOf(Slot.HAIR, Slot.DRESS, Slot.SHOES, Slot.HEAD, Slot.EXTRA)
+            CompanionKind.HUMAN -> listOf(Slot.HAIR, Slot.DRESS, Slot.SHOES, Slot.HEAD, Slot.EXTRA, Slot.MODEL)
             CompanionKind.CAR -> listOf(Slot.ROOF, Slot.FRONT, Slot.WHEELS, Slot.MODEL)
             CompanionKind.NONE -> emptyList()
-            else -> listOf(Slot.HEAD, Slot.NECK, Slot.EXTRA)
+            else -> listOf(Slot.HEAD, Slot.NECK, Slot.EXTRA, Slot.MODEL)
         }
 
 /** Vaate. [star] on kokonaistähtimäärä, jolla se avautuu (0 = heti). Nimi on strings.xml:ssä. */
@@ -43,6 +42,7 @@ data class Item(
 /** What a companion wears, one item id per slot. Missing slots are empty. */
 data class Outfit(
     val items: Map<Slot, String> = emptyMap(),
+    val transformation: String? = null,
 ) {
     operator fun get(slot: Slot): String? = items[slot]
 
@@ -57,13 +57,16 @@ data class Outfit(
             else -> this
         }
 
-    fun isOn(item: Item): Boolean = this[item.slot] == item.id
+    fun isOn(item: Item): Boolean = transformationId()?.let { it == item.id } ?: (this[item.slot] == item.id)
 
     /**
      * The outfit a wardrobe thumbnail of [item] shows: the required clothes (the doll cannot be bare)
      * plus the item itself, and no other optional item.
      */
-    fun previewFor(item: Item): Outfit = Outfit(items.filterKeys { !it.optional } + (item.slot to item.id))
+    fun previewFor(item: Item): Outfit {
+        val clothes = withoutTransformations(item.companion).items.filterKeys { !it.optional }
+        return Outfit(clothes + (item.slot to item.id))
+    }
 
     companion object {
         val Default =
@@ -105,7 +108,7 @@ object Wardrobe {
             doll("dress-sateenkaari", Slot.DRESS, 15),
         )
 
-    val items: List<Item> = dollItems + AnimalItems
+    val items: List<Item> = dollItems + AnimalItems + additionalModelItems
 
     private val byId = items.associateBy { it.id }
 
@@ -139,11 +142,9 @@ object Wardrobe {
         outfit: Outfit,
         item: Item,
     ): Outfit =
-        if (outfit.isOn(item) &&
-            item.slot.optional
-        ) {
-            outfit.with(item.slot, null)
-        } else {
-            outfit.with(item.slot, item.id)
+        when {
+            outfit.isOn(item) && item.isTransformation -> outfit.withoutTransformations(item.companion)
+            outfit.isOn(item) && item.slot.optional -> outfit.with(item.slot, null)
+            else -> outfit.equip(item)
         }
 }

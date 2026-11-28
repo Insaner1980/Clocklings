@@ -36,7 +36,9 @@ internal class RenderedMotionScenario(
     private val kind: CompanionKind,
     private val directoryName: String,
 ) {
-    fun captureAccessories(colorForRow: (Int) -> CompanionColor = kind.colorOptions()::get) {
+    fun captureAccessories(
+        colorForRow: (Int) -> CompanionColor = { row -> kind.colorOptions().let { it[row % it.size] } },
+    ) {
         val items = Wardrobe.itemsFor(kind)
         compose.setContent {
             ClocklingsTheme {

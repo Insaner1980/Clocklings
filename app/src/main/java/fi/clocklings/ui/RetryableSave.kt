@@ -16,7 +16,13 @@ internal class RetryableSave {
         val current = ++request
         retry = null
         write { saved ->
-            if (current == request) retry = if (saved) null else ({ run(write) })
+            if (current != request) return@write
+            retry =
+                if (saved) {
+                    null
+                } else {
+                    { if (current == request && retry != null) run(write) }
+                }
         }
     }
 }

@@ -37,6 +37,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import fi.clocklings.R
 import fi.clocklings.Screen
 import fi.clocklings.domain.AccessPolicy
 import fi.clocklings.domain.AppLanguage
@@ -48,6 +49,7 @@ import fi.clocklings.domain.Progress
 import fi.clocklings.domain.Settings
 import fi.clocklings.domain.Task
 import fi.clocklings.domain.TaskType
+import fi.clocklings.domain.timeLanguage
 import fi.clocklings.ui.appearance.LocalPersonalization
 import fi.clocklings.ui.clock.ClockCommand
 import fi.clocklings.ui.companion.companionAspectRatio
@@ -407,6 +409,42 @@ class ScreenInteractionTest {
                 val rowTop = minOf(bounds(clock).top, companionTop ?: Float.MAX_VALUE)
                 val bubbleGap = rowTop - bounds(bubble).bottom
                 assertTrue("$label: bubble to row $bubbleGap", bubbleGap <= gap + 1f)
+            }
+        }
+    }
+
+    @Test
+    fun homeClockDescribesTheSelectedTimeFormat() {
+        val viewport = mutableStateOf(411 to 1f)
+        val h24 = mutableStateOf(false)
+        val readTime = { 15 * 60 + 5 }
+        val context = localizedContext(AppLanguage.ENGLISH)
+        val personalization = Personalization(companion = CompanionKind.NONE)
+        compose.setContent {
+            val (width, fontScale) = viewport.value
+            CompositionLocalProvider(
+                LocalContext provides context,
+                LocalResources provides context.resources,
+                LocalClockTime provides readTime,
+                LocalDensity provides Density(LocalDensity.current.density, fontScale),
+            ) {
+                ClocklingsTheme {
+                    Box(Modifier.requiredSize(width.dp, 640.dp)) {
+                        HomeScreen(Progress(), Settings(h24 = h24.value, personalization = personalization), {})
+                    }
+                }
+            }
+        }
+        for (cell in listOf(411 to 1f, 320 to 1f, 411 to 2f, 320 to 2f)) {
+            compose.runOnIdle { viewport.value = cell }
+            for (mode in listOf(false, true)) {
+                compose.runOnIdle { h24.value = mode }
+                val time = timeLanguage(AppLanguage.ENGLISH).fullWords(readTime(), mode)
+                compose
+                    .onNodeWithContentDescription(
+                        context.getString(R.string.clock_description, time),
+                        useUnmergedTree = true,
+                    ).assertIsDisplayed()
             }
         }
     }

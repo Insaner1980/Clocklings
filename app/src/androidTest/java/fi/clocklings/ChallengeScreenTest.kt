@@ -43,7 +43,7 @@ class ChallengeScreenTest {
                 )
             }
         }
-        compose.onNodeWithText("NO SCORE YET").assertExists()
+        compose.onNodeWithText("No score yet").assertExists()
         compose.onNodeWithText("Start!").scrollToIfScrollable().performClick()
         compose.runOnIdle {
             assertEquals(1, starts)
@@ -75,6 +75,6 @@ class ChallengeScreenTest {
             assertEquals(1, backs)
             state.value = ChallengeUiState(best = 5)
         }
-        compose.onNodeWithText("BEST SCORE: 5 CORRECT").assertExists()
+        compose.onNodeWithText("Best score: 5 correct").assertExists()
     }
 }

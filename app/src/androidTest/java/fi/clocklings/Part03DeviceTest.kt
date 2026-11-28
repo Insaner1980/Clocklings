@@ -36,6 +36,7 @@ import fi.clocklings.domain.Slot
 import fi.clocklings.ui.AppViewModel
 import fi.clocklings.ui.LocalAppViewModel
 import fi.clocklings.ui.appearance.AppearanceScreen
+import fi.clocklings.ui.applyClocklingsSystemBars
 import fi.clocklings.ui.ask.AskScreen
 import fi.clocklings.ui.challenge.ChallengePhase
 import fi.clocklings.ui.challenge.ChallengeRoute
@@ -98,8 +99,17 @@ class Part03DeviceTest {
                 .fetchSemanticsNode()
                 .config[SemanticsActions.CustomActions]
                 .first()
-        compose.runOnIdle { assertTrue(queued.action()) }
-        compose.onNodeWithText("Pass to partner").performClick()
+        val pass =
+            compose
+                .onNodeWithText("Pass to partner")
+                .fetchSemanticsNode()
+                .config[SemanticsActions.OnClick]
+                .action!!
+        compose.runOnIdle {
+            assertTrue(queued.action())
+            pass()
+            queued.action()
+        }
         compose.runOnIdle { assertFalse(queued.action()) }
         compose.onNodeWithText("Show the answer").performClick()
         compose.onNodeWithText("3:05").scrollToIfScrollable().assertIsDisplayed()
@@ -251,6 +261,7 @@ class Part03DeviceTest {
     private fun render(content: @Composable (AppViewModel) -> Unit) {
         val services = (environment.context.applicationContext as ClocklingsApplication).container
         compose.activityRule.scenario.onActivity { activity ->
+            activity.applyClocklingsSystemBars()
             activity.setContent {
                 val app = viewModel<AppViewModel>(factory = viewModelFactory { initializer { AppViewModel(services) } })
                 CompositionLocalProvider(LocalAppViewModel provides app) { ClocklingsTheme { content(app) } }

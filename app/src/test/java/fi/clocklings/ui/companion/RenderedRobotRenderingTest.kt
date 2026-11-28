@@ -21,10 +21,13 @@ class RenderedRobotRenderingTest {
     fun everyReferenceAccessoryHasVisibleExportedGeometry() {
         val outfit = mutableStateOf(Outfit())
         val rendering = RenderedRigRendering(compose, "robot", 280, 346) { rememberRenderedRobotRig(it) }
-        rendering.setContent(outfit = { outfit.value })
+        rendering.setContent(outfit = { outfit.value }, transformationKind = CompanionKind.ROBOT)
         val baseline = rendering.capture()
         val items = Wardrobe.itemsFor(CompanionKind.ROBOT)
-        assertEquals(items.map { it.id }.toSet(), RobotAccessoryRegions.keys)
+        assertEquals(
+            items.map { it.id }.toSet(),
+            RobotAccessoryRegions.keys + transformationArt.keys.filter { it.startsWith("robot-") },
+        )
         for (item in items) {
             compose.runOnIdle { outfit.value = Outfit().with(item.slot, item.id) }
             val rendered = rendering.capture()

@@ -187,7 +187,7 @@ private fun CompanionChoices(
                 Modifier.fillMaxWidth(),
                 kind = ButtonKind.PRIMARY,
                 icon = SkIcons.Outfit,
-                enabled = preview == kind,
+                enabled = !pager.isScrollInProgress && preview == kind,
             )
         }
     }

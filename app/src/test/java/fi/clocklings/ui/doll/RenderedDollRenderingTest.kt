@@ -45,7 +45,7 @@ class RenderedDollRenderingTest {
     @Test
     fun wingsExtendPastBothShouldersAndSkatesCastAShadowAtTheWheels() {
         val outfit = mutableStateOf(Outfit.Default)
-        rendering.setContent(outfit = { outfit.value })
+        rendering.setContent(outfit = { outfit.value }, transformationKind = CompanionKind.HUMAN)
         val plain = rendering.capture()
         compose.runOnIdle { outfit.value = Outfit.Default.with(Slot.EXTRA, "extra-siivet") }
         val wings = rendering.capture()
@@ -82,7 +82,7 @@ class RenderedDollRenderingTest {
     @Test
     fun everyWardrobeChoiceIsDistinctAndOverallsReplaceTheHem() {
         val outfit = mutableStateOf(Outfit.Default)
-        rendering.setContent(outfit = { outfit.value })
+        rendering.setContent(outfit = { outfit.value }, transformationKind = CompanionKind.HUMAN)
         val baseline = rendering.capture()
         val hashes = mutableSetOf(baseline.values.contentHashCode())
         for (item in Wardrobe.itemsFor(CompanionKind.HUMAN).filter { it.star > 0 }) {

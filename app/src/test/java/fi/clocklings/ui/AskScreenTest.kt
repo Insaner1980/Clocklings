@@ -52,15 +52,10 @@ class AskScreenTest {
         compose.setAskContent(model, viewport, resetOnResize = true)
         for (cell in TestViewports) {
             compose.runOnIdle { viewport.value = cell }
-            val queued =
-                compose
-                    .onNode(SemanticsMatcher.keyIsDefined(SemanticsActions.CustomActions))
-                    .fetchSemanticsNode()
-                    .config[SemanticsActions.CustomActions]
-                    .first()
+            val queued = clockChangeAction()
             compose.onNodeWithText("Pass to partner").performClick()
             var accepted = true
-            compose.runOnIdle { accepted = queued.action() }
+            compose.runOnIdle { accepted = queued() }
             compose.onNodeWithText("Show the answer").performClick()
             compose.onNodeWithText("3:00").assertIsDisplayed()
             assertFalse("$cell: the setter action must be rejected after handover", accepted)
@@ -77,6 +72,38 @@ class AskScreenTest {
             compose.onNodeWithContentDescription("Player 2 sets the time").assertIsDisplayed()
         }
     }
+
+    @Test
+    fun aQueuedClockChangeCannotReplaceTheHandedOverTime() {
+        val viewport = mutableStateOf(TestViewports.first())
+        compose.setAskContent(AppViewModel(FakeServices(fullAccess = true)), viewport, resetOnResize = true)
+        for (cell in TestViewports) {
+            compose.runOnIdle { viewport.value = cell }
+            val nudge = clockChangeAction()
+            val pass =
+                compose
+                    .onNodeWithText("Pass to partner")
+                    .fetchSemanticsNode()
+                    .config[SemanticsActions.OnClick]
+                    .action!!
+            compose.runOnIdle {
+                nudge()
+                pass()
+                nudge()
+            }
+            compose.onNodeWithText("Show the answer").performClick()
+            compose.onNodeWithText("3:05").assertIsDisplayed()
+            compose.onNodeWithText("Swap turns").performClick()
+        }
+    }
+
+    private fun clockChangeAction(): () -> Boolean =
+        compose
+            .onNode(SemanticsMatcher.keyIsDefined(SemanticsActions.CustomActions))
+            .fetchSemanticsNode()
+            .config[SemanticsActions.CustomActions]
+            .first()
+            .action
 }
 
 internal fun ComposeContentTestRule.setAskContent(

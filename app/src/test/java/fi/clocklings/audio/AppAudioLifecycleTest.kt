@@ -9,6 +9,7 @@ import fi.clocklings.data.InMemoryPreferencesStore
 import fi.clocklings.domain.AppLanguage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.job
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.runBlocking
@@ -38,6 +39,28 @@ class AppAudioLifecycleTest {
             container.stopSpeech()
             assertFalse("Navigation must stop recorded instructions", Sound.QUESTION_READ in streams)
             assertTrue("Unrelated effects must keep playing", Sound.WIN in streams)
+        }
+    }
+
+    @Test
+    fun listenInterruptsRecordedNarrationOnlyWhenSpeechIsAvailable() {
+        withReadyAudio { container, _ ->
+            val speech = ReflectionHelpers.getField<Speech>(container, "speech")
+            val available = ReflectionHelpers.getField<MutableStateFlow<Boolean>>(speech, "_available")
+            val sfx = ReflectionHelpers.getField<Sfx>(container, "sfx")
+            val streams = ReflectionHelpers.getField<Map<Sound, Int>>(sfx, "streams")
+            container.resume()
+            container.play(Sound.WIN)
+            container.play(Sound.QUESTION_READ)
+
+            available.value = false
+            container.speak("It is three o'clock")
+            assertTrue(Sound.QUESTION_READ in streams)
+
+            available.value = true
+            container.speak("It is three o'clock")
+            assertFalse("Listen must stop the recorded instruction", Sound.QUESTION_READ in streams)
+            assertTrue(Sound.WIN in streams)
         }
     }
 

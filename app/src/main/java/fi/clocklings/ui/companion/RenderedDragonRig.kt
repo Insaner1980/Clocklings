@@ -48,8 +48,8 @@ internal class RenderedDragonRig(
         atlas = atlas,
         accessories = accessories,
         // Keep tall headwear below the wardrobe's star badge, including at 200% font scale.
-        fullFrame = FullFrame,
-        ground = Ground,
+        fullFrame = DragonFullFrame,
+        ground = DragonGround,
         // The crops keep every item of the slot whole. The head crop shows the whole face, above the wings;
         // the neck crop starts below the mouth and is wide enough to show the royal cape beside the body.
         headCrop = Rect(24f, 0f, 216f, 151f),
@@ -149,5 +149,5 @@ private val RightShoulder = Offset(162f, 166f)
 private val Neck = Offset(120f, 158f)
 private const val LIDS_CLOSED = 0.82f
 private val EyeCenters = floatArrayOf(89.4f, 151.1f)
-private val Ground = ovalRect(120f, 284f, 92f, 11f)
-private val FullFrame = Rect(-12f, -64f, 252f, 310f)
+internal val DragonGround = ovalRect(120f, 284f, 92f, 11f)
+internal val DragonFullFrame = Rect(-12f, -64f, 252f, 310f)

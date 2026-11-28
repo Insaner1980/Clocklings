@@ -38,7 +38,6 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.min
 import fi.clocklings.R
-import fi.clocklings.domain.ClockTime
 import fi.clocklings.domain.Greeting
 import fi.clocklings.domain.timeLanguage
 import fi.clocklings.ui.LocalClockTime
@@ -65,24 +64,25 @@ fun IntroOverlay(
     val target = remember { readTime() }
     val elapsed = remember { mutableLongStateOf(0L) }
     val currentOnDone by rememberUpdatedState(onDone)
-    IntroTimelineEffect(reduceMotion, onFrame = { elapsed.longValue = it }, onTick = onTick, onDone = onDone)
+    var completed by remember { mutableStateOf(false) }
+    val finish = {
+        if (!completed) {
+            completed = true
+            currentOnDone()
+        }
+    }
+    IntroTimelineEffect(
+        reduceMotion,
+        onFrame = { elapsed.longValue = it },
+        onTick = { if (!completed) onTick() },
+        onDone = finish,
+    )
     val time = { if (reduceMotion) T.FADE_START_MS else elapsed.longValue }
     val title = stringResource(R.string.app_name)
     val greeting = stringResource(greetingText(timeLanguage(LocalAppLanguage.current).greeting(target)))
     val description = stringResource(R.string.intro_description, title, greeting)
     BoxWithConstraints(
-        modifier
-            .fillMaxSize()
-            .graphicsLayer { alpha = T.overlayAlpha(time()) }
-            .sectionBackground(Section.HOME)
-            .clickable(
-                interactionSource = null,
-                indication = null,
-                onClickLabel = stringResource(R.string.intro_skip),
-                onClick = { currentOnDone() },
-            ).semantics { contentDescription = description }
-            .safeDrawingPadding()
-            .padding(horizontal = SkDimens.Gutter),
+        modifier.introOverlaySurface(time, description, stringResource(R.string.intro_skip), finish),
         contentAlignment = Alignment.Center,
     ) {
         val mascotSize = min(SkDimens.ClockMax, min(maxWidth, maxHeight * MASCOT_HEIGHT_SHARE))
@@ -117,6 +117,24 @@ fun IntroOverlay(
     }
 }
 
+private fun Modifier.introOverlaySurface(
+    time: () -> Long,
+    description: String,
+    skipLabel: String,
+    onSkip: () -> Unit,
+): Modifier =
+    fillMaxSize()
+        .graphicsLayer { alpha = T.overlayAlpha(time()) }
+        .sectionBackground(Section.HOME)
+        .clickable(
+            interactionSource = null,
+            indication = null,
+            onClickLabel = skipLabel,
+            onClick = onSkip,
+        ).semantics { contentDescription = description }
+        .safeDrawingPadding()
+        .padding(horizontal = SkDimens.Gutter)
+
 /** Prevents accessibility and keyboard focus from entering the covered content. */
 fun Modifier.coveredByIntro(covered: Boolean): Modifier =
     focusProperties { onEnter = { if (covered) cancelFocusChange() } }
@@ -135,11 +153,12 @@ fun IntroGreetingVoiceEffect(
     var finished by rememberSaveable { mutableStateOf(false) }
     val reduceMotion = rememberReduceMotion()
     val language = LocalAppLanguage.current
+    val readTime = LocalClockTime.current
     val currentOnGreeting by rememberUpdatedState(onGreeting)
     LaunchedEffect(active) {
         if (!active) finished = true
         if (finished) return@LaunchedEffect
-        val greeting = timeLanguage(language).greeting(ClockTime.now())
+        val greeting = timeLanguage(language).greeting(readTime())
         delay(if (reduceMotion) T.STILL_GREETING_VOICE_MS else T.GREETING_VOICE_MS)
         finished = true
         currentOnGreeting(greeting)
